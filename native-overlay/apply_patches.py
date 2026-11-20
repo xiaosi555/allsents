@@ -262,3 +262,21 @@ patch("ui/LayoutScreen.kt",[
 ('''            "image" -> ImagePanel(vm)
 ''','')
 ])
+
+patch("ui/AppViewModel.kt",[
+('fun setQuantity(n: Int) { if (n > 0) updateUi { copy(quantity = n) } }',
+ 'fun setQuantity(n: Int) { updateUi { copy(quantity = n.coerceIn(1, 15)) } }'),
+('''    fun applyRandomEmoji() {''',
+'''    fun clearEmoji() = updateUi { copy(previewEmoji = "") }
+
+    fun applyRandomEmoji() {''')
+])
+patch("ui/LayoutScreen.kt",[
+('''        else GridCards { vm.data.emoji.forEach { e -> GridCard(e.name.ifEmpty { "emoji" }) { vm.applyRandomEmoji() } } }''',
+'''        else GridCards {
+            vm.data.emoji.forEach { e -> GridCard(e.name.ifEmpty { "emoji" }) { vm.applyRandomEmoji() } }
+            if (vm.ui.previewEmoji.isNotEmpty()) GridCard("移除emoji") { vm.clearEmoji() }
+        }'''),
+('GridCard(if (on) "重新随机" else "随机往期", on) { vm.rollHistory() }',
+ 'vm.data.history.forEach { h -> GridCard(h.name.ifEmpty { h.title.ifEmpty { "未命名往期" } }, vm.ui.historyIds.contains(h.id)) { vm.rollHistory(h.id) } }')
+])
