@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>拾万句 · 需求说明书（v1.0）</title>
+<style>
+  :root {
+    --ink: #17202a;
+    --ink-2: #4a5563;
+    --ink-3: #7b8591;
+    --paper: #f6f7f4;
+    --card: #ffffff;
+    --line: #dfe3dc;
+    --mark: #ccff00;          /* 产品主题色 = 文档唯一的强调色 */
+    --mark-soft: #f1ffb0;
+    --code-bg: #14181d;
+    --code-ink: #e6ebe0;
+    --serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", serif;
+    --sans: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Noto Sans Mono CJK SC", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e8ece4; --ink-2:#b4bcb0; --ink-3:#7f897d; --paper:#101410; --card:#171c17; --line:#2a312a; --mark-soft:#2a3300; --code-bg:#0a0d0a; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.85 var(--sans); }
+  a { color: inherit; }
+  .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+  nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 40px 20px 40px 28px; border-right: 1px solid var(--line); }
+  nav.toc .brand { font: 700 20px/1.3 var(--serif); letter-spacing: .08em; margin-bottom: 4px; }
+  nav.toc .sub { color: var(--ink-3); font-size: 12px; margin-bottom: 26px; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+  nav.toc li { counter-increment: s; }
+  nav.toc a { display: block; padding: 5px 0 5px 28px; position: relative; text-decoration: none; color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+  nav.toc a::before { content: counter(s); position: absolute; left: 0; width: 20px; text-align: right; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  nav.toc a:hover, nav.toc a.on { color: var(--ink); }
+  nav.toc a.on { background: linear-gradient(transparent 62%, var(--mark) 62%); }
+  main { padding: 56px 48px 120px; max-width: 840px; }
+  header.doc h1 { font: 700 38px/1.25 var(--serif); letter-spacing: .04em; margin: 0 0 14px; }
+  header.doc p { color: var(--ink-2); max-width: 36em; margin: 0 0 22px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+  .meta b { color: var(--ink); font-weight: 600; margin-right: 6px; }
+  section { padding-top: 56px; }
+  h2 { font: 700 26px/1.35 var(--serif); margin: 0 0 18px; letter-spacing: .03em; }
+  h2 small { font: 500 13px var(--sans); color: var(--ink-3); margin-left: 10px; letter-spacing: 0; }
+  h3 { font: 700 17px/1.5 var(--sans); margin: 34px 0 10px; }
+  h4 { font: 600 14px/1.5 var(--sans); margin: 22px 0 6px; color: var(--ink-2); }
+  p { margin: 0 0 12px; }
+  ul, ol.n { margin: 0 0 14px; padding-left: 1.3em; }
+  li { margin: 3px 0; }
+  code { font: 12.5px var(--mono); background: var(--mark-soft); padding: 1px 5px; border-radius: 3px; }
+  pre { background: var(--code-bg); color: var(--code-ink); padding: 16px 18px; border-radius: 6px; overflow-x: auto; font: 12.5px/1.65 var(--mono); margin: 12px 0 18px; }
+  pre code { background: none; padding: 0; color: inherit; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 10px 0 20px; background: var(--card); }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--ink-2); background: transparent; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+  td:first-child { white-space: nowrap; font-weight: 600; }
+  .table-wrap { overflow-x: auto; }
+  .rule { display: grid; grid-template-columns: 56px 1fr; gap: 0 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+  .rule:last-of-type { border-bottom: 1px solid var(--line); }
+  .rule .id { font: 600 12px/1.9 var(--mono); color: var(--ink-3); }
+  .rule h4 { margin: 0 0 4px; color: var(--ink); font-size: 15px; }
+  .rule p, .rule ul { font-size: 14px; color: var(--ink-2); margin-bottom: 6px; }
+  .note { border-left: 3px solid var(--mark); background: var(--card); padding: 10px 16px; margin: 16px 0; font-size: 14px; color: var(--ink-2); }
+  .tag { display: inline-block; font-size: 12px; padding: 0 8px; border: 1px solid var(--line); border-radius: 99px; color: var(--ink-2); background: var(--card); margin-right: 4px; }
+  .wire { font: 12.5px/1.5 var(--mono); background: var(--card); border: 1px solid var(--line); padding: 16px 18px; border-radius: 6px; white-space: pre; overflow-x: auto; color: var(--ink-2); margin: 12px 0 18px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+  .check { list-style: none; padding: 0; }
+  .check li { padding-left: 26px; position: relative; }
+  .check li::before { content: ""; position: absolute; left: 0; top: 7px; width: 13px; height: 13px; border: 1.5px solid var(--ink-3); border-radius: 3px; }
+  footer { margin-top: 80px; color: var(--ink-3); font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 24px 20px; }
+    main { padding: 32px 20px 80px; }
+    .cols { grid-template-columns: 1fr; }
+    header.doc h1 { font-size: 30px; }
+    .rule { grid-template-columns: 44px 1fr; }
+  }
+  @media print { nav.toc { display: none; } .shell { display: block; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<div class="shell">
+<nav class="toc" aria-label="目录">
+  <div class="brand">拾万句</div>
+  <div class="sub">需求说明书 · v1.0</div>
+  <ol>
+    <li><a href="#s1">产品概述</a></li>
+    <li><a href="#s2">信息架构</a></li>
+    <li><a href="#s3">数据模型</a></li>
+    <li><a href="#s4">排版页</a></li>
+    <li><a href="#s5">排版引擎规则</a></li>
+    <li><a href="#s6">我的</a></li>
+    <li><a href="#s7">状态与持久化</a></li>
+    <li><a href="#s8">视觉与主题</a></li>
+    <li><a href="#s9">Android 实现</a></li>
+    <li><a href="#s10">验收清单</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="doc">
+  <h1>拾万句 需求说明书</h1>
+  <p>一个把文案、配图、动图、往期和账号信息，快速排成公众号文章的工具。本文档以现有网页版的实际行为为准，用来指导 Android 原生版的实现与验收。</p>
+  <div class="meta">
+    <span><b>版本</b>1.0</span>
+    <span><b>范围</b>排版页 · 我的</span>
+    <span><b>基准</b>网页版（排版 + 我的 两个页面）</span>
+    <span><b>平台</b>Android 8.0+</span>
+  </div>
+</header>
+
+<!-- ============================================================ 1 -->
+<section id="s1">
+  <h2>1　产品概述</h2>
+  <h3>1.1　定位</h3>
+  <p>运营者每天要把一批短句排成固定样式的公众号内容：选版式、选文案、配图、插入动图和往期推荐，再放进公众号编辑器。拾万句把这套动作压缩成“点几下，预览立刻出来”。</p>
+  <h3>1.2　核心流程</h3>
+  <ol class="n">
+    <li>在【我的】里维护素材：账号、文案、版式、emoji、往期、动图、配图。</li>
+    <li>回到排版页，依次选择：账号 → 版式 → 文案（含数量、倍率）→ 配图 → 更多（emoji / 动图 / 往期）。</li>
+    <li>预览区实时重排；点【编辑】进入编辑模式，直接改字、调边距、加空行、取随机标题。</li>
+    <li>把预览内容复制到公众号编辑器。</li>
+  </ol>
+  <h3>1.3　名词</h3>
+  <div class="table-wrap"><table>
+    <tr><th>名词</th><th>含义</th></tr>
+    <tr><td>版式</td><td>一段 HTML 模板，包含若干重复的“条目单元”。共四种：朋友圈版、文字断句版、卡片版、断章序引版。</td></tr>
+    <tr><td>条目 / 单元</td><td>版式里重复出现的最小结构，每个条目对应一条文案。</td></tr>
+    <tr><td>文案模块</td><td>一个有名字的文案集合，每行一条；分类为“朋友圈”或“名句”；另有“标题”字段，每行一个随机标题。</td></tr>
+    <tr><td>出处</td><td>文案里破折号后面的作者 / 书名，如“……——史铁生《我与地坛》”。</td></tr>
+    <tr><td>数量 / 倍率</td><td>数量 = 排几个条目；倍率 = 每个条目里放几句文案（x1~x5）。</td></tr>
+    <tr><td>往期 / 动图</td><td>预览末尾可追加的两种内容块：往期推荐（5 条文章）和动图代码块。</td></tr>
+  </table></div>
+</section>
+
+<!-- ============================================================ 2 -->
+<section id="s2">
+  <h2>2　信息架构</h2>
+<pre><code>拾万句
+├─ 排版页
+│   ├─ 顶部栏：标题 · 字数 · 导出 · 编辑/完成
+│   ├─ 预览区（可编辑，含编辑悬浮窗）
+│   ├─ 二级面板（随一级导航变化）
+│   └─ 一级导航：账号 · 版式 · 文案 · 配图 · 更多 · 我的
+└─ 我的
+    ├─ 账号
+    ├─ 文案   （宫格 / 列表 · 手动排序）
+    ├─ 版式
+    ├─ 更多   （emoji · 往期 · 动图 · 配图）
+    └─ 备份   （导出 / 导入 JSON）</code></pre>
+  <p>两个页面共用同一份数据。在【我的】里修改后返回排版页，已选内容会重新校验，预览随之刷新。</p>
+</section>
+
+<!-- ============================================================ 3 -->
+<section id="s3">
+  <h2>3　数据模型</h2>
+  <p>备份文件是一份 JSON，网页版与 Android 版必须互相可导入。字段名不可改。</p>
+<pre><code>{
+  "accounts": [{ "id", "avatar", "name", "appId", "secret", "mpAvatar", "author" }],
+  "layout":   [{ "id", "name", "content" }],                     // content = 模板 HTML
+  "history":  [{ "id", "name", "title", "link", "image", "content" }],
+  "emoji":    [{ "id", "name", "content" }],
+  "files": {
+    "text":  [{ "id", "name", "title", "content", "category" }], // category: 朋友圈 | 名句
+    "gif":   [{ "id", "name", "content" }],                      // 两个换行分隔多段代码
+    "image": [{ "id", "name", "content" }]                       // 每行一个图片地址
+  },
+  "layoutVer": 2
+}</code></pre>
+  <h3>3.1　规范化规则</h3>
+  <ul>
+    <li>缺失或重复的 id，按列表顺序补确定性 id（<code>acc_1</code>、<code>layout_1</code>、<code>file_text_1</code>……）。id 一律当字符串比较，数字 id 视为字符串。</li>
+    <li>所有文本字段缺失时补空字符串。</li>
+    <li>文案模块的 category 不在“朋友圈 / 名句”内时，默认“朋友圈”。</li>
+    <li><code>layoutVer</code> 低于当前版本（2）时，按版式名称把内容替换为最新模板：名称含“卡片 / 断章或序引 / 朋友圈 / 断句”分别对应四种版式；替换后写入当前版本号。</li>
+    <li>导入备份必须包含 <code>accounts</code> 数组和 <code>files</code> 对象，否则提示“备份文件格式不正确”。</li>
+  </ul>
+  <h3>3.2　往期条目的保存</h3>
+  <p>往期有“标题 / 链接 / 图片”三项。保存时同时生成 <code>content</code>：有图片 → 图片版代码；无图片 → 文字版代码。旧数据没有这三项时，直接输出原 <code>content</code>。</p>
+</section>
+
+<!-- ============================================================ 4 -->
+<section id="s4">
+  <h2>4　排版页</h2>
+  <h3>4.1　布局</h3>
+<pre class="wire">┌────────────────────────────┐
+│ 拾万句   1234字   [导出][编辑] │ 顶部栏
+├────────────────────────────┤
+│                            │
+│        预览区（白底）         │ 可滚动、可编辑
+│                            │
+├────────────────────────────┤
+│  二级面板（随一级导航变化）     │
+├────────────────────────────┤
+│ 账号 版式 文案 配图 更多 我的   │ 一级导航
+└────────────────────────────┘</pre>
+  <p>默认进入【文案】。字数按 Unicode 字符计，含空格、换行、emoji。</p>
+
+  <h3>4.2　一级导航与二级面板</h3>
+  <div class="table-wrap"><table>
+    <tr><th>一级</th><th>二级面板内容</th><th>交互</th></tr>
+    <tr><td>账号</td><td>账号卡片列表；默认选中第一个</td><td>点击选中；朋友圈版头像随之更换。无账号时提示去【我的】添加。</td></tr>
+    <tr><td>版式</td><td>版式缩略卡（名称 + 配色 + 示意图）</td><td>点击切换，预览重排。</td></tr>
+    <tr><td>文案</td><td>二级导航“朋友圈 / 名句”（默认朋友圈）+ 右侧数量控件；下方是该分类下的文案模块</td><td>点击模块 = 随机读取；再次点击同一模块 = 重新随机。</td></tr>
+    <tr><td>配图</td><td>“重新随机”按钮 · 当前配图模块名 · 备选缩略图</td><td>已用于预览的缩略图高亮。</td></tr>
+    <tr><td>更多</td><td>二级导航 emoji / 动图 / 往期</td><td>见 4.5。</td></tr>
+    <tr><td>我的</td><td>—</td><td>进入【我的】页面。</td></tr>
+  </table></div>
+
+  <h3>4.3　数量与倍率（文案面板右上角）</h3>
+  <ul>
+    <li><b>数量</b>：快捷 3 / 6 / 9，加一个自定义输入框；默认 9。输入大于 0 的整数即时生效。</li>
+    <li><b>倍率</b>：数量右侧的 <code>x1</code> 按钮，点击循环 x1→x2→x3→x4→x5→x1，默认 x1。</li>
+    <li>没有单独的“数量”一级导航。数量同时决定配图的使用张数。</li>
+  </ul>
+
+  <h3>4.4　文案模块的选择</h3>
+  <ul>
+    <li>选中模块后，从该模块的内容里随机抽取最多 80 条作为文案池（保证数量 15 × 倍率 5 也够用）。</li>
+    <li>该分类下没有模块时提示“【分类】下暂无文案，可在【我的】-文案中添加”。</li>
+    <li>没有选中任何文案时，预览保留模板自带的示例文字。</li>
+  </ul>
+
+  <h3 id="s45">4.5　更多：emoji / 动图 / 往期</h3>
+  <div class="table-wrap"><table>
+    <tr><th>项</th><th>行为</th></tr>
+    <tr><td>emoji</td><td>点任意 emoji 条目 = 从全部 emoji 条目里随机取一个，再从其内容（按空行分段）里随机取一段，作为“预览 emoji”追加到每个条目的序号 / 昵称 / 引号之后（见 5.13）。</td></tr>
+    <tr><td>动图</td><td>点动图条目 = 从其内容（按两个换行分段）里随机取一段，插入预览末尾。</td></tr>
+    <tr><td>往期</td><td>面板只有“随机5条 / 重新随机5条 / 移除往期”和“共 N 条”。每次随机读取 5 条往期条目，插入预览末尾。</td></tr>
+  </table></div>
+  <p>动图与往期都是“先点先插入”：谁先被点，谁排在前面；已经插入的再次点击，位置不变。点击后预览自动滚动到该块。</p>
+
+  <h3>4.6　预览区</h3>
+  <ul>
+    <li>白底，左右各 15px 内边距；内容按“版式 → 动图 / 往期（按点击顺序）”从上到下排列。</li>
+    <li>非编辑模式下文字不可选；<b>动图块始终可选中</b>，编辑模式下整个预览区可选中、可编辑。</li>
+    <li>没有任何版式时显示“暂无版式，请到【我的】中添加”。</li>
+  </ul>
+
+  <h3>4.7　编辑模式与悬浮窗</h3>
+  <p>点【编辑】进入，按钮变为【完成】。进入时自动弹出“随机标题”悬浮窗；预览区左侧出现两个入口图标：编辑设置、随机标题。退出时两个悬浮窗都收起。</p>
+  <ul>
+    <li><b>悬浮窗通用特性</b>：可拖拽（拖标题栏）、可缩放（拖右下角）、位置与尺寸限制在预览容器内；最小 190×96；点到哪个窗口，哪个窗口置顶；样式取主题色。</li>
+    <li><b>随机标题</b>：见 5.19；带【复制】和【换一个】。复制成功后按钮短暂显示“已复制”。</li>
+    <li><b>编辑设置</b>：
+      <ul>
+        <li><b>往期 / 动图边距</b>：一套配置，同时控制预览里的往期块和动图块。四个数值，顺序为<b>上、右、下、左</b>（px），可直接输入，也可点 ▲▼ 微调；输入框一激活就清空，失焦时若为空则恢复原值；修改<b>实时</b>作用到预览，且<b>不重新渲染</b>，已编辑内容不丢失。</li>
+        <li><b>全局空行</b>：【内容上方】【内容下方】两个独立开关，各插入 1 个空行，见 5.17。</li>
+      </ul>
+    </li>
+  </ul>
+</section>
+
+<!-- ============================================================ 5 -->
+<section id="s5">
+  <h2>5　排版引擎规则<small>最核心的部分，Android 需逐条等价实现</small></h2>
+  <p>引擎的输入是：当前数据 + 界面状态（所选版式、账号、文案池、配图池、数量、倍率、动图、往期、边距…），输出是预览区的 HTML。每次状态变化都整体重算。</p>
+
+  <div class="rule"><div class="id">5.1</div><div>
+    <h4>单元识别</h4>
+    <ul>
+      <li>去掉模板里所有 script；顶层元素里的 style 原样保留在容器内。</li>
+      <li>只有 <b>1 个顶层元素</b>、且它的子元素“只有 1 个”或“由重复结构构成”时，把它当作<b>外层容器</b>，容器内部的子元素作为单元序列；否则顶层元素序列本身就是单元序列。</li>
+      <li>“重复结构”：按标签名序列求<b>最小周期</b> p（p 能整除总数，且每个元素与 i mod p 处标签相同）。每 p 个元素构成一个单元。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.2</div><div>
+    <h4>条目数</h4>
+    <p>有文案时：<code>条目数 = min(数量, 文案池条数)</code>；没有文案时：<code>min(数量, 模板单元数)</code>。单元不够时循环复用。</p></div></div>
+
+  <div class="rule"><div class="id">5.3</div><div>
+    <h4>文案排序</h4>
+    <p>取文案池的前“条目数”条，按<b>正文字符数由少到多</b>排序（正文不含出处；同字数保持原先后），预览按这个顺序输出。字符数按 Unicode 码点计。</p></div></div>
+
+  <div class="rule"><div class="id">5.4</div><div>
+    <h4>序号与时间</h4>
+    <p>单元里纯数字文本（1~3 位）替换为两位序号（01、02…）；“N分钟前”替换为“(i+1)分钟前”。只有在有文案时才替换。</p></div></div>
+
+  <div class="rule"><div class="id">5.5</div><div>
+    <h4>正文定位</h4>
+    <p>在单元的文本节点里，排除序号、<code>PART</code>、纯引号类字符后，取<b>不含“《”的最长文本</b>作为正文位置；紧随其后的下一个文本节点视为出处位置。</p></div></div>
+
+  <div class="rule"><div class="id">5.6</div><div>
+    <h4>出处解析</h4>
+    <ul>
+      <li>双破折号及以上（<code>——</code>、<code>――</code>、<code>--</code>、<code>──</code>）之后的文本，长度 ≤ 40 字，视为出处。</li>
+      <li>单个破折号（<code>—</code>、<code>―</code>、<code>－</code>、<code>-</code>）只有在后面带“《……》”时才算出处，避免误拆“我—你”这类句子。</li>
+      <li>不满足时整行都是正文，没有出处。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.7</div><div>
+    <h4>出处输出（按版式）</h4>
+    <div class="table-wrap"><table>
+      <tr><th>版式</th><th>有出处</th><th>无出处</th></tr>
+      <tr><td>朋友圈版</td><td colspan="2">不展示出处，也不会把出处拼到正文里。</td></tr>
+      <tr><td>文字断句版</td><td>在正文下方输出一个整行 span：<code>display:block</code>，内层 <code>&lt;span leaf&gt;</code> 放出处。</td><td>移除出处元素。</td></tr>
+      <tr><td>卡片版</td><td>输出灰色小字 div：<code>margin:14px 0 0 0; color:#999; font-size:13px; line-height:2.1</code>。</td><td>移除出处元素。</td></tr>
+      <tr><td>断章序引版</td><td>输出加粗段落 <code>&lt;p&gt;&lt;strong&gt;&lt;span leaf&gt;出处</code>。</td><td>移除出处段落，<b>同时移除它上方的空白占位段落</b>。</td></tr>
+    </table></div></div></div>
+
+  <div class="rule"><div class="id">5.8</div><div>
+    <h4>倍率 xN</h4>
+    <p>每个条目共 N 句：第 1 句是排序后的主文案，另外 N−1 句取自文案池（第 j 句取 <code>池[(条目数×j + i) mod 池大小]</code>，只取正文），追加到正文容器内，用<b>两个换行</b>与前一句分隔。追加位置：</p>
+    <ul>
+      <li>卡片版：样式含 <code>overflow-wrap:anywhere</code> 的 div 内；</li>
+      <li>朋友圈版：样式含 <code>white-space:pre-wrap</code> 的 div 内，直接用 <code>\n\n</code>；</li>
+      <li>断章序引版、文字断句版：<code>&lt;span leaf&gt;</code> 内。</li>
+      <li>容器不保留换行时，用两个 <code>&lt;br&gt;</code> 代替。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.9</div><div>
+    <h4>配图</h4>
+    <ul>
+      <li>配图池：随机选一个有可用地址的配图模块，再随机取 20 张。条目 i 使用 <code>池[i mod 池大小]</code>。</li>
+      <li>地址规范化：支持 <code>http(s)</code>、<code>//</code> 开头、省略协议的域名（如 <code>shturl.cc/xxx</code>，补 https）、<code>data:image</code>、<code>&lt;img src&gt;</code> 与 Markdown 图片写法；其余行丢弃。</li>
+      <li>模板里宽度 ≤ 64px 的图片视为<b>头像</b>，不替换。</li>
+      <li>显示时 http 升级为 https，加载失败回退到原地址；图片关闭 Referer（绕过图床防盗链）。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.10</div><div>
+    <h4>朋友圈版专属</h4>
+    <ul>
+      <li><b>头像</b>：取当前选中账号的“头像”链接（微信头像，<code>http://wx.qlogo.cn</code> 自动改 https），切换账号即时更换；链接无效时回退到模板自带头像。</li>
+      <li><b>图片正方形</b>：内容图片（非头像）统一 <code>aspect-ratio:1/1; object-fit:cover</code>，高度等于其宽度。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.11</div><div>
+    <h4>条目间距</h4>
+    <p>每个版式的相邻条目之间统一 <b>25px</b>（给非最后条目的末尾元素加 <code>margin-bottom:25px !important</code>）。最后一个条目去掉尾部间距（断章序引版同时隐藏末尾空白占位段落），这样与往期 / 动图的间距完全由边距设置决定。</p></div></div>
+
+  <div class="rule"><div class="id">5.12</div><div>
+    <h4>断章序引版配色</h4>
+    <p>整个预览里没有子元素的文字元素统一设为深灰 <code>#333333</code>，但位于“序号段落（样式含 #999）”里的保持原色。</p></div></div>
+
+  <div class="rule"><div class="id">5.13</div><div>
+    <h4>预览 emoji</h4>
+    <p>选中 emoji 后，在每个条目里追加一个几乎不占空间的 span（宽 1px、高 1px，内容为 4 个空格 + emoji）：朋友圈版放在每个“拾万句”昵称内；卡片版放在每个左引号“ “ ”内；其余版式放在每个序号文本之后。同一位置不重复插入。</p></div></div>
+
+  <div class="rule"><div class="id">5.14</div><div>
+    <h4>往期块</h4>
+    <ul>
+      <li>有图片的条目合并成<b>图片版</b>：一行 5 列等宽表格，图片比例 1 : 1.15，圆角 3px，图下一行标题（10px，单行省略）；图片可点击跳转链接；不足 5 条用空列补齐。</li>
+      <li>无图片的条目是<b>文字版</b>：每条一行，链接色 <code>#44546A</code>、下划线、12px；没有链接就只显示文字。</li>
+      <li>旧数据（没有标题 / 链接 / 图片）按原 <code>content</code> 输出。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.15</div><div>
+    <h4>动图块</h4>
+    <p>取随机到的那一段代码；统一放开“不可编辑”，图片不可拖拽；块始终可被选中（包括编辑模式）。</p></div></div>
+
+  <div class="rule"><div class="id">5.16</div><div>
+    <h4>往期 / 动图边距</h4>
+    <table>
+      <tr><th>版式</th><th>默认（上 右 下 左）</th></tr>
+      <tr><td>朋友圈版</td><td>25 · 25 · 0 · 55</td></tr>
+      <tr><td>断章序引版</td><td>16 · 15 · 16 · 15（上下沿用原有）</td></tr>
+      <tr><td>卡片版 / 文字断句版</td><td>16 · 0 · 16 · 0</td></tr>
+    </table>
+    <ul>
+      <li>用户修改后，按版式种类分别记忆。</li>
+      <li><b>左右边距</b>相对预览容器左右边界计算：数值增大，块宽度被压缩；数值减小，块宽度拉伸（块宽度为自适应，不是固定 100%）。</li>
+      <li><b>上下边距</b>控制该块与上下相邻内容块的间距：数值越大，间距越大。往期与动图上下相邻时，二者之间的间距取下边距与上边距中较大的一个。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.17</div><div>
+    <h4>全局空行</h4>
+    <ul>
+      <li>基准是<b>鼠标选中行 / 光标所在行</b>：在该行上方或下方插入一个高 1.8em 的空行块。</li>
+      <li>“行”= 光标所在位置最近的块级元素；在表格单元格里取整张表；位于 flex / grid 排布的一行里时，取整行容器。</li>
+      <li>不支持在页面<b>全局第一行的上方</b>和<b>全局最后一行的下方</b>插入（判断：该行之前 / 之后没有任何文字或图片）。窗口里会给出“已是全局首行 / 末行”提示。</li>
+      <li>开关打开后，空行跟随光标所在行移动；还没点选任何行时开关不生效，并提示“请在预览中点击一行文字”。</li>
+    </ul></div></div>
+
+  <div class="rule"><div class="id">5.18</div><div>
+    <h4>选区校验</h4>
+    <p>数据变化（如在【我的】里改动）后：已选文案若不在新内容里则移除；文案池清空则重抽；配图池同理；已选动图 / 往期被删除则清除；没有往期时从“插入顺序”里去掉往期。</p></div></div>
+
+  <div class="rule"><div class="id">5.19</div><div>
+    <h4>随机标题</h4>
+    <ul>
+      <li>跟随<b>当前所选文案模块</b>：选中“短句”就只读“短句”的标题；没有选中任何模块时，读当前分类下所有模块的标题。</li>
+      <li>标题字段按<b>单个换行符</b>分割，去掉空行，再随机选一条；连续两次尽量不重复。</li>
+      <li>没有可用标题时分别提示：“所选文案「X」暂无标题，请到【我的】-文案中填写标题。”或“暂无标题，请先选择文案……”。</li>
+      <li>切换文案模块时，若标题窗口开着，标题自动重新读取。</li>
+    </ul></div></div>
+</section>
+
+<!-- ============================================================ 6 -->
+<section id="s6">
+  <h2>6　我的</h2>
+  <p>浅色页面。所有带标签栏的页面，选中项用主题色填充（文字取对比色），不使用固定蓝色。</p>
+
+  <h3>6.1　首页</h3>
+  <p>五个入口，每个附一行摘要：账号（已配置 N 个账号）、文案（共 N 个文案模块）、版式（已保存 N 个版式）、更多（共 N 个数据模块）、备份。左上角返回排版页。</p>
+
+  <h3>6.2　账号</h3>
+  <p>列表 + 新增 / 编辑 / 删除（删除前确认）。字段：微信头像链接、账号名称、AppID、AppSecret、公众号头像、作者。名称为空时存为“未命名账号”。</p>
+
+  <h3>6.3　文案</h3>
+  <ul>
+    <li>页面标题“文案”，没有内部标签导航，只管理文案模块。</li>
+    <li>字段：名称、分类（朋友圈 / 名句，新建默认名句）、标题（每行一个）、内容（每行一条）。</li>
+    <li><b>视图模式</b>：右上角在“宫格 / 列表”间切换。宫格为<b>4 列</b>（4×n），每格显示名称和两行摘要；所选模式持久化，直到下次切换。</li>
+    <li><b>手动排序</b>：默认隐藏。点【排序】进入，条目右侧出现 ≡，按住上下拖动调整顺序，松手自动保存；点【完成】退出，退出后恢复所选视图。排序结果同步到排版页的文案模块顺序。</li>
+  </ul>
+
+  <h3>6.4　版式</h3>
+  <p>列表 + 新增 / 编辑 / 删除。字段：配置名称、模板代码（HTML）。名称里要包含“朋友圈 / 文字断句 / 卡片 / 断章序引”之一，才会套用对应的出处、倍率、头像规则。</p>
+
+  <h3>6.5　更多</h3>
+  <p>顶部标签栏，顺序固定：<b>emoji · 往期 · 动图 · 配图</b>。</p>
+  <div class="table-wrap"><table>
+    <tr><th>标签</th><th>字段</th><th>说明</th></tr>
+    <tr><td>emoji</td><td>名称、内容</td><td>内容里多个 emoji 用空行分隔，随机取一个。</td></tr>
+    <tr><td>往期</td><td>标题、链接、图片</td><td>图片留空为文字版；保存时按模板生成渲染代码。</td></tr>
+    <tr><td>动图</td><td>名称、内容</td><td>内容按两个换行分段，每段是一份可直接放进文章的代码。</td></tr>
+    <tr><td>配图</td><td>名称、内容</td><td>内容每行一个图片地址（可省略 https://）。</td></tr>
+  </table></div>
+
+  <h3>6.6　备份</h3>
+  <ul>
+    <li>一键导出：把全部数据导出为 <code>my_admin_backup_YYYY-MM-DD.json</code>。</li>
+    <li>导入恢复：选择 JSON，校验通过后覆盖当前全部数据，提示“备份恢复成功”；校验失败提示“备份文件格式不正确，导入失败”。</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 7 -->
+<section id="s7">
+  <h2>7　状态与持久化</h2>
+  <div class="table-wrap"><table>
+    <tr><th>类别</th><th>内容</th><th>保存</th></tr>
+    <tr><td>业务数据</td><td>第 3 节的全部数据</td><td>修改即保存；首次启动写入示例数据（不含 AppID / AppSecret）。</td></tr>
+    <tr><td>排版页状态</td><td>一级导航、版式、账号、分类、数量、倍率、已选文案及其文案池、配图模块及配图池、动图及所选代码段、往期 5 条、插入顺序、边距、空行开关与基准行、预览 emoji</td><td>随时保存，再次打开恢复。</td></tr>
+    <tr><td>偏好</td><td>我的-文案 的宫格 / 列表模式</td><td>持久化，直到下次切换。</td></tr>
+    <tr><td>瞬时状态</td><td>是否编辑中、悬浮窗位置尺寸、字数、提示</td><td>不保存。</td></tr>
+  </table></div>
+  <div class="note">编辑模式里改动的预览文字不会保存；下一次整体重排（换文案、换版式、改数量、改倍率等）会覆盖它。边距与空行开关是特例：它们实时作用于预览，不触发整体重排。</div>
+</section>
+
+<!-- ============================================================ 8 -->
+<section id="s8">
+  <h2>8　视觉与主题</h2>
+  <ul>
+    <li><b>主题色</b>：<code>#CCFF00</code>，对比色按亮度自动取黑 / 白。所有选中态、强调线、悬浮窗描边、标签选中填充都从主题色派生，换主题色时全部跟随。</li>
+    <li><b>排版页</b>：深色界面（背景 #121212，面板 #1B1B1B），预览区白底。</li>
+    <li><b>我的</b>：浅色界面（背景 #F7F7F7，卡片白色，圆角 12）。</li>
+    <li><b>悬浮窗</b>：深色底、主题色 1px 描边（45% 透明）、标题栏浅主题色底；圆角 12。</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 9 -->
+<section id="s9">
+  <h2>9　Android 实现<small>Kotlin · Jetpack Compose</small></h2>
+  <h3>9.1　技术选型</h3>
+  <ul>
+    <li>界面全部用 Jetpack Compose 原生实现；单 Activity，状态集中在一个 ViewModel。</li>
+    <li>排版引擎用 Kotlin + Jsoup 重写，不依赖网页：输入数据和状态，输出预览 HTML。</li>
+    <li>预览区用 WebView 渲染该 HTML——因为产物本身就是公众号 HTML，需要富文本选中、编辑、复制。WebView 里只放一页很薄的壳（<code>preview.html</code>），负责：渲染、编辑开关、边距实时更新、空行（光标行判断）、字数统计，并通过 JavascriptInterface 回传字数和基准行。</li>
+    <li>数据以 JSON 文件保存（字段与备份一致）；界面状态用 SharedPreferences；图片缩略图用 Coil。</li>
+  </ul>
+  <h3>9.2　模块对照</h3>
+  <div class="table-wrap"><table>
+    <tr><th>网页版</th><th>Android</th></tr>
+    <tr><td>数据规范化 / 备份</td><td><code>data/Store.kt</code>、<code>data/Models.kt</code></td></tr>
+    <tr><td>buildPreview / fillUnit / 出处 / 倍率 / 头像 / 往期</td><td><code>engine/PreviewEngine.kt</code></td></tr>
+    <tr><td>splitLines / normImgUrl / parseSource</td><td><code>engine/TextUtil.kt</code></td></tr>
+    <tr><td>行内样式读写（含 !important）</td><td><code>engine/Css.kt</code></td></tr>
+    <tr><td>排版页状态与动作</td><td><code>ui/AppViewModel.kt</code></td></tr>
+    <tr><td>排版页界面、悬浮窗</td><td><code>ui/LayoutScreen.kt</code>、<code>ui/Components.kt</code></td></tr>
+    <tr><td>预览区</td><td><code>ui/PreviewWebView.kt</code> + <code>assets/preview.html</code></td></tr>
+    <tr><td>我的</td><td><code>ui/MyScreens.kt</code></td></tr>
+  </table></div>
+  <h3>9.3　有意的差异</h3>
+  <ul>
+    <li>顶部【导出】在网页版只是占位提示；Android 版改为“把当前预览以富文本 HTML 复制到剪贴板”。</li>
+    <li>【我的-文案】排序模式统一用列表呈现（网页版宫格下也可拖拽）。</li>
+    <li>版式编辑页不带实时预览框。</li>
+  </ul>
+  <h3>9.4　不在本期范围</h3>
+  <ul>
+    <li>直接发布到公众号草稿（接口需要服务端中转，已从需求中移除）。</li>
+    <li>复制时清洗 <code>&amp;nbsp;</code> 与过滤 emoji（已从需求中移除）。</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 10 -->
+<section id="s10">
+  <h2>10　验收清单</h2>
+  <div class="cols">
+    <ul class="check">
+      <li>默认进入【文案】，分类顺序为朋友圈、名句，默认朋友圈</li>
+      <li>数量默认 9，3 / 6 / 9 / 自定义均即时生效</li>
+      <li>倍率 x1→x5 循环，四种版式都在指定位置追加，用两个换行分隔</li>
+      <li>选出的文案按字数由少到多输出</li>
+      <li>含出处的文案在卡片 / 断章序引 / 文字断句版按各自格式输出，朋友圈版不展示</li>
+      <li>四个版式条目间距均为 25px</li>
+      <li>朋友圈版图片为正方形，头像随账号更换</li>
+      <li>配图地址省略 https:// 也能显示</li>
+    </ul>
+    <ul class="check">
+      <li>动图 / 往期按点击先后顺序插入</li>
+      <li>往期每次随机 5 条；有图为图片版，无图为文字版</li>
+      <li>动图块在编辑模式下可选中</li>
+      <li>边距四项：输入清空、失焦恢复、▲▼ 微调、实时生效且不丢编辑</li>
+      <li>左右边距压缩 / 拉伸宽度，上下边距控制块间距</li>
+      <li>空行以光标行为基准，全局首尾不可插入</li>
+      <li>随机标题跟随所选文案，按单换行分割</li>
+      <li>文案：宫格 4 列 / 列表切换并持久化；拖动排序并同步排版页</li>
+      <li>更多：emoji · 往期 · 动图 · 配图 四个标签，选中项主题色填充</li>
+      <li>网页版备份可在 Android 导入，反之亦然</li>
+    </ul>
+  </div>
+</section>
+
+<footer>拾万句 需求说明书 v1.0 · 以网页版实际行为为准编写</footer>
+</main>
+</div>
+<script>
+  // 目录：随滚动高亮当前章节
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+    var map = {};
+    links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+    var obs = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { links.forEach(function (l) { l.classList.remove('on'); }); map[e.target.id].classList.add('on'); }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) obs.observe(el); });
+  })();
+</script>
+</body>
+</html>
