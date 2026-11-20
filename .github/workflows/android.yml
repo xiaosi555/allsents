@@ -36,10 +36,15 @@ jobs:
       - name: Set up Android SDK
         if: steps.source.outputs.present == 'true'
         uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
 
       - name: Install Android 34 SDK
         if: steps.source.outputs.present == 'true'
-        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle
         if: steps.source.outputs.present == 'true'
@@ -53,6 +58,7 @@ jobs:
         run: |
           unzip -q ShiWanJu-Android-deploy.zip -d source
           PROJECT="source/ShiWanJu-Android"
+          test -f "$PROJECT/app/build.gradle.kts"
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
           cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
