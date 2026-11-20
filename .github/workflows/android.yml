@@ -59,9 +59,12 @@ jobs:
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
           cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
-          <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-              android:src="@drawable/app_logo"
-              android:gravity="fill" />
+          <inset xmlns:android="http://schemas.android.com/apk/res/android"
+              android:drawable="@drawable/app_logo"
+              android:insetLeft="24dp"
+              android:insetTop="24dp"
+              android:insetRight="24dp"
+              android:insetBottom="24dp" />
           XML
           # Kotlin property setter and custom method had the same JVM signature.
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
