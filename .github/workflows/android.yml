@@ -12,33 +12,64 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check source archive
+        id: source
+        shell: bash
+        run: |
+          if [ -f "ShiWanJu-Android.zip" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "ShiWanJu-Android.zip is not in the repository yet; skipping the APK build."
+          fi
+
       - name: Set up JDK 17
+        if: steps.source.outputs.present == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
+        if: steps.source.outputs.present == 'true'
         uses: android-actions/setup-android@v3
 
       - name: Install Android 34 SDK
+        if: steps.source.outputs.present == 'true'
         run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Set up Gradle
+        if: steps.source.outputs.present == 'true'
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
+      - name: Extract Android project and apply repository logo
+        if: steps.source.outputs.present == 'true'
+        shell: bash
+        run: |
+          unzip -q ShiWanJu-Android.zip -d source
+          PROJECT="source/ShiWanJu-Android"
+          mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
+          cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
+          cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
+          <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+              android:src="@drawable/app_logo"
+              android:gravity="fill" />
+          XML
+
       - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+        if: steps.source.outputs.present == 'true'
+        run: gradle --no-daemon -p source/ShiWanJu-Android :app:assembleDebug
 
       - name: Upload APK
+        if: steps.source.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ShiWanJu-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: source/ShiWanJu-Android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
