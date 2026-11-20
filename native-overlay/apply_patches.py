@@ -58,3 +58,18 @@ edit("ui/LayoutScreen.kt", [
     ('        ThemeChip("复制", false) {',
      '        ThemeChip("首页", false) { vm.screen = "home" }\n        Spacer(Modifier.width(8.dp))\n        ThemeChip("复制", false) {')
 ])
+
+preview = root / "source" / "ShiWanJu-Android" / "app" / "src" / "main" / "assets" / "preview.html"
+html = preview.read_text(encoding="utf-8")
+anchor = '  window.getHtml = function () { return area.innerHTML; };'
+insert = anchor + '''
+  window.selectAllContent = function () {
+    var range = document.createRange();
+    range.selectNodeContents(area);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };'''
+if anchor not in html:
+    raise SystemExit("Patch anchor missing in preview.html: select-all insertion point")
+preview.write_text(html.replace(anchor, insert, 1), encoding="utf-8")
