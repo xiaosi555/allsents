@@ -746,9 +746,9 @@ patch("ui/MyScreens.kt",[
                 Text("高级模板", color = AppColors.Theme, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Field("HTML 模板（可选）", template, { template = it }, 4, "留空时自动使用默认模板")
             }'''),
-    ('''            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title }) }''',
+    ('''            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title.ifEmpty { cur.name } }) }''',
      '''            var name by remember(key) { mutableStateOf(cur.name) }
-            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title.ifEmpty { cur.name } }) }'''),
+            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title }) }'''),
     ('''                "history" -> vm.data.history.forEach { h -> ListRow(h.title.ifEmpty { h.name }, h.link.ifEmpty { h.image }.ifEmpty { summarize(h.content) }) { editKey = h.id } }''',
      '''                "history" -> vm.data.history.forEach { h -> ListRow(h.name.ifEmpty { h.title }, h.title.ifEmpty { h.link }.ifEmpty { h.image }.ifEmpty { summarize(h.content) }) { editKey = h.id } }''')
 ])
