@@ -359,6 +359,7 @@ private fun UploadHomePage(vm: AppViewModel, subTab: String, onSubTab: (String) 
                 OutlinedButton(onClick = { clipboard.setText(AnnotatedString(vm.previewHtml)); vm.toast("已全选并复制 HTML 代码") }) { Text("全选复制") }
             }
         } else {
+            OutlinedButton(onClick = { vm.js?.invoke("selectAllContent()") }) { Text("全选预览内容") }
             PreviewWebView(vm, Modifier.fillMaxWidth().height(420.dp))
         }
         Text("提示：当前实现生成可粘贴的 HTML，不会直接调用微信公众号发布接口。", color = Color(0xFF9CA3AF), fontSize = 11.sp)
