@@ -181,3 +181,15 @@ patch("ui/LayoutScreen.kt",[
             }
         }''')
 ])
+
+patch("ui/LayoutScreen.kt",[
+('''    val cats = listOf("emoji" to "emoji", "gif" to "动图", "history" to "往期")
+    val cur = if (cats.any { it.first == vm.ui.moreCat }) vm.ui.moreCat else "gif"''',
+'''    val cats = listOf("image" to "配图", "emoji" to "emoji", "gif" to "动图", "history" to "往期")
+    val cur = if (cats.any { it.first == vm.ui.moreCat }) vm.ui.moreCat else "image"'''),
+('''    when (cur) {
+        "emoji" -> if (vm.data.emoji.isEmpty())''',
+'''    when (cur) {
+        "image" -> ImagePanel(vm)
+        "emoji" -> if (vm.data.emoji.isEmpty())''')
+]);
