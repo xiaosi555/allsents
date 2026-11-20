@@ -93,7 +93,7 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: |
           cd source
-          zip -qr ../ShiWanJu-Android-native-source.zip ShiWanJu-Android
+          zip -qr ../ShiWanJu-Android-native-source.zip ShiWanJu-Android -x 'ShiWanJu-Android/build/*' 'ShiWanJu-Android/app/build/*' 'ShiWanJu-Android/.gradle/*'
 
       - name: Upload patched native source
         if: steps.source.outputs.present == 'true'
