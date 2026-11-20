@@ -68,7 +68,7 @@ jobs:
           for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
               folder = Path("source/ShiWanJu-Android/app/src/main/res") / f"mipmap-{density}"
               folder.mkdir(parents=True, exist_ok=True)
-              fitted = ImageOps.contain(src, (size, size), method=Image.Resampling.LANCZOS)
+              fitted = ImageOps.contain(src, (int(size * 0.78), int(size * 0.78)), method=Image.Resampling.LANCZOS)
               canvas = Image.new("RGBA", (size, size), bg)
               canvas.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
               canvas.save(folder / "ic_launcher.png", optimize=True)
@@ -86,7 +86,7 @@ jobs:
           XML
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:width="66dp" android:height="66dp" android:gravity="center">
+              <item android:width="54dp" android:height="54dp" android:gravity="center">
                   <bitmap android:src="@drawable/app_logo" android:gravity="fill" />
               </item>
           </layer-list>
