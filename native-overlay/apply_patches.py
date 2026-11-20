@@ -443,3 +443,34 @@ patch("ui/MyScreens.kt",[
     }
 }''')
 ])
+
+patch("ui/LayoutScreen.kt",[
+    ('''private fun SettingsWindow(vm: AppViewModel, bw: Float, bh: Float, onTouch: () -> Unit) {
+    FloatingWindow''',
+     '''private fun SettingsWindow(vm: AppViewModel, bw: Float, bh: Float, onTouch: () -> Unit) {
+    val ctx = LocalContext.current
+    FloatingWindow'''),
+    ('''            Text(vm.anchorLabel, color = Color(0xFF888888), fontSize = 12.sp, lineHeight = 17.sp)
+        }
+    }
+}''',
+     '''            Text(vm.anchorLabel, color = Color(0xFF888888), fontSize = 12.sp, lineHeight = 17.sp)
+            Spacer(Modifier.height(10.dp))
+            ThemeChip("复制预览内容", true, modifier = Modifier.fillMaxWidth()) {
+                val copyHtml: (String) -> Unit = { html ->
+                    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                    cm.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+                    vm.toast("已复制当前预览内容")
+                }
+                val read = vm.jsResult
+                if (read == null) copyHtml(vm.previewHtml)
+                else read("getHtml()") { raw ->
+                    val html = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull()
+                    copyHtml(html ?: vm.previewHtml)
+                }
+            }
+        }
+    }
+}''')
+])
