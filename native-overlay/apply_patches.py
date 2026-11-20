@@ -255,3 +255,10 @@ patch("ui/LayoutScreen.kt",[
 ('GridCard(if (on) "重新随机" else "随机往期", on) { vm.rollHistory() }',
  'vm.data.history.forEach { h -> GridCard(h.name.ifEmpty { h.title.ifEmpty { "未命名往期" } }, vm.ui.historyIds.contains(h.id)) { vm.rollHistory(h.id) } }')
 ])
+
+patch("ui/LayoutScreen.kt",[
+('''private val MAIN_TABS = listOf("account" to "账号", "layout" to "版式", "copy" to "文案", "image" to "配图", "more" to "更多")''',
+ '''private val MAIN_TABS = listOf("account" to "账号", "layout" to "版式", "copy" to "文案", "more" to "更多")'''),
+('''            "image" -> ImagePanel(vm)
+''','')
+])
