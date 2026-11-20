@@ -823,8 +823,6 @@ import androidx.compose.ui.draw.shadow'''),
                 }
                 "gif" -> vm.data.files.gif.forEach { f -> ListRow(f.name.ifEmpty { "未命名动图" }, "${TextUtil.splitEntries(f.content).size} 个动图片段") { editKey = f.id } }
                 else -> vm.data.files.image.forEach { f -> ListRow(f.name.ifEmpty { "未命名配图" }, "${TextUtil.imageUrls(f.content).size} 张图片") { editKey = f.id } }'''),
-    ('''            Text("导出为 JSON，格式与网页版完全一致，可互相导入。", color = AppColors.MyDim, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))''',
-     '''            Text("完整导出账号、文案、版式、emoji、往期、动图和配图设置，生成可跨设备保存的 JSON 文件。", color = AppColors.MyDim, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(vertical = 6.dp))'''),
     ('''        Text("导入会覆盖当前全部数据（账号、文案、版式、更多）。", color = AppColors.MyDim, fontSize = 12.sp, modifier = Modifier.padding(vertical = 6.dp))''',
      '''        Text("导入后会恢复备份中的账号、文案、版式及更多资源。注意：导入将覆盖当前数据，建议先导出一份备份。", color = AppColors.MyDim, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(vertical = 6.dp))''')
 ])
