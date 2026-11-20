@@ -424,7 +424,7 @@ patch("ui/MyScreens.kt",[
     ('''private fun ConfirmDelete(what: String, onOk: () -> Unit, onCancel: () -> Unit) = AlertDialog(
     onDismissRequest = onCancel, title = { Text("确认删除") }, text = { Text("确定要删除该$what 吗？") },
     confirmButton = { TextButton(onClick = onOk) { Text("删除", color = Color(0xFFDC2626)) } },
-    dismissButton = { TextButton(onClick = onCancel) { Text("取消", color = AppColors.MyDim) } }
+    dismissButton = { TextButton(onClick = onCancel) { Text("取消") } }
 )''',
      '''private fun ConfirmDelete(what: String, onOk: () -> Unit, onCancel: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
