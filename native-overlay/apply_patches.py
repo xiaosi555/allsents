@@ -220,27 +220,6 @@ patch("ui/AppViewModel.kt",[
     }''')
 ])
 patch("ui/LayoutScreen.kt",[
-('''        "history" -> if (vm.data.history.isEmpty()) EmptyTip("暂无往期，请到【我的】-更多-往期中添加")
-        else {
-            val on = vm.ui.historyIds.isNotEmpty()
-            GridCards {
-                GridCard(if (on) "重新随机5条" else "随机5条", on) { vm.rollHistory() }
-                if (on) GridCard("移除往期") { vm.clearHistory() }
-                Text("共 \${vm.data.history.size} 条", color = AppColors.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
-            }
-        }''',
-'''        "history" -> if (vm.data.history.isEmpty()) EmptyTip("暂无往期，请到【我的】-更多-往期中添加")
-        else {
-            GridCards {
-                vm.data.history.forEach { h -> GridCard(h.name.ifEmpty { h.title.ifEmpty { "未命名往期" } }, vm.ui.historyIds.contains(h.id)) { vm.rollHistory(h.id) } }
-                if (vm.ui.historyIds.isNotEmpty()) GridCard("移除往期") { vm.clearHistory() }
-            }
-        }''')
-])
-
-patch("engine/PreviewEngine.kt",[
-('TextNode(line, "")','TextNode(line)')
-])
-patch("engine/PreviewEngine.kt",[
-('TextNode(line, "")','TextNode(line)')
+('GridCard(if (on) "重新随机5条" else "随机5条", on) { vm.rollHistory() }',
+ 'GridCard(if (on) "重新随机" else "随机往期", on) { vm.rollHistory() }')
 ])
