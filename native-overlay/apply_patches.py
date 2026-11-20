@@ -613,7 +613,8 @@ private fun SettingsWindow'''),
 ])
 
 patch("ui/LayoutScreen.kt",[
-    ('''private fun EntryIcon(label: String, active: Boolean, onClick: () -> Unit) {''',
+    ('''@Composable
+private fun EntryIcon(label: String, active: Boolean, onClick: () -> Unit) {''',
      '''@Composable
 private fun CopyPreviewButton(vm: AppViewModel) {
     val ctx = LocalContext.current
@@ -638,7 +639,7 @@ private fun EntryIcon(label: String, active: Boolean, onClick: () -> Unit) {''')
 ])
 
 patch("ui/MyScreens.kt",[
-    ('import androidx.compose.ui.window.Dialog', 'import androidx.compose.ui.window.Dialog\nimport androidx.compose.ui.window.DialogProperties'),
+    ('import androidx.compose.ui.window.Dialog', 'import androidx.compose.ui.window.Dialog\nimport androidx.compose.ui.window.DialogProperties\nimport androidx.compose.foundation.shape.CircleShape'),
     ('''    OutlinedTextField(
         value = value, onValueChange = onChange, label = { Text(label) }, placeholder = { if (hint.isNotEmpty()) Text(hint) },
         modifier = Modifier.fillMaxWidth(), minLines = lines, maxLines = if (lines == 1) 1 else 12, singleLine = lines == 1
