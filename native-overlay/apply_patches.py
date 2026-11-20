@@ -237,3 +237,10 @@ patch("ui/LayoutScreen.kt",[
             }
         }''')
 ])
+
+patch("engine/PreviewEngine.kt",[
+('TextNode(line, "")','TextNode(line)')
+])
+patch("engine/PreviewEngine.kt",[
+('TextNode(line, "")','TextNode(line)')
+])
