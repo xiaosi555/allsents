@@ -193,3 +193,10 @@ patch("ui/LayoutScreen.kt",[
         "image" -> ImagePanel(vm)
         "emoji" -> if (vm.data.emoji.isEmpty())''')
 ]);
+
+patch("engine/PreviewEngine.kt",[
+('ctx.doc.createTextNode(line)','TextNode(line, "")')
+])
+patch("ui/MyScreens.kt",[
+('import com.shiwanju.app.engine.PreviewEngine','import com.shiwanju.app.engine.PreviewEngine\nimport com.shiwanju.app.engine.TextUtil')
+])
