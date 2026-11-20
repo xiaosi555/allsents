@@ -58,7 +58,8 @@ jobs:
           test -f "$PROJECT/app/build.gradle.kts"
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
           cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
-          cp -R native-overlay/app/. "$PROJECT/app/"
+          # Apply Kotlin/engine/data fixes onto the untouched original native project.
+          # Do not overlay the previous HomeScreen/MainActivity experiment.
           python3 native-overlay/apply_patches.py
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml" <<'XML'
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -68,9 +69,11 @@ jobs:
           </vector>
           XML
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
-          <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-              android:src="@drawable/app_logo"
-              android:gravity="fill" />
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:width="66dp" android:height="66dp" android:gravity="center">
+                  <bitmap android:src="@drawable/app_logo" android:gravity="fill" />
+              </item>
+          </layer-list>
           XML
           # Kotlin property setter and custom method had the same JVM signature.
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
