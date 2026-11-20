@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拾万句</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mainGreen: '#22c55e',
+                        selectGray: '#f7f7f7',
+                        darkBlack: '#111111'
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .tab-active {
+                @apply text-mainGreen border-b-2 border-mainGreen;
+            }
+            .tab-panel{
+                @apply hidden;
+            }
+            .tab-panel.show{
+                @apply block;
+            }
+            .btn-num-active{
+                @apply bg-selectGray;
+            }
+            .btn-layout-active{
+                @apply bg-selectGray border-2 border-mainGreen;
+            }
+            .input-fullscreen{
+                @apply fixed inset-0 z-[9999] top-0 left-0 w-full h-full max-w-none rounded-none m-0 p-6 box-border flex flex-col bg-white !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 max-w-md mx-auto">
+    <!-- =========全局公共头部：绿色外层容器，保持180px ========= -->
+    <div class="bg-mainGreen h-[180px] pt-3 relative">
+        <!--黑色头部块 固定95px高度（右侧图标：absolute top-[-5px] right-[40px]，图标大小增大到text-6xl，背景透明不填充黑色）-->
+        <div class="bg-black rounded-xl h-[95px] flex mx-5 justify-between items-center px-4 relative">
+            <div class="-mt-3">
+                <h1 class="text-white text-2xl font-bold">拾万句<sup>®</sup></h1>
+                <p class="text-gray-300 text-sm">名句摘录、朋友圈文案</p>
+            </div>
+            <div class="w-[80px] h-[80px] absolute top-[-10px] right-[10px]">
+                <div class="border-4 border-white rounded-full w-full h-full flex items-center justify-center bg-transparent">
+                    <i class="fa fa-wechat text-white text-5xl"></i>
+                </div>
+            </div>
+        </div>
+        <!--输入框：向上覆盖黑色块10px，内部textarea高度设为130px-->
+        <div id="inputBoxWrap" class="bg-white mx-3 rounded-xl p-3 shadow absolute left-0 right-0 -mt-[15px] z-20 h-[80px]">
+            <div class="relative h-full flex flex-col">
+                <textarea id="inputTextarea" class="w-full border-0 outline-none text-gray-500 resize-none h-[60px] flex-1 text-sm" placeholder="输入多条链接和摘录（建议两个换行符隔开）
+快手、抖音识别的文字输入 一键上传文案"></textarea>
+                <button id="btnTextareaZoom" class="absolute top-0 right-0 text-gray-400 p-2 text-lg z-30 cursor-pointer">
+                    <i class="fa fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========Tab栏 ========= -->
+    <div class="bg-white rounded-t-xl">
+        <div class="flex" id="tabHeader">
+            <div data-tab="tab-copy" class="tab-item flex-1 text-center py-3 text-lg tab-active">文案</div>
+            <div data-tab="tab-type" class="tab-item flex-1 text-center py-3 text-lg text-gray-500">类型</div>
+            <div data-tab="tab-upload" class="tab-item flex-1 text-center py-3 text-lg">上传</div>
+            <div data-tab="tab-preview" class="tab-item flex-1 text-center py-3 text-lg text-gray-500">预览</div>
+            <div data-tab="tab-cover" class="tab-item flex-1 text-center py-3 text-lg text-gray-500">封面</div>
+        </div>
+
+        <!-- --------Tab1：文案页面-------- -->
+        <div id="tab-copy" class="tab-panel show px-4 pb-6">
+            <div class="bg-mainGreen rounded-xl flex justify-between items-center px-4 py-3 my-3">
+                <div>
+                    <h2 class="text-black text-2xl font-bold">拾万句</h2>
+                    <p class="text-black text-sm">名句摘录、朋友圈文案</p>
+                </div>
+                <button class="bg-black text-white px-4 py-2 rounded-lg text-sm">随机文案</button>
+            </div>
+            <div class="flex items-center border rounded-xl my-3 overflow-hidden bg-gray-50">
+                <input id="appidInput" type="text" value="wxd4e5db437ce6090f" class="flex-1 p-3 outline-none bg-transparent text-gray-600 text-sm" />
+                <span class="text-gray-400 px-3 text-xs">获取APP_ID</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-gray-100 rounded-xl p-3 border border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <i class="fa fa-file-text-o text-xl text-gray-600"></i>
+                        <div>
+                            <div class="text-base font-medium text-gray-800">名句摘录</div>
+                            <div class="text-gray-400 text-xs">读书笔记、诗词佳句</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-100 rounded-xl p-3 border border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <i class="fa fa-camera text-xl text-gray-600"></i>
+                        <div>
+                            <div class="text-base font-medium text-gray-800">朋友圈文案</div>
+                            <div class="text-gray-400 text-xs">朋友圈日常分享</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 句数选择 -->
+            <div class="flex gap-2 my-4">
+                <button data-num="3" class="btn-num border rounded-lg px-5 py-2 text-sm text-gray-600">3句</button>
+                <button data-num="6" class="btn-num border rounded-lg px-5 py-2 text-sm text-gray-600 btn-num-active">6句</button>
+                <button data-num="9" class="btn-num border rounded-lg px-5 py-2 text-sm text-gray-600">9句</button>
+                <div class="flex-1 min-width:0 border rounded-lg flex items-center bg-gray-50">
+                    <input id="customNum" type="number" placeholder="数量自定义" class="flex-1 p-2 outline-none border-0 bg-transparent text-sm text-center" />
+                    <span class="pr-2 text-sm text-gray-500">句</span>
+                </div>
+            </div>
+
+            <!-- 版式选择区域 -->
+            <div class="grid grid-cols-5 gap-2 my-4">
+                <div data-layout="douyin" class="btn-layout bg-white border rounded-xl p-2 text-center shadow-sm">
+                    <div class="text-2xl text-pink-600 mb-1">🎵</div>
+                    <div class="text-[11px] text-gray-600">抖音界面版</div>
+                </div>
+                <div data-layout="moment" class="btn-layout bg-selectGray border-2 border-mainGreen rounded-xl p-2 text-center shadow-sm">
+                    <div class="text-2xl text-mainGreen mb-1">📷</div>
+                    <div class="text-[11px] text-gray-800 font-medium">朋友圈版式</div>
+                </div>
+                <div data-layout="breakline" class="btn-layout bg-white border rounded-xl p-2 text-center shadow-sm">
+                    <div class="text-2xl text-mainGreen mb-1">☰</div>
+                    <div class="text-[11px] text-gray-600">文字断句版</div>
+                </div>
+                <div data-layout="card" class="btn-layout bg-white border rounded-xl p-2 text-center shadow-sm">
+                    <div class="text-2xl text-mainGreen mb-1">📁</div>
+                    <div class="text-[11px] text-gray-600">卡片版式</div>
+                </div>
+                <div data-layout="purebg" class="btn-layout bg-white border rounded-xl p-2 text-center shadow-sm">
+                    <div class="text-2xl text-mainGreen mb-1">▧</div>
+                    <div class="text-[11px] text-gray-600">背景纯文字</div>
+                </div>
+            </div>
+
+            <!-- 风格胶囊栏 -->
+            <div class="flex gap-2 overflow-x-auto py-2 no-scrollbar items-center">
+                <div class="bg-mainGreen text-white rounded-full px-3 py-1.5 text-xs whitespace-nowrap shadow-sm">拾万句</div>
+                <div class="bg-pink-400 text-white rounded-full px-3 py-1.5 text-xs whitespace-nowrap shadow-sm">句在川</div>
+                <div class="bg-blue-500 text-white rounded-full px-3 py-1.5 text-xs whitespace-nowrap shadow-sm">一日拾句</div>
+                <div class="bg-black text-white rounded-full px-3 py-1.5 text-xs whitespace-nowrap shadow-sm">小盆友</div>
+            </div>
+
+            <!-- 底部封面与抖音背景上传按钮 -->
+            <div class="grid grid-cols-2 gap-3 my-4">
+                <div class="flex border rounded-xl overflow-hidden shadow-sm">
+                    <button class="w-12 bg-gray-100 flex justify-center items-center text-xl text-gray-500 border-r">+</button>
+                    <button class="flex-1 bg-mainGreen text-white py-3 text-xs font-medium">上传封面图</button>
+                </div>
+                <div class="flex border rounded-xl overflow-hidden shadow-sm">
+                    <button class="w-12 bg-gray-100 flex justify-center items-center text-xl text-gray-500 border-r">+</button>
+                    <button class="flex-1 bg-mainGreen text-white py-3 text-xs font-medium flex items-center justify-center gap-1">
+                        <i class="fa fa-music"></i>抖音背景图
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- --------Tab2：上传页面-------- -->
+        <div id="tab-upload" class="tab-panel px-4 pb-8">
+            <div class="grid grid-cols-2 gap-3 my-4">
+                <button class="bg-mainGreen text-white py-4 rounded-xl text-lg font-medium">
+                    <i class="fa fa-refresh"></i> 文案随机
+                </button>
+                <button class="bg-mainGreen text-white py-4 rounded-xl text-lg font-medium">
+                    <i class="fa fa-exchange"></i> 文案一键同步
+                </button>
+            </div>
+            <button id="btnSyncPublic" class="w-full bg-mainGreen text-white py-5 rounded-xl text-xl font-medium mb-3">
+                同步到公众号
+            </button>
+
+            <!-- 公众号下方的纯净文本框（无底纹颜色和边框，数字和“句”作为整体正常字间距显示） -->
+            <div class="mb-4 flex items-center justify-center">
+                <input id="syncCountInput" type="number" min="1" value="6" class="w-12 border-0 outline-none bg-transparent text-right text-sm font-medium" />
+                <span class="text-sm text-gray-600 pl-0.5">句</span>
+            </div>
+
+            <!-- 同级子导航栏 -->
+            <div class="flex border-b border-gray-200 mb-3">
+                <div data-subtab="code" class="sub-tab flex-1 text-center py-3 text-lg tab-active">生成HTML代码</div>
+                <div data-subtab="view" class="sub-tab flex-1 text-center py-3 text-lg text-gray-500">预览HTML</div>
+            </div>
+
+            <!-- 共用显示容器 -->
+            <div id="subResultWrap">
+                <div id="subCodePanel" class="sub-panel show relative">
+                    <button id="btnCopyCode" class="absolute top-1 right-1 p-1.5 rounded text-gray-600 text-sm z-10 cursor-pointer" title="复制代码">
+                        <i class="fa fa-copy"></i>
+                    </button>
+                    <textarea id="outCode" class="w-full border p-2 h-52 rounded-lg text-sm" placeholder="点击同步到公众号，再切换子标签输出公众号HTML..." readonly></textarea>
+                </div>
+                <div id="subViewPanel" class="sub-panel hidden relative">
+                    <button id="btnSelectAllPreview" class="absolute top-1 right-1 p-1.5 rounded text-gray-600 text-sm z-10 cursor-pointer" title="全选预览内容">
+                        <i class="fa fa-check-square-o"></i>
+                    </button>
+                    <div id="previewBox" class="border bg-white p-3 min-h-[220px] overflow-auto rounded-lg">
+                        <div class="text-gray-400 text-sm">切换至预览HTML查看渲染效果</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <div class="flex items-center my-6">
+                    <div class="flex-1 border-b border-gray-300"></div>
+                    <span class="px-4 text-gray-400 text-sm">查看</span>
+                    <div class="flex-1 border-b border-gray-300"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 rounded-full bg-mainGreen text-white flex justify-center items-center text-2xl shadow-sm">
+                            <i class="fa fa-th"></i>
+                        </div>
+                        <p class="mt-2 text-gray-500 text-xs">封面</p>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 rounded-full bg-mainGreen text-white flex justify-center items-center text-2xl shadow-sm">
+                            <i class="fa fa-plus"></i>
+                        </div>
+                        <p class="mt-2 text-gray-500 text-xs">参数查看</p>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 rounded-full bg-mainGreen text-white flex justify-center items-center text-2xl shadow-sm">
+                            <i class="fa fa-paint-brush"></i>
+                        </div>
+                        <p class="mt-2 text-gray-500 text-xs">一键换色</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-type" class="tab-panel px-4 pb-4">类型页面待开发</div>
+        <div id="tab-preview" class="tab-panel px-4 pb-4">预览页面待开发</div>
+        <div id="tab-cover" class="tab-panel px-4 pb-4">封面页面待开发</div>
+    </div>
+
+    <!--底部导航全局共用-->
+    <div class="bg-white flex sticky bottom-0 z-30 border-t border-gray-100">
+        <div class="flex-1 text-center py-2 text-mainGreen">
+            <i class="fa fa-home text-xl"></i>
+            <div class="text-xs">首页</div>
+        </div>
+        <div class="flex-1 text-center py-2 text-gray-400">
+            <i class="fa fa-user text-xl"></i>
+            <div class="text-xs">我的</div>
+        </div>
+    </div>
+
+<script>
+// ===========Tab切换逻辑============
+const tabItems = document.querySelectorAll('.tab-item');
+tabItems.forEach(tab=>{
+    tab.onclick = function(){
+        tabItems.forEach(i=>{
+            i.classList.remove('tab-active');
+            i.classList.add('text-gray-500');
+        })
+        this.classList.add('tab-active');
+        this.classList.remove('text-gray-500');
+        const targetId = this.dataset.tab;
+        document.querySelectorAll('.tab-panel').forEach(panel=>panel.classList.remove('show'));
+        document.getElementById(targetId).classList.add('show');
+    }
+})
+
+//子tab切换：生成HTML代码 / 预览HTML
+const subTabs = document.querySelectorAll('.sub-tab');
+subTabs.forEach(st=>{
+    st.onclick = function(){
+        subTabs.forEach(s=>{
+            s.classList.remove('tab-active');
+            s.classList.add('text-gray-500');
+        })
+        this.classList.add('tab-active');
+        this.classList.remove('text-gray-500');
+        const subKey = this.dataset.subtab;
+        document.querySelectorAll('.sub-panel').forEach(p=>p.classList.add('hidden'));
+        document.getElementById('sub'+subKey.charAt(0).toUpperCase()+subKey.slice(1)+'Panel').classList.remove('hidden');
+    }
+})
+
+// =========输入框放大缩小功能 =========
+const inputBoxWrap = document.getElementById('inputBoxWrap');
+const btnZoom = document.getElementById('btnTextareaZoom');
+let isZoom = false;
+
+btnZoom.onclick = function(){
+    isZoom = !isZoom;
+    if(isZoom){
+        inputBoxWrap.classList.add('input-fullscreen');
+        btnZoom.innerHTML = '<i class="fa fa-compress"></i>';
+    }else{
+        inputBoxWrap.classList.remove('input-fullscreen');
+        btnZoom.innerHTML = '<i class="fa fa-expand"></i>';
+    }
+}
+
+//代码复制按钮
+document.getElementById('btnCopyCode').onclick = async function(){
+    const val = document.getElementById('outCode').value;
+    await navigator.clipboard.writeText(val);
+    alert("已复制代码");
+}
+
+// 预览HTML右上角的“全选”按钮逻辑
+document.getElementById('btnSelectAllPreview').onclick = function(){
+    const previewBox = document.getElementById('previewBox');
+    if (window.getSelection && document.createRange) {
+        const range = document.createRange();
+        range.selectNodeContents(previewBox);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+}
+
+// ===========业务状态变量============
+let selectCount = 6;
+let selectLayout = "moment";
+let lastGeneratedHtml = "";
+
+//句数按钮点击
+document.querySelectorAll('.btn-num').forEach(btn=>{
+    btn.onclick = function(){
+        document.querySelectorAll('.btn-num').forEach(b=>b.classList.remove('btn-num-active'));
+        this.classList.add('btn-num-active');
+        selectCount = Number(this.dataset.num);
+        document.getElementById('customNum').value = '';
+        document.getElementById('syncCountInput').value = selectCount;
+    }
+})
+//自定义输入数量
+document.getElementById('customNum').addEventListener('input',e=>{
+    const val = Number(e.target.value);
+    if(val>0) {
+        selectCount = val;
+        document.getElementById('syncCountInput').value = val;
+    }
+    document.querySelectorAll('.btn-num').forEach(b=>b.classList.remove('btn-num-active'));
+});
+
+// 同步栏数量输入框绑定联动
+document.getElementById('syncCountInput').addEventListener('input', e=>{
+    const val = Number(e.target.value);
+    if(val>0) {
+        selectCount = val;
+    }
+});
+
+//版式点击
+document.querySelectorAll('.btn-layout').forEach(btn=>{
+    btn.onclick = function(){
+        document.querySelectorAll('.btn-layout').forEach(b=>{
+            b.classList.remove('bg-selectGray','border-2','border-mainGreen');
+            b.classList.add('bg-white','border');
+        })
+        this.classList.remove('bg-white');
+        this.classList.add('bg-selectGray','border-2','border-mainGreen');
+        selectLayout = this.dataset.layout;
+    }
+})
+
+function getSentenceList(){
+    const raw = document.getElementById('inputTextarea').value;
+    let lines = raw.split('\n').map(s=>s.trim()).filter(s=>s!=='');
+    
+    if(lines.length === 0) {
+        lines = [
+            "生活原本沉闷，但跑起来就有风。——村上春树",
+            "你要去相信，没有到不了的明天。——卢思浩",
+            "岁月极美，在于它必然的流逝。——三毛",
+            "星光不问赶路人，时光不负有心人。——网络",
+            "凡是过往，皆为序章。——莎士比亚",
+            "愿你出走半生，归来仍是少年。——苏轼",
+            "追光的人，自己也会身披万丈光芒。——拾万句",
+            "纵然万般皆苦，你也要自成一派。——网易云热评",
+            "向阳而生，逐光而行。——致自己"
+        ];
+    }
+    
+    const result = [];
+    for(let line of lines){
+        if(line.includes('——')){
+            const parts = line.split('——');
+            result.push({
+                text: parts[0].trim(),
+                source: (parts[1]||'').trim()
+            })
+        }else{
+            result.push({
+                text: line.trim(),
+                source: ''
+            })
+        }
+    }
+    return result.slice(0, selectCount);
+}
+
+// 辅助函数：将内容进行等分并各自分别居中对齐处理
+function wrapWithCenteredFlex(itemsHtml) {
+    return `<div style="display:flex; flex-direction:column; justify-content:space-around; align-items:center; width:100%; box-sizing:border-box;">${itemsHtml}</div>`;
+}
+
+function buildMomentHtml(sentences){
+    const avatarImg = `https://mmbiz.qpic.cn/sz_mmbiz_png/rpicN7OehSy7qNDoI9pnJMUbM2c9d38f0TpRibQ2icA6nOePn4buH2buUId7xfRLVGibkFtib7oIib7LCBcyXqHjOOMQ/640?wx_fmt=png&amp;from=appmsg`;
+    const sampleImg = `https://res.cloudinary.com/divete82s/image/upload/v1755071564/n2tnqdbb0dcvke4yhp3u.jpg`;
+    let itemHtml = '';
+    sentences.forEach((item,idx)=>{
+        const min = idx+1;
+        itemHtml += `
+    <div style="margin-top:12px; padding-bottom:12px; width:100%; text-align:center;">
+      <div style="display:flex; align-items:center; justify-content:center;">
+        <img src="${avatarImg}" style="width:40px; height:40px; border-radius:15%; object-fit:cover; display:block;">
+        <span style="margin-left:10px; font-size:16px; font-weight:500; color:#444444;">拾万句</span>
+      </div>
+      <div style="margin-top:10px; font-size:16px; line-height:1.6; color:#333333; text-align:center; white-space:pre-wrap;">${item.text}</div>
+      <div style="display:flex; justify-content:center; width:100%;">
+        <img src="${sampleImg}" style="width:160px; height:auto; object-fit:cover; border-radius:2px; display:block; margin-top:10px;">
+      </div>
+      <div style="margin-top:6px; font-size:12px; color:#999999; text-align:center;">${min}分钟前</div>
+    </div>`;
+    })
+    return wrapWithCenteredFlex(itemHtml);
+}
+
+function buildBreaklineHtml(sentences){
+    let htmlBody = '';
+    sentences.forEach((item,idx)=>{
+        const num = String(idx+1).padStart(2,'0');
+        htmlBody += `
+<section style="margin:0 auto !important;padding:0!important;margin-bottom:70px!important;text-align:center!important;width:100%;">
+  <section style="margin:0 auto !important;padding:0!important;margin-bottom:30px!important;text-align:center!important;">
+    <span style="display:block!important;width:100%!important;margin:0!important;padding:0!important;margin-bottom:1px!important;font-size:12px!important;color:#999!important;text-align:center!important;">
+      <span leaf="">PART</span>
+    </span>
+    <span style="display:block!important;width:100%!important;text-align:center!important;margin:0!important;padding:0!important;vertical-align:top!important;font-size:28px!important;color:#999!important;">
+      <span leaf="">${num}</span>
+    </span>
+  </section>
+  <section style="margin:0 auto !important;padding:0!important;margin-bottom:20px!important;text-align:center!important;">
+    <span style="display:block!important;width:100%!important;text-align:center!important;color:#444!important;letter-spacing:3px!important;font-size:18px!important;font-weight:300!important;text-indent:0!important;white-space:normal!important;margin:0!important;padding:0!important;">
+      <span leaf="">${item.text}</span>
+    </span>
+  </section>
+  <span style="display:block!important;width:100%!important;margin:0!important;padding:0!important;text-align:center!important;">
+    <span leaf="">${item.source}</span>
+  </span>
+</section>`;
+    })
+    return wrapWithCenteredFlex(htmlBody);
+}
+
+function buildCardHtml(sentences){
+    const avatarCircleImg = `https://mmbiz.qpic.cn/sz_mmbiz_png/rpicN7OehSy7771lTYXcYm95QqdBibPF1P2whWzVWBuC3e4ibicNiaOJu7FSMCsXO2zapHT9LQYJMuEiawBm0ibaMXQxw/640?wx_fmt=png`;
+    const bgPicList = [
+        "https://res.cloudinary.com/divete82s/image/upload/v1755068174/jxgekpcgycjbtncqxfwd.jpg",
+        "https://res.cloudinary.com/divete82s/image/upload/v1755068146/uohviy9z57ae7guqovyf.jpg",
+        "https://res.cloudinary.com/divete82s/image/upload/v1755068144/ybk7no0znhgdlmgcr1pv.jpg"
+    ];
+    let items = '';
+    sentences.forEach((item,idx)=>{
+        const numStr = String(idx+1).padStart(2,'0');
+        const bgImg = bgPicList[idx % bgPicList.length];
+        items += `
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:100%;margin:0 auto 24px auto;padding:0;border:0;border-collapse:collapse;border-spacing:0;table-layout:fixed;background:#ffffff;text-align:center;">
+    <tr>
+      <td style="width:100%;max-width:100%;padding:0;margin:0;border:0;line-height:0;font-size:0;text-align:center;">
+        <img src="${bgImg}" style="display:block;width:100%;max-width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;margin:0 auto;padding:0;border:0;">
+      </td>
+    </tr>
+    <tr>
+      <td style="width:100%;height:0;padding:0;margin:0;border:0;background:transparent;vertical-align:top;line-height:0;font-size:0;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;margin:0;padding:0;border:0;border-collapse:collapse;border-spacing:0;background:transparent;">
+          <tr>
+            <td style="width:100%;height:0;padding:0;margin:0;border:0;background:transparent;text-align:center;vertical-align:top;line-height:0;font-size:0;">
+              <table cellpadding="0" cellspacing="0" border="0" style="width:72px;margin:-29px auto 0 auto;padding:0;border:0;border-collapse:collapse;border-spacing:0;">
+                <tr>
+                  <td width="72" style="width:72px;padding:0 0 12px 0;border:0;background:#f3f3f3;vertical-align:top;text-align:center;">
+                    <div style="width:58px;height:58px;margin:0 auto;border:0;border-radius:50%;overflow:hidden;line-height:0;font-size:0;">
+                      <img src="${avatarCircleImg}" style="display:block;width:58px;height:58px;margin:0 auto;padding:0;border:0;border-radius:50%;">
+                      <span style="display:block;width:58px;height:58px;margin-top:-58px;text-align:center;line-height:58px;color:#ffffff;font-size:18px;font-weight:600;">${numStr}</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="width:100%;max-width:100%;margin:0;padding:0;border:0;background:#f3f3f3;box-sizing:border-box;text-align:center;">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:100%;margin:0;padding:0;border:0;border-collapse:collapse;border-spacing:0;table-layout:fixed;background:#f3f3f3;box-sizing:border-box;">
+          <tr>
+            <td style="width:100%;max-width:100%;min-width:0;padding:0 20px 46px 20px;margin:0;border:0;background:#f3f3f3;color:#555555;font-size:15px;font-weight:400;line-height:1.9;vertical-align:top;word-break:break-all;overflow-wrap:anywhere;box-sizing:border-box;overflow:hidden;text-align:center;">
+              <div style="width:100%;max-width:100%;margin:0 auto;padding:0;border:0;color:#555555;font-size:15px;line-height:1.9;overflow-wrap:anywhere;text-align:center;">${item.text}</div>
+              <div style="width:100%;max-width:100%;margin:14px auto 0 auto;padding:0;border:0;color:#999999;font-size:13px;line-height:2.1;overflow-wrap:anywhere;text-align:center;">${item.source}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>`;
+    })
+    return wrapWithCenteredFlex(items);
+}
+
+function buildDuanzhangHtml(sentences){
+    let html = '';
+    sentences.forEach((item,idx)=>{
+        const numStr = String(idx+1).padStart(2,'0');
+        html += `
+<div style="width:100%; text-align:center; margin-bottom:20px;">
+  <p style="white-space: normal; margin: 0px auto; padding: 0px; box-sizing: border-box; color:#999; text-align:center;"><strong style="box-sizing: border-box;"><span leaf="" style="visibility: visible;">${numStr}</span></strong></p>
+  <section style="text-align: center; font-size: 15px; line-height: 2; padding: 0px 20px; letter-spacing: 1px; font-family: &quot;Source Han Sans CN Normal&quot;; box-sizing: border-box;">
+    <p style="margin: 0px auto; padding: 0px; box-sizing: border-box; text-align:center;"><span leaf="" style="visibility: visible;">${item.text}</span></p>
+    <p style="margin: 0px auto; padding: 0px; box-sizing: border-box;"><span leaf="" style="visibility: visible;"><br /></span></p>
+    <p style="margin: 0px auto; padding: 0px; box-sizing: border-box; text-align:center;"><strong style="box-sizing: border-box;"><span leaf="" style="visibility: visible;">${item.source}</span></strong></p>
+  </section>
+</div>`;
+    })
+    return wrapWithCenteredFlex(html);
+}
+
+function getCurrentLayoutHtml(){
+    const list = getSentenceList();
+    let resultHtml = '';
+    switch(selectLayout){
+        case 'moment': resultHtml = buildMomentHtml(list); break;
+        case 'breakline': resultHtml = buildBreaklineHtml(list); break;
+        case 'card': resultHtml = buildCardHtml(list); break;
+        case 'purebg': resultHtml = buildDuanzhangHtml(list); break;
+        default: resultHtml = `<!--版式未实现-->`;
+    }
+    lastGeneratedHtml = resultHtml;
+    return resultHtml;
+}
+
+document.getElementById('btnSyncPublic').onclick = function(){
+    const html = getCurrentLayoutHtml();
+    document.getElementById('outCode').value = html;
+    document.getElementById('previewBox').innerHTML = html;
+}
+</script>
+</body>
+</html>
