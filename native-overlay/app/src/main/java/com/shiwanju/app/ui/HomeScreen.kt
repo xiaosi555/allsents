@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.shiwanju.app.data.TEXT_CATEGORIES
 import com.shiwanju.app.engine.TextUtil
@@ -76,8 +77,7 @@ fun HomeScreen(vm: AppViewModel) {
         HeaderAndInput(
             input = vm.manualInput,
             onInput = vm::updateManualInput,
-            onExpand = { expandedInput = true },
-            onAdvanced = { vm.screen = "layout" }
+            onExpand = { expandedInput = true }
         )
         Row(Modifier.fillMaxWidth().background(Color.White), horizontalArrangement = Arrangement.SpaceEvenly) {
             HomeTabs.forEach { (key, label) ->
@@ -124,7 +124,7 @@ fun HomeScreen(vm: AppViewModel) {
     }
 
     if (expandedInput) {
-        Dialog(onDismissRequest = { expandedInput = false }) {
+        Dialog(onDismissRequest = { expandedInput = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(Modifier.fillMaxSize(), color = Color.White, shape = RoundedCornerShape(0.dp)) {
                 Column(Modifier.fillMaxSize().padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,7 +134,7 @@ fun HomeScreen(vm: AppViewModel) {
                     OutlinedTextField(
                         value = vm.manualInput,
                         onValueChange = vm::updateManualInput,
-                        modifier = Modifier.fillMaxSize().weight(1f),
+                        modifier = Modifier.fillMaxWidth().weight(1f),
                         placeholder = { Text("输入多条链接和摘录（建议两个换行符隔开）\n快手、抖音识别的文字输入，一键上传文案") },
                         minLines = 8
                     )
@@ -150,7 +150,7 @@ fun HomeScreen(vm: AppViewModel) {
 }
 
 @Composable
-private fun HeaderAndInput(input: String, onInput: (String) -> Unit, onExpand: () -> Unit, onAdvanced: () -> Unit) {
+private fun HeaderAndInput(input: String, onInput: (String) -> Unit, onExpand: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(180.dp).background(HtmlGreen)) {
         Column(Modifier.fillMaxWidth().padding(top = 12.dp, start = 20.dp, end = 20.dp)) {
             Row(
