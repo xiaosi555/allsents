@@ -296,3 +296,15 @@ patch("engine/PreviewEngine.kt",[
         return """<table style="width:100%;table-layout:fixed;border-collapse:collapse;"><tr>$cells</tr></table>"""
     }''')
 ])
+
+patch("ui/AppViewModel.kt",[
+('''    init { validateSelections(); rebuild() }''',
+'''    init {
+        if (ui.tab == "image") {
+            ui = ui.copy(tab = "more", moreCat = "image")
+            store.saveUi(ui)
+        }
+        validateSelections()
+        rebuild()
+    }''')
+])
