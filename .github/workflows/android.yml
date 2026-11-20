@@ -58,6 +58,22 @@ jobs:
           test -f "$PROJECT/app/build.gradle.kts"
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
           cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
+          # Regenerate every legacy launcher density from the same complete square source image.
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          from PIL import Image, ImageOps
+          from pathlib import Path
+          src = Image.open("IMG_20261017_090019.jpg").convert("RGBA")
+          bg = (86, 210, 116, 255)
+          for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
+              folder = Path("source/ShiWanJu-Android/app/src/main/res") / f"mipmap-{density}"
+              folder.mkdir(parents=True, exist_ok=True)
+              fitted = ImageOps.contain(src, (size, size), method=Image.Resampling.LANCZOS)
+              canvas = Image.new("RGBA", (size, size), bg)
+              canvas.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
+              canvas.save(folder / "ic_launcher.png", optimize=True)
+              canvas.save(folder / "ic_launcher_round.png", optimize=True)
+          PY
           # Apply Kotlin/engine/data fixes onto the untouched original native project.
           # Do not overlay the previous HomeScreen/MainActivity experiment.
           python3 native-overlay/apply_patches.py
@@ -75,6 +91,13 @@ jobs:
               </item>
           </layer-list>
           XML
+          cat > "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" <<'XML'
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          XML
+          sed -i 's/android:roundIcon="@mipmap\/ic_launcher"/android:roundIcon="@mipmap\/ic_launcher_round"/' "$PROJECT/app/src/main/AndroidManifest.xml"
           # Kotlin property setter and custom method had the same JVM signature.
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
           sed -i 's/vm.setTextViewMode(/vm.updateTextViewMode(/g' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/MyScreens.kt"
