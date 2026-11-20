@@ -308,3 +308,138 @@ patch("ui/AppViewModel.kt",[
         rebuild()
     }''')
 ])
+
+
+# ----------------------------------------------------------------------
+# UI parity fixes: compact layout selector, removable media, robust editor windows,
+# and consistent responsive dialogs for every My subpage.
+patch("ui/LayoutScreen.kt",[
+    ('Modifier.width(92.dp).height(128.dp)', 'Modifier.width(70.dp).height(64.dp)'),
+    ('.fillMaxWidth().height(30.dp).background(t.color)', '.fillMaxWidth().height(28.dp).background(t.color)'),
+    ('''        else -> if (vm.data.files.gif.isEmpty()) EmptyTip("暂无动图，请到【我的】-更多-动图中添加")
+        else GridCards { vm.data.files.gif.forEach { g -> GridCard(g.name, g.id == vm.ui.gifId) { vm.pickGif(g) } } }''',
+     '''        else -> if (vm.data.files.gif.isEmpty()) EmptyTip("暂无动图，请到【我的】-更多-动图中添加")
+        else GridCards {
+            vm.data.files.gif.forEach { g -> GridCard(g.name, g.id == vm.ui.gifId) { vm.pickGif(g) } }
+            if (vm.ui.gifId != null) GridCard("移除动图") { vm.clearGif() }
+        }''')
+])
+
+patch("ui/AppViewModel.kt",[
+    ('''        if (data.files.gif.none { it.id == u.gifId }) u = u.copy(gifId = null, gifContent = "")''',
+     '''        if (data.files.gif.none { it.id == u.gifId }) u = u.copy(gifId = null, gifContent = "", mediaOrder = u.mediaOrder.filter { it != "gif" })'''),
+    ('''    fun clearHistory() = updateUi { copy(historyIds = emptyList(), mediaOrder = mediaOrder.filter { it != "history" }) }''',
+     '''    fun clearHistory() = updateUi { copy(historyIds = emptyList(), mediaOrder = mediaOrder.filter { it != "history" }) }
+
+    fun clearGif() = updateUi { copy(gifId = null, gifContent = "", mediaOrder = mediaOrder.filter { it != "gif" }) }''')
+])
+
+patch("ui/Components.kt",[
+    ('''    var text by remember(value) { mutableStateOf(value.toString()) }
+    var prev by remember { mutableStateOf(value.toString()) }
+    val shape = RoundedCornerShape(6.dp)''',
+     '''    var text by remember { mutableStateOf(value.toString()) }
+    var prev by remember { mutableStateOf(value.toString()) }
+    var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(value, focused) {
+        if (!focused) { text = value.toString(); prev = value.toString() }
+    }
+    val shape = RoundedCornerShape(6.dp)'''),
+    ('''                text = d
+                d.toIntOrNull()?.let(onValue)''',
+     '''                text = d
+                d.toIntOrNull()?.let { n -> prev = n.toString(); onValue(n) }'''),
+    ('''                .onFocusChanged { f ->
+                    if (f.isFocused) { prev = text; text = "" }
+                    else if (text.isEmpty()) text = prev
+                }''',
+     '''                .onFocusChanged { f ->
+                    if (f.isFocused && !focused) { focused = true; prev = value.toString(); text = "" }
+                    else if (!f.isFocused && focused) {
+                        focused = false
+                        if (text.isEmpty()) text = prev else prev = text
+                    }
+                }'''),
+    ('''{ val n = ((text.toIntOrNull() ?: prev.toIntOrNull() ?: 0) + 1).coerceAtLeast(0); text = n.toString(); prev = text; onValue(n) }''',
+     '''{ val n = ((text.toIntOrNull() ?: prev.toIntOrNull() ?: value) + 1).coerceAtLeast(0); text = n.toString(); prev = text; onValue(n) }'''),
+    ('''{ val n = ((text.toIntOrNull() ?: prev.toIntOrNull() ?: 0) - 1).coerceAtLeast(0); text = n.toString(); prev = text; onValue(n) }''',
+     '''{ val n = ((text.toIntOrNull() ?: prev.toIntOrNull() ?: value) - 1).coerceAtLeast(0); text = n.toString(); prev = text; onValue(n) }'''),
+    ('''x = (cx + drag.x).coerceIn(0f, maxOf(0f, boundsW - cw))
+                            y = (cy + drag.y).coerceIn(0f, maxOf(0f, boundsH - ch))''',
+     '''x = (x + drag.x).coerceIn(0f, maxOf(0f, boundsW - w))
+                            y = (y + drag.y).coerceIn(0f, maxOf(0f, boundsH - h))'''),
+    ('''w = (cw + drag.x).coerceIn(minOf(minW, boundsW - cx), boundsW - cx)
+                        h = (ch + drag.y).coerceIn(minOf(minH, boundsH - cy), boundsH - cy)''',
+     '''w = (w + drag.x).coerceIn(minOf(minW, maxOf(1f, boundsW - cx)), maxOf(1f, boundsW - cx))
+                        h = (h + drag.y).coerceIn(minOf(minH, maxOf(1f, boundsH - cy)), maxOf(1f, boundsH - cy))''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('FloatingWindow("随机标题", 60.dp, 70.dp, 270.dp, 170.dp', 'FloatingWindow("随机标题", 60.dp, 70.dp, 270.dp, 160.dp'),
+    ('FloatingWindow("编辑设置", 48.dp, 240.dp, 272.dp, 330.dp', 'FloatingWindow("编辑设置", 48.dp, 240.dp, 272.dp, 390.dp'),
+    ('EntryIcon("设", vm.showSettings)', 'EntryIcon("☷", vm.showSettings)'),
+    ('EntryIcon("题", vm.showTitle)', 'EntryIcon("T", vm.showTitle)')
+])
+
+patch("ui/MyScreens.kt",[
+    ('import androidx.compose.ui.zIndex', 'import androidx.compose.ui.zIndex\nimport androidx.compose.ui.window.Dialog'),
+    ('''    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp), content = content) },
+        confirmButton = { TextButton(onClick = onSave) { Text("保存", color = AppColors.MyText, fontWeight = FontWeight.Bold) } },
+        dismissButton = {
+            Row {
+                if (onDelete != null) TextButton(onClick = onDelete) { Text("删除", color = Color(0xFFDC2626)) }
+                TextButton(onClick = onDismiss) { Text("取消", color = AppColors.MyDim) }
+            }
+        }
+    )''',
+     '''    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.96f).heightIn(max = 760.dp),
+            shape = RoundedCornerShape(18.dp), color = Color.White,
+            tonalElevation = 8.dp, shadowElevation = 18.dp
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+                Text(title, color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(14.dp))
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 610.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp), content = content
+                )
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = AppColors.MyLine)
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (onDelete != null) TextButton(onClick = onDelete) { Text("删除", color = Color(0xFFDC2626)) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) { Text("取消", color = AppColors.MyDim) }
+                    Button(onClick = onSave, colors = ButtonDefaults.buttonColors(containerColor = AppColors.Theme, contentColor = AppColors.OnTheme), shape = RoundedCornerShape(9.dp)) {
+                        Text("保存", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }'''),
+    ('''private fun ConfirmDelete(what: String, onOk: () -> Unit, onCancel: () -> Unit) = AlertDialog(
+    onDismissRequest = onCancel, title = { Text("确认删除") }, text = { Text("确定要删除该$what 吗？") },
+    confirmButton = { TextButton(onClick = onOk) { Text("删除", color = Color(0xFFDC2626)) } },
+    dismissButton = { TextButton(onClick = onCancel) { Text("取消", color = AppColors.MyDim) } }
+)''',
+     '''private fun ConfirmDelete(what: String, onOk: () -> Unit, onCancel: () -> Unit) {
+    Dialog(onDismissRequest = onCancel) {
+        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, shadowElevation = 16.dp) {
+            Column(Modifier.widthIn(min = 260.dp, max = 340.dp).padding(20.dp)) {
+                Text("确认删除", color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(12.dp))
+                Text("确定要删除该$what 吗？此操作无法撤销。", color = AppColors.MyDim, fontSize = 14.sp, lineHeight = 21.sp)
+                Spacer(Modifier.height(18.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onCancel) { Text("取消", color = AppColors.MyDim) }
+                    TextButton(onClick = onOk) { Text("删除", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+    }
+}''')
+])
