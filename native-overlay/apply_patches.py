@@ -933,7 +933,7 @@ patch("ui/MyScreens.kt",[
             "douyin" -> "抖音版式"
             else -> "自定义版式"
         }
-        ListRow(l.name, "$kind · HTML \${l.content.length} 字符") { edit = l; isNew = false }
+        ListRow(l.name, "$kind · HTML ${l.content.length} 字符") { edit = l; isNew = false }
     }''',
 '''    vm.data.layout.chunked(2).forEach { row ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
