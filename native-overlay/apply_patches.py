@@ -252,8 +252,7 @@ patch("ui/MyScreens.kt",[
  'PreviewEngine.historyTemplateHtml(fi.isNotBlank())')
 ])
 patch("ui/LayoutScreen.kt",[
-('GridCard(if (on) "重新随机" else "随机往期", on) { vm.rollHistory() }',
- 'vm.data.history.forEach { h -> GridCard(h.name.ifEmpty { h.title.ifEmpty { "未命名往期" } }, vm.ui.historyIds.contains(h.id)) { vm.rollHistory(h.id) } }')
+
 ])
 
 patch("ui/LayoutScreen.kt",[
