@@ -223,3 +223,10 @@ patch("ui/LayoutScreen.kt",[
 ('GridCard(if (on) "重新随机5条" else "随机5条", on) { vm.rollHistory() }',
  'GridCard(if (on) "重新随机" else "随机往期", on) { vm.rollHistory() }')
 ])
+
+patch("engine/PreviewEngine.kt",[
+('TextNode(line, "")','TextNode(line)')
+])
+patch("engine/PreviewEngine.kt",[
+('TextNode(line, "")','TextNode(line)')
+])
