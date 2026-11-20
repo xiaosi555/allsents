@@ -474,3 +474,266 @@ patch("ui/LayoutScreen.kt",[
     }
 }''')
 ])
+
+
+# ----------------------------------------------------------------------
+# HTML parity: seed starter media once, default preview media, and editor UI polish.
+shutil.copy2(root/"native-overlay/app/src/main/assets/seed.json",base/"assets/seed.json")
+
+patch("data/Models.kt",[
+    ('    val douyinAdded: Boolean = false\n)', '    val douyinAdded: Boolean = false,\n    val seedDefaultsApplied: Boolean = false\n)'),
+    ('    val douyinBg: String = ""\n)', '    val douyinBg: String = "",\n    val mediaInit: Boolean = false\n)')
+])
+
+patch("data/Store.kt",[
+    ('''        val data = normalize(raw ?: gson.fromJson(readAsset("seed.json"), AppData::class.java))
+        if (raw == null) saveData(data)
+        return data''',
+     '''        val starter = normalize(gson.fromJson(readAsset("seed.json"), AppData::class.java))
+        val loaded = normalize(raw ?: gson.fromJson(readAsset("seed.json"), AppData::class.java))
+        val data = if (raw == null) {
+            loaded.copy(seedDefaultsApplied = true)
+        } else if (!loaded.seedDefaultsApplied) {
+            fun <T> merge(current: List<T>, defaults: List<T>, id: (T) -> String): List<T> {
+                val known = current.map(id).toHashSet()
+                return current + defaults.filter { id(it) !in known }
+            }
+            loaded.copy(
+                history = merge(loaded.history, starter.history) { it.id },
+                emoji = merge(loaded.emoji, starter.emoji) { it.id },
+                files = loaded.files.copy(
+                    image = merge(loaded.files.image, starter.files.image) { it.id },
+                    gif = merge(loaded.files.gif, starter.files.gif) { it.id }
+                ),
+                seedDefaultsApplied = true
+            )
+        } else loaded
+        if (raw == null || data != loaded) saveData(data)
+        return data'''),
+    ('            douyinAdded = douyinAdded\n        )',
+     '            douyinAdded = douyinAdded,\n            seedDefaultsApplied = raw.seedDefaultsApplied\n        )')
+])
+
+patch("ui/AppViewModel.kt",[
+    ('''        validateSelections()
+        rebuild()
+    }''',
+     '''        validateSelections()
+        applyDefaultMediaOnce()
+        rebuild()
+    }'''),
+    ('''    // ------------------------------------------------------------------ 基础
+
+    private fun rebuild()''',
+     '''    // HTML initFromData / applyDefaultMedia：首次进入普通版式时自动加入 emoji、随机动图和文字版往期。
+    // mediaInit 会持久化，用户主动移除后不会在每次重启时重新插入。
+    private fun applyDefaultMediaOnce() {
+        if (ui.mediaInit) return
+        if (kind == "douyin") {
+            ui = ui.copy(previewEmoji = "", gifId = null, gifContent = "", historyIds = emptyList(), mediaOrder = emptyList(), mediaInit = true)
+        } else {
+            var emoji = ui.previewEmoji
+            if (emoji.isBlank()) emoji = data.emoji.randomOrNull()?.let { randomBlock(it.content) }.orEmpty()
+            var gifId = ui.gifId
+            var gifContent = ui.gifContent
+            if (gifId == null) {
+                val gif = data.files.gif.randomOrNull()
+                val content = gif?.let { randomBlock(it.content) }.orEmpty()
+                if (gif != null && content.isNotBlank()) { gifId = gif.id; gifContent = content }
+            }
+            var historyIds = ui.historyIds
+            if (historyIds.isEmpty()) {
+                val history = data.history.firstOrNull { it.name.contains("文字") } ?: data.history.firstOrNull()
+                if (history != null) historyIds = listOf(history.id)
+            }
+            val order = buildList {
+                if (gifId != null) add("gif")
+                if (historyIds.isNotEmpty()) add("history")
+            }
+            ui = ui.copy(previewEmoji = emoji, gifId = gifId, gifContent = gifContent, historyIds = historyIds, mediaOrder = order, mediaInit = true)
+        }
+        store.saveUi(ui)
+    }
+
+    // ------------------------------------------------------------------ 基础
+
+    private fun rebuild()'''),
+    ('''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        updateUi { copy(layoutId = id, douyinBg = if (item?.name?.contains("抖音") == true) drawDouyinBg() else douyinBg) }
+    }''',
+     '''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        updateUi {
+            if (item?.name?.contains("抖音") == true) copy(
+                layoutId = id, douyinBg = drawDouyinBg(), previewEmoji = "", gifId = null,
+                gifContent = "", historyIds = emptyList(), mediaOrder = emptyList(), mediaInit = true
+            ) else copy(layoutId = id)
+        }
+    }''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('FloatingWindow("随机标题", 60.dp, 70.dp, 270.dp, 160.dp', 'FloatingWindow("随机标题", 60.dp, 70.dp, 270.dp, 210.dp'),
+    ('''            ThemeChip("换一个", false) { vm.loadRandomTitle() }
+        }
+    }
+}
+
+@Composable
+private fun SettingsWindow''',
+     '''            ThemeChip("换一个", false) { vm.loadRandomTitle() }
+        }
+        Spacer(Modifier.height(10.dp))
+        CopyPreviewButton(vm)
+    }
+}
+
+@Composable
+private fun SettingsWindow'''),
+    ('''    val ctx = LocalContext.current
+    FloatingWindow("编辑设置"''','''    FloatingWindow("编辑设置"'''),
+    ('''            Spacer(Modifier.height(10.dp))
+            ThemeChip("复制预览内容", true, modifier = Modifier.fillMaxWidth()) {
+                val copyHtml: (String) -> Unit = { html ->
+                    val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                    cm.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+                    vm.toast("已复制当前预览内容")
+                }
+                val read = vm.jsResult
+                if (read == null) copyHtml(vm.previewHtml)
+                else read("getHtml()") { raw ->
+                    val html = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull()
+                    copyHtml(html ?: vm.previewHtml)
+                }
+            }''',
+     '''            Spacer(Modifier.height(10.dp))
+            CopyPreviewButton(vm)''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('''private fun EntryIcon(label: String, active: Boolean, onClick: () -> Unit) {''',
+     '''@Composable
+private fun CopyPreviewButton(vm: AppViewModel) {
+    val ctx = LocalContext.current
+    ThemeChip("复制预览内容", true, modifier = Modifier.fillMaxWidth()) {
+        val copyHtml: (String) -> Unit = { html ->
+            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+            cm.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+            vm.toast("已复制当前预览内容")
+        }
+        val read = vm.jsResult
+        if (read == null) copyHtml(vm.previewHtml)
+        else read("getHtml()") { raw ->
+            val html = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull()
+            copyHtml(html ?: vm.previewHtml)
+        }
+    }
+}
+
+@Composable
+private fun EntryIcon(label: String, active: Boolean, onClick: () -> Unit) {''')
+])
+
+patch("ui/MyScreens.kt",[
+    ('import androidx.compose.ui.window.Dialog', 'import androidx.compose.ui.window.Dialog\nimport androidx.compose.ui.window.DialogProperties'),
+    ('''    OutlinedTextField(
+        value = value, onValueChange = onChange, label = { Text(label) }, placeholder = { if (hint.isNotEmpty()) Text(hint) },
+        modifier = Modifier.fillMaxWidth(), minLines = lines, maxLines = if (lines == 1) 1 else 12, singleLine = lines == 1
+    )''',
+     '''    OutlinedTextField(
+        value = value, onValueChange = onChange, label = { Text(label) }, placeholder = { if (hint.isNotEmpty()) Text(hint) },
+        modifier = Modifier.fillMaxWidth(), minLines = lines, maxLines = if (lines == 1) 1 else 12, singleLine = lines == 1,
+        shape = RoundedCornerShape(11.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = AppColors.Theme, unfocusedBorderColor = AppColors.MyLine,
+            focusedLabelColor = AppColors.Theme, cursorColor = AppColors.Theme,
+            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+        )
+    )'''),
+    ('''    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.96f).heightIn(max = 760.dp),
+            shape = RoundedCornerShape(18.dp), color = Color.White,
+            tonalElevation = 8.dp, shadowElevation = 18.dp
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+                Text(title, color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(14.dp))
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 610.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp), content = content
+                )
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = AppColors.MyLine)
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (onDelete != null) TextButton(onClick = onDelete) { Text("删除", color = Color(0xFFDC2626)) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) { Text("取消", color = AppColors.MyDim) }
+                    Button(onClick = onSave, colors = ButtonDefaults.buttonColors(containerColor = AppColors.Theme, contentColor = AppColors.OnTheme), shape = RoundedCornerShape(9.dp)) {
+                        Text("保存", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }''',
+     '''    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.94f).widthIn(max = 440.dp).heightIn(max = 680.dp),
+            shape = RoundedCornerShape(20.dp), color = AppColors.MyBg,
+            tonalElevation = 10.dp, shadowElevation = 20.dp
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(title, color = AppColors.MyText, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                        Text("拾万句 · 配置管理", color = AppColors.MyDim, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
+                    }
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(AppColors.Theme))
+                }
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = AppColors.MyLine)
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 540.dp).verticalScroll(rememberScrollState()).padding(vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp), content = content
+                )
+                HorizontalDivider(color = AppColors.MyLine)
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (onDelete != null) TextButton(onClick = onDelete) { Text("删除", color = Color(0xFFDC2626), fontWeight = FontWeight.Medium) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) { Text("取消", color = AppColors.MyDim) }
+                    Button(onClick = onSave, colors = ButtonDefaults.buttonColors(containerColor = AppColors.Theme, contentColor = AppColors.OnTheme), shape = RoundedCornerShape(10.dp)) {
+                        Text("保存配置", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }'''),
+    ('''                val html = template.ifBlank { PreviewEngine.historyTemplateHtml(fi.isNotBlank()) }
+                vm.saveHistory(cur.copy(name = ft.ifEmpty { "未命名配置" }, title = ft, link = fl, image = fi, titles = ts, links = ls, images = ims, content = html)); close()
+            }, if (isNew) null else ({ confirm = true })) {
+                Field("标题（每行一条，与链接、图片按行对应）", titles, { titles = it }, 5)
+                Field("链接（每行一个）", links, { links = it }, 5)
+                Field("图片（每行一个；文字版留空）", images, { images = it }, 5)
+                Field("HTML 模板（可选，留空使用默认模板）", template, { template = it }, 5)
+            }''',
+     '''                val html = template.ifBlank { PreviewEngine.historyTemplateHtml(fi.isNotBlank()) }
+                vm.saveHistory(cur.copy(name = name.trim().ifEmpty { ft.ifEmpty { "未命名配置" } }, title = ft, link = fl, image = fi, titles = ts, links = ls, images = ims, content = html)); close()
+            }, if (isNew) null else ({ confirm = true })) {
+                Text("配置基本信息", color = AppColors.Theme, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Field("配置名称", name, { name = it }, hint = "例如：文字版 / 图片版")
+                Text("往期内容", color = AppColors.Theme, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Field("标题（每行一条）", titles, { titles = it }, 3, "标题与链接、图片按行对应")
+                Field("链接（每行一个）", links, { links = it }, 3, "每行填写一个文章链接")
+                Field("图片地址（每行一个）", images, { images = it }, 3, "留空则使用文字版往期")
+                Text("高级模板", color = AppColors.Theme, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Field("HTML 模板（可选）", template, { template = it }, 4, "留空时自动使用默认模板")
+            }'''),
+    ('''            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title.ifEmpty { cur.name } }) }''',
+     '''            var name by remember(key) { mutableStateOf(cur.name) }
+            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title.ifEmpty { cur.name } }) }'''),
+    ('''                "history" -> vm.data.history.forEach { h -> ListRow(h.title.ifEmpty { h.name }, h.link.ifEmpty { h.image }.ifEmpty { summarize(h.content) }) { editKey = h.id } }''',
+     '''                "history" -> vm.data.history.forEach { h -> ListRow(h.name.ifEmpty { h.title }, h.title.ifEmpty { h.link }.ifEmpty { h.image }.ifEmpty { summarize(h.content) }) { editKey = h.id } }''')
+])
