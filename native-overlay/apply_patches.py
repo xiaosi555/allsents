@@ -204,3 +204,36 @@ patch("ui/MyScreens.kt",[
 patch("engine/PreviewEngine.kt",[
 ('ctx.doc.createTextNode(line)','TextNode(line, "")')
 ])
+
+patch("ui/AppViewModel.kt",[
+('''    fun rollHistory() {
+        if (data.history.isEmpty()) return toast("暂无往期条目，请到【我的】-更多-往期中添加")
+        pendingScroll = "history"
+        val ids = listOf(data.history.random().id)
+        updateUi { copy(historyIds = ids, mediaOrder = if ("history" in mediaOrder) mediaOrder else mediaOrder + "history") }
+    }''',
+'''    fun rollHistory(id: String? = null) {
+        if (data.history.isEmpty()) return toast("暂无往期条目，请到【我的】-更多-往期中添加")
+        val item = data.history.firstOrNull { it.id == id } ?: data.history.random()
+        pendingScroll = "history"
+        updateUi { copy(historyIds = listOf(item.id), mediaOrder = if ("history" in mediaOrder) mediaOrder else mediaOrder + "history") }
+    }''')
+])
+patch("ui/LayoutScreen.kt",[
+('''        "history" -> if (vm.data.history.isEmpty()) EmptyTip("暂无往期，请到【我的】-更多-往期中添加")
+        else {
+            val on = vm.ui.historyIds.isNotEmpty()
+            GridCards {
+                GridCard(if (on) "重新随机5条" else "随机5条", on) { vm.rollHistory() }
+                if (on) GridCard("移除往期") { vm.clearHistory() }
+                Text("共 \${vm.data.history.size} 条", color = AppColors.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+            }
+        }''',
+'''        "history" -> if (vm.data.history.isEmpty()) EmptyTip("暂无往期，请到【我的】-更多-往期中添加")
+        else {
+            GridCards {
+                vm.data.history.forEach { h -> GridCard(h.name.ifEmpty { h.title.ifEmpty { "未命名往期" } }, vm.ui.historyIds.contains(h.id)) { vm.rollHistory(h.id) } }
+                if (vm.ui.historyIds.isNotEmpty()) GridCard("移除往期") { vm.clearHistory() }
+            }
+        }''')
+])
