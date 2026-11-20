@@ -332,16 +332,22 @@ private fun UploadHomePage(vm: AppViewModel, subTab: String, onSubTab: (String) 
         Button(
             onClick = {
                 vm.applyManualText()
-                clipboard.setText(AnnotatedString(vm.previewHtml))
-                vm.toast("HTML 已复制，请粘贴到公众号编辑器；当前不执行公众号后台发布")
+                onSubTab("code")
+                vm.toast("HTML 已生成，可复制代码后粘贴到公众号编辑器；当前不执行公众号后台发布")
             },
             modifier = Modifier.fillMaxWidth().height(54.dp),
             colors = ButtonDefaults.buttonColors(containerColor = HtmlGreen, contentColor = Color.White)
-        ) { Text("生成并复制公众号 HTML", fontSize = 16.sp) }
+        ) { Text("同步到公众号", fontSize = 16.sp) }
+        var countText by remember(vm.ui.quantity) { mutableStateOf(vm.ui.quantity.toString()) }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Text("数量", color = Color(0xFF6B7280), fontSize = 12.sp)
             Spacer(Modifier.width(6.dp))
-            Text(vm.ui.quantity.toString(), color = HtmlText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            OutlinedTextField(
+                value = countText,
+                onValueChange = { raw -> countText = raw.filter(Char::isDigit).take(2); countText.toIntOrNull()?.let(vm::setQuantity) },
+                modifier = Modifier.width(72.dp).height(52.dp),
+                singleLine = true
+            )
             Spacer(Modifier.width(4.dp))
             Text("句", color = Color(0xFF6B7280), fontSize = 12.sp)
         }
