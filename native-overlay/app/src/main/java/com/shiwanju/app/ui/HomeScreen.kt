@@ -221,8 +221,8 @@ private fun CopyHomePage(
             Text("获取APP_ID", color = Color(0xFF9CA3AF), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 10.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CategoryCard("▤", "名句摘录", "读书笔记、诗词佳句", vm.ui.textCat == "名句") { vm.selectTextCat("名句") }
-            CategoryCard("▣", "朋友圈文案", "朋友圈日常分享", vm.ui.textCat == "朋友圈") { vm.selectTextCat("朋友圈") }
+            CategoryCard(Modifier.weight(1f), "▤", "名句摘录", "读书笔记、诗词佳句", vm.ui.textCat == "名句") { vm.selectTextCat("名句") }
+            CategoryCard(Modifier.weight(1f), "▣", "朋友圈文案", "朋友圈日常分享", vm.ui.textCat == "朋友圈") { vm.selectTextCat("朋友圈") }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             listOf(3, 6, 9).forEach { n ->
@@ -241,7 +241,7 @@ private fun CopyHomePage(
                         val selected = selectedLayoutKey(vm) == key
                         val supported = key != "douyin"
                         Box(
-                            Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color.White)
+                            modifier.clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color.White)
                                 .border(if (selected) 2.dp else 1.dp, if (selected) HtmlGreen else Color(0xFFE5E7EB), RoundedCornerShape(10.dp))
                                 .clickable(enabled = supported) {
                                     val item = vm.data.layout.firstOrNull { l -> layoutMatches(l.name, key) }
@@ -268,7 +268,14 @@ private fun CopyHomePage(
             OutlinedButton(onClick = onCover, modifier = Modifier.weight(1f)) { Text(if (coverUri.isEmpty()) "＋ 上传封面图" else "已选择封面", fontSize = 11.sp) }
             OutlinedButton(onClick = onBackground, modifier = Modifier.weight(1f)) { Text(if (douyinBgUri.isEmpty()) "＋ 抖音背景图" else "已选择背景图", fontSize = 11.sp) }
         }
+        Text("选择文案模块", color = HtmlText, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        val modules = vm.data.files.text.filter { it.category == vm.ui.textCat }
+        if (modules.isEmpty()) Text("暂无文案模块，请到【我的】-文案中添加", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+        else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            modules.forEach { module -> SelectChip(module.name, vm.ui.copyModuleId == module.id) { vm.selectCopyModule(module.id) } }
+        }
         Text("已选择：${vm.data.files.text.firstOrNull { it.id == vm.ui.copyModuleId }?.name ?: "尚未选择文案模块"}", color = Color(0xFF9CA3AF), fontSize = 11.sp)
+        TextButton(onClick = { vm.screen = "layout" }) { Text("打开高级排版编辑器", color = HtmlGreen) }
         Spacer(Modifier.height(10.dp))
     }
 }
@@ -293,7 +300,7 @@ private fun layoutMatches(name: String, key: String): Boolean = when (key) {
 }
 
 @Composable
-private fun CategoryCard(icon: String, title: String, desc: String, selected: Boolean, onClick: () -> Unit) {
+private fun CategoryCard(modifier: Modifier = Modifier, icon: String, title: String, desc: String, selected: Boolean, onClick: () -> Unit) {
     Column(
         Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color(0xFFF3F4F6))
             .border(1.dp, if (selected) HtmlGreen else Color(0xFFE5E7EB), RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(12.dp)
@@ -313,7 +320,7 @@ private fun TypeHomePage(vm: AppViewModel) {
         Text("内容类型", color = HtmlText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Text("HTML 原型只预留了类型页面入口，未定义更多类型字段；这里先提供与现有数据模型一致的两种文案分类。", color = Color(0xFF9CA3AF), fontSize = 12.sp)
         TEXT_CATEGORIES.forEach { cat ->
-            CategoryCard("✦", cat, if (cat == "朋友圈") "朋友圈日常分享" else "读书笔记、诗词佳句", vm.ui.textCat == cat) { vm.selectTextCat(cat); vm.toast("已切换到$cat") }
+            CategoryCard(Modifier.fillMaxWidth(), "✦", cat, if (cat == "朋友圈") "朋友圈日常分享" else "读书笔记、诗词佳句", vm.ui.textCat == cat) { vm.selectTextCat(cat); vm.toast("已切换到$cat") }
         }
     }
 }
