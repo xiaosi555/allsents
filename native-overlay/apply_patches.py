@@ -825,3 +825,227 @@ import androidx.compose.ui.draw.shadow'''),
                 else -> vm.data.files.image.forEach { f -> ListRow(f.name.ifEmpty { "未命名配图" }, "${TextUtil.imageUrls(f.content).size} 张图片") { editKey = f.id } }'''),
 
 ])
+
+# Full-screen management editors and rendered layout previews.
+patch("ui/MyScreens.kt",[
+('''private fun EditDialog(title: String, onDismiss: () -> Unit, onSave: () -> Unit, onDelete: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.94f).widthIn(max = 440.dp).heightIn(max = 680.dp),
+            shape = RoundedCornerShape(20.dp), color = AppColors.MyBg,
+            tonalElevation = 10.dp, shadowElevation = 20.dp
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(title, color = AppColors.MyText, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
+                        Text("拾万句 · 配置管理", color = AppColors.MyDim, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
+                    }
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(AppColors.Theme))
+                }
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = AppColors.MyLine)
+                Column(
+                    Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 540.dp).verticalScroll(rememberScrollState()).padding(vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp), content = content
+                )
+                HorizontalDivider(color = AppColors.MyLine)
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (onDelete != null) TextButton(onClick = onDelete) { Text("删除", color = Color(0xFFDC2626), fontWeight = FontWeight.Medium) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) { Text("取消", color = AppColors.MyDim) }
+                    Button(onClick = onSave, colors = ButtonDefaults.buttonColors(containerColor = AppColors.Theme, contentColor = AppColors.OnTheme), shape = RoundedCornerShape(10.dp)) {
+                        Text("保存配置", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}''',
+'''private fun EditDialog(title: String, onDismiss: () -> Unit, onSave: () -> Unit, onDelete: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        Surface(Modifier.fillMaxSize(), shape = RoundedCornerShape(0.dp), color = AppColors.MyBg) {
+            Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+                Row(Modifier.fillMaxWidth().height(58.dp).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onDismiss, contentPadding = PaddingValues(0.dp)) { Text("‹ 返回", color = AppColors.MyText, fontSize = 15.sp) }
+                    Text(title, Modifier.weight(1f), color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(AppColors.Theme))
+                }
+                HorizontalDivider(color = AppColors.MyLine)
+                Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+                HorizontalDivider(color = AppColors.MyLine)
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 18.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (onDelete != null) TextButton(onClick = onDelete) { Text("删除", color = Color(0xFFDC2626), fontWeight = FontWeight.Medium) }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) { Text("取消", color = AppColors.MyDim) }
+                    Button(onClick = onSave, modifier = Modifier.height(46.dp), colors = ButtonDefaults.buttonColors(containerColor = AppColors.Theme, contentColor = AppColors.OnTheme), shape = RoundedCornerShape(12.dp)) { Text("保存配置", fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+    }
+}'''),
+('''private fun ConfirmDelete(what: String, onOk: () -> Unit, onCancel: () -> Unit) {
+    Dialog(onDismissRequest = onCancel) {
+        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, shadowElevation = 16.dp) {
+            Column(Modifier.widthIn(min = 260.dp, max = 340.dp).padding(20.dp)) {
+                Text("确认删除", color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(12.dp))
+                Text("确定要删除该$what 吗？此操作无法撤销。", color = AppColors.MyDim, fontSize = 14.sp, lineHeight = 21.sp)
+                Spacer(Modifier.height(18.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onCancel) { Text("取消", color = AppColors.MyDim) }
+                    TextButton(onClick = onOk) { Text("删除", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+    }
+}''',
+'''private fun ConfirmDelete(what: String, onOk: () -> Unit, onCancel: () -> Unit) {
+    Dialog(onDismissRequest = onCancel, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        Surface(Modifier.fillMaxSize(), shape = RoundedCornerShape(0.dp), color = AppColors.MyBg) {
+            Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                Row(Modifier.fillMaxWidth().height(58.dp).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onCancel, contentPadding = PaddingValues(0.dp)) { Text("‹ 返回", color = AppColors.MyText, fontSize = 15.sp) }
+                    Text("确认删除", Modifier.weight(1f), color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Spacer(Modifier.width(48.dp))
+                }
+                HorizontalDivider(color = AppColors.MyLine)
+                Column(Modifier.weight(1f).fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.Center) {
+                    Text("确定要删除该$what 吗？", color = AppColors.MyText, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(12.dp))
+                    Text("删除后无法撤销，请确认该配置不再需要。", color = AppColors.MyDim, fontSize = 14.sp, lineHeight = 22.sp)
+                }
+                HorizontalDivider(color = AppColors.MyLine)
+                Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f).height(48.dp)) { Text("取消") }
+                    Button(onClick = onOk, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))) { Text("确认删除", color = Color.White) }
+                }
+            }
+        }
+    }
+}'''),
+('''    vm.data.layout.forEach { l ->
+        val kind = when (layoutKindOf(l.name)) {
+            "moments" -> "朋友圈版式"
+            "sentence" -> "文字断句版式"
+            "card" -> "卡片版式"
+            "duan" -> "断章序引版式"
+            "douyin" -> "抖音版式"
+            else -> "自定义版式"
+        }
+        ListRow(l.name, "$kind · HTML \${l.content.length} 字符") { edit = l; isNew = false }
+    }''',
+'''    vm.data.layout.chunked(2).forEach { row ->
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            row.forEach { l ->
+                val kind = when (layoutKindOf(l.name)) {
+                    "moments" -> "朋友圈"
+                    "sentence" -> "文字断句"
+                    "card" -> "卡片"
+                    "duan" -> "断章序引"
+                    "douyin" -> "抖音"
+                    else -> "自定义版式"
+                }
+                Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Color.White).clickable { edit = l; isNew = false }) {
+                    RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 11.dp, vertical = 10.dp)) {
+                        Text(l.name, color = AppColors.MyText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(kind + " · HTML " + l.content.length + " 字符", color = AppColors.MyDim, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+            if (row.size == 1) Spacer(Modifier.weight(1f))
+        }
+    }''')
+])
+patch("ui/LayoutScreen.kt",[
+('''            Column(
+                Modifier.width(76.dp).height(92.dp).clip(RoundedCornerShape(12.dp))
+                    .background(if (i == sel) AppColors.Theme.copy(alpha = 0.16f) else AppColors.Field)
+                    .border(1.dp, if (i == sel) AppColors.Theme else AppColors.Line, RoundedCornerShape(12.dp))
+                    .clickable { vm.selectAccount(a.id) }.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
+            ) {
+                AsyncImage(a.avatar, null, Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Spacer(Modifier.height(6.dp))
+                Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }''',
+'''            Row(Modifier.widthIn(min = 112.dp, max = 160.dp).height(76.dp).clickable { vm.selectAccount(a.id) }.padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                AsyncImage(a.avatar, null, Modifier.size(46.dp).clip(CircleShape).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 13.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(a.author.ifBlank { "公众号账号" }, color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }'''),
+('''private fun LayoutPanel(vm: AppViewModel) {
+    val list = vm.data.layout
+    if (list.isEmpty()) return EmptyTip("暂无版式，请到【我的】中添加")
+    val cur = vm.layoutIndex
+    LazyRow(Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        items(list.size) { i ->
+            val l = list[i]; val t = thumbFor(l.name, i)
+            Column(
+                Modifier.width(70.dp).height(64.dp).clip(RoundedCornerShape(10.dp))
+                    .border(2.dp, if (i == cur) AppColors.Theme else Color.Transparent, RoundedCornerShape(10.dp))
+                    .clickable { vm.selectLayout(l.id) }
+            ) {
+                Box(Modifier.fillMaxWidth().height(28.dp).background(t.color), contentAlignment = Alignment.Center) {
+                    Text(shortName(l.name), color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+                AsyncImage(t.bg, null, Modifier.fillMaxWidth().weight(1f), contentScale = ContentScale.Crop)
+            }
+        }
+    }
+}''',
+'''private fun LayoutPanel(vm: AppViewModel) {
+    val list = vm.data.layout
+    if (list.isEmpty()) return EmptyTip("暂无版式，请到【我的】中添加")
+    val cur = vm.layoutIndex
+    LazyRow(Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        items(list.size) { i ->
+            val l = list[i]
+            Column(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (i == cur) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp)).clickable { vm.selectLayout(l.id) }) {
+                RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                Text(shortName(l.name), Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (i == cur) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (i == cur) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}'''),
+('import androidx.compose.ui.viewinterop.AndroidView','import androidx.compose.ui.viewinterop.AndroidView\nimport android.webkit.WebView\nimport android.webkit.WebViewClient\nimport com.shiwanju.app.data.LayoutItem\nimport com.shiwanju.app.engine.PreviewEngine'),
+('''private fun thumbFor(name: String, index: Int) = THUMBS.firstOrNull { name.contains(it.key) } ?: THUMBS[index % THUMBS.size]''',
+'''private fun thumbFor(name: String, index: Int) = THUMBS.firstOrNull { name.contains(it.key) } ?: THUMBS[index % THUMBS.size]
+
+/** Render each template as a real 3:4 WebView preview and reuse it until its data changes. */
+@Composable
+fun RenderedLayoutPreview(vm: AppViewModel, layout: LayoutItem, modifier: Modifier = Modifier) {
+    val html = remember(layout.id, layout.content, vm.data.files, vm.data.accounts, vm.ui.copyLines, vm.ui.imgPool) {
+        val textModule = vm.data.files.text.firstOrNull()
+        val sample = textModule?.content.orEmpty().split(Regex("\\\\r?\\\\n")).map { it.trim() }.filter { it.isNotEmpty() }.take(3)
+            .ifEmpty { listOf("生活中值得记录的每一个瞬间", "把平凡的日子写成喜欢的模样", "愿每一次表达都有温度") }
+        val imageModule = vm.data.files.image.firstOrNull()
+        val images = vm.data.files.image.flatMap { TextUtil.imageUrls(it.content) }.take(12)
+        val previewState = vm.ui.copy(layoutId = layout.id, quantity = 3, copyModuleId = textModule?.id, copyLines = sample,
+            imgModuleId = imageModule?.id, imgPool = images, historyIds = emptyList(), gifId = null, gifContent = "",
+            mediaOrder = emptyList(), previewEmoji = "")
+        val body = PreviewEngine.render(vm.data, previewState)
+        "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'><style>html,body{margin:0;padding:0;width:100%;min-height:100%;overflow:hidden;background:#fff}body{font-family:Arial,sans-serif}img{max-width:100%;height:auto}</style></head><body>$body</body></html>"
+    }
+    AndroidView(factory = { context ->
+        WebView(context).apply {
+            settings.javaScriptEnabled = false
+            settings.domStorageEnabled = false
+            isVerticalScrollBarEnabled = false
+            isHorizontalScrollBarEnabled = false
+            setBackgroundColor(android.graphics.Color.WHITE)
+            webViewClient = WebViewClient()
+            tag = html
+            loadDataWithBaseURL("https://preview.local/", html, "text/html", "UTF-8", null)
+        }
+    }, modifier = modifier, update = { view ->
+        if (view.tag != html) {
+            view.tag = html
+            view.loadDataWithBaseURL("https://preview.local/", html, "text/html", "UTF-8", null)
+        }
+    })
+}''')
+])
