@@ -18,7 +18,7 @@ edit("ui/AppViewModel.kt", [
     ('var screen by mutableStateOf("layout")          // layout / my',
      'var screen by mutableStateOf("home")            // home / layout / my'),
     ('    /** 选中文案名称；再次点击同一名称 = 重新随机读取 */',
-     '''    fun setManualInput(value: String) { manualInput = value }
+     '''    fun updateManualInput(value: String) { manualInput = value }
 
     /** 将顶部手动输入的多行内容作为当前预览文案池；“正文——出处”由预览引擎统一识别。 */
     fun applyManualText() {
