@@ -58,6 +58,8 @@ jobs:
           test -f "$PROJECT/app/build.gradle.kts"
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
           cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
+          cp -R native-overlay/app/. "$PROJECT/app/"
+          python3 native-overlay/apply_patches.py
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
           <inset xmlns:android="http://schemas.android.com/apk/res/android"
               android:drawable="@drawable/app_logo"
