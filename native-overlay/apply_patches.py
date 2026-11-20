@@ -230,3 +230,27 @@ patch("engine/PreviewEngine.kt",[
 patch("engine/PreviewEngine.kt",[
 ('TextNode(line, "")','TextNode(line)')
 ])
+
+patch("engine/TextUtil.kt",[
+('.groupValues[2].trim().length <= 40','.let { charLen(m.groupValues[2].trim()) <= 40 }')
+])
+patch("engine/PreviewEngine.kt",[
+('''    fun historyEntryHtml(title: String, link: String, image: String): String {''',
+'''    fun historyTemplateHtml(withImages: Boolean): String {
+        val cells = (0 until 5).joinToString("") {
+            if (withImages) "<td style=\\\\"width:20%;vertical-align:top;padding:4px;\\\\"><a href=\\\\"\\\\"><img src=\\\\"\\\\ " style=\\\\"display:block;width:100%;height:auto;\\\\"></a><p>标题</p></td>"
+            else "<td style=\\\\"padding:6px;\\\\"><a href=\\\\"\\\\">标题</a></td>"
+        }
+        return "<table style=\\\\"width:100%;table-layout:fixed;border-collapse:collapse;\\\\"><tr>$cells</tr></table>"
+    }
+
+    fun historyEntryHtml(title: String, link: String, image: String): String {''')
+])
+patch("ui/MyScreens.kt",[
+('PreviewEngine.historyEntryHtml(ft.ifEmpty { "未命名配置" }, fl, fi)',
+ 'PreviewEngine.historyTemplateHtml(fi.isNotBlank())')
+])
+patch("ui/LayoutScreen.kt",[
+('GridCard(if (on) "重新随机" else "随机往期", on) { vm.rollHistory() }',
+ 'vm.data.history.forEach { h -> GridCard(h.name.ifEmpty { h.title.ifEmpty { "未命名往期" } }, vm.ui.historyIds.contains(h.id)) { vm.rollHistory(h.id) } }')
+])
