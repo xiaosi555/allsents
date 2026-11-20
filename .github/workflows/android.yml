@@ -63,6 +63,9 @@ jobs:
               android:src="@drawable/app_logo"
               android:gravity="fill" />
           XML
+          # Kotlin property setter and custom method had the same JVM signature.
+          sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
+          sed -i 's/vm.setTextViewMode(/vm.updateTextViewMode(/g' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/MyScreens.kt"
 
       - name: Build debug APK
         if: steps.source.outputs.present == 'true'
