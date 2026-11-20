@@ -184,9 +184,6 @@ private fun HeaderAndInput(input: String, onInput: (String) -> Unit, onExpand: (
             )
             TextButton(onClick = onExpand) { Text("⤢", color = Color(0xFF9CA3AF), fontSize = 22.sp) }
         }
-        TextButton(onClick = onAdvanced, modifier = Modifier.align(Alignment.TopEnd).padding(top = 108.dp, end = 15.dp)) {
-            Text("高级排版", color = Color(0xFF4B5563), fontSize = 10.sp)
-        }
     }
 }
 
