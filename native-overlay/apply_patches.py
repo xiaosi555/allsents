@@ -1,75 +1,149 @@
 #!/usr/bin/env python3
 from pathlib import Path
-
-root = Path(__file__).resolve().parents[1]
-base = root / "source" / "ShiWanJu-Android" / "app" / "src" / "main" / "java" / "com" / "shiwanju" / "app"
-def edit(path, replacements):
-    p = base / path
-    s = p.read_text(encoding="utf-8")
-    for old, new in replacements:
-        if old not in s:
-            raise SystemExit(f"Patch anchor missing in {path}: {old[:90]!r}")
-        s = s.replace(old, new, 1)
-    p.write_text(s, encoding="utf-8")
-
-edit("ui/AppViewModel.kt", [
-    ('var previewHtml by mutableStateOf(""); private set',
-     'var previewHtml by mutableStateOf(""); private set\n    var manualInput by mutableStateOf("")'),
-    ('var screen by mutableStateOf("layout")          // layout / my',
-     'var screen by mutableStateOf("home")            // home / layout / my'),
-    ('    /** 选中文案名称；再次点击同一名称 = 重新随机读取 */',
-     '''    fun updateManualInput(value: String) { manualInput = value }
-
-    /** 将顶部手动输入的多行内容作为当前预览文案池；“正文——出处”由预览引擎统一识别。 */
-    fun applyManualText() {
-        val lines = TextUtil.splitSingleLines(manualInput)
-        if (lines.isEmpty()) {
-            if (ui.copyLines.isEmpty()) {
-                val module = data.files.text.firstOrNull { it.id == ui.copyModuleId }
-                    ?: data.files.text.firstOrNull { it.category == ui.textCat }
-                if (module != null) updateUi { copy(copyModuleId = module.id, copyLines = drawCopy(module)) }
-                else toast("请输入文案，或先选择一个文案模块")
-            }
-            return
+import shutil
+root=Path(__file__).resolve().parents[1]
+base=root/"source/ShiWanJu-Android/app/src/main"
+java=base/"java/com/shiwanju/app"
+def patch(rel,pairs):
+ p=java/rel;s=p.read_text(encoding="utf-8")
+ for a,b in pairs:
+  if a not in s: raise SystemExit("Patch anchor missing: "+rel+" :: "+a[:80])
+  s=s.replace(a,b,1)
+ p.write_text(s,encoding="utf-8")
+shutil.copy2(root/"native-overlay/app/src/main/assets/douyin_template.html",base/"assets/douyin_template.html")
+patch("engine/TextUtil.kt",[(
+'    /** 按单个换行符分割并剔除空行（随机标题的读取规则） */',
+'''    /** 网页 splitEntries：空行分条，条目内部单换行保留。 */
+    fun splitEntries(c: String?): List<String> {
+        val t = (c ?: "").replace("\\r\\n", "\\n").replace("\\r", "\\n").trim()
+        if (t.isEmpty()) return emptyList()
+        if (Regex("\\\\n[ \\\\t]*\\\\n").containsMatchIn(t)) {
+            return t.split(Regex("\\\\n(?:[ \\\\t]*\\\\n)+"))
+                .map { block -> block.split('\\n').map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\\n") }
+                .filter { it.isNotEmpty() }
         }
-        updateUi { copy(copyModuleId = null, copyLines = lines.take(COPY_POOL_SIZE)) }
-        toast("已将输入内容应用到预览")
+        return t.split('\\n').map { it.trim() }.filter { it.isNotEmpty() }
     }
 
-    /** 对当前文案模块重新随机抽取一组内容。 */
-    fun rerollCopy() {
-        val module = data.files.text.firstOrNull { it.id == ui.copyModuleId }
-            ?: data.files.text.firstOrNull { it.category == ui.textCat }
-        if (module == null) return toast("当前分类暂无文案模块")
-        updateUi { copy(copyModuleId = module.id, copyLines = drawCopy(module)) }
+    /** 按单个换行符分割并剔除空行（随机标题的读取规则） */''')])
+patch("data/Models.kt",[
+('    val image: String = ""\n)','    val image: String = "",\n    val titles: String = "",\n    val links: String = "",\n    val images: String = ""\n)'),
+('    val layoutVer: Int = 0\n)','    val layoutVer: Int = 0,\n    val douyinAdded: Boolean = false\n)'),
+('    val previewEmoji: String = ""\n)','    val previewEmoji: String = "",\n    val douyinBg: String = ""\n)'),
+('val moreCat: String = "emoji"','val moreCat: String = "image"'),
+('        n.contains("断句") -> "sentence"\n','        n.contains("断句") -> "sentence"\n        n.contains("抖音") -> "douyin"\n')])
+patch("data/Store.kt",[
+('''        var layout = fill(raw.layout, "layout", { it.id }, { x, i -> x.copy(id = i) })
+            .map { it.copy(name = it.name ?: "", content = it.content ?: "") }
+''','''        var layout = fill(raw.layout, "layout", { it.id }, { x, i -> x.copy(id = i) })
+            .map { it.copy(name = it.name ?: "", content = it.content ?: "") }
+        var douyinAdded = raw.douyinAdded
+        if (!douyinAdded) {
+            if (layout.none { it.name.contains("抖音") }) {
+                val dy = LayoutItem(id = "layout_douyin", name = "04_抖音版", content = readAsset("douyin_template.html"))
+                val at = layout.indexOfFirst { it.name.trim().startsWith("05") }
+                layout = layout.toMutableList().also { if (at >= 0) it.add(at, dy) else it.add(dy) }
+            }
+            douyinAdded = true
+        }
+'''),
+('image = it.image ?: "") },','image = it.image ?: "", titles = it.titles ?: "", links = it.links ?: "", images = it.images ?: "") },'),
+('            layoutVer = layoutVer\n        )','            layoutVer = layoutVer,\n            douyinAdded = douyinAdded\n        )')])
+patch("ui/AppViewModel.kt",[
+('TextUtil.sampleN(TextUtil.splitLines(m.content), COPY_POOL_SIZE)','TextUtil.sampleN(TextUtil.splitEntries(m.content), COPY_POOL_SIZE)'),
+('val mods = data.files.image.filter { TextUtil.imageUrls(it.content).isNotEmpty() }','val mods = data.files.image.filter { TextUtil.imageUrls(it.content).isNotEmpty() && !it.name.contains("抖音背景") }'),
+('val cur = TextUtil.splitLines(cm.content).toSet()','val cur = TextUtil.splitEntries(cm.content).toSet()'),
+('    fun selectLayout(id: String) = updateUi { copy(layoutId = id) }\n','''    private fun drawDouyinBg(): String = data.files.image.filter { it.name.contains("抖音背景") }.flatMap { TextUtil.imageUrls(it.content) }.randomOrNull().orEmpty()
+    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        updateUi { copy(layoutId = id, douyinBg = if (item?.name?.contains("抖音") == true) drawDouyinBg() else douyinBg) }
+    }
+'''),
+('updateUi { copy(copyModuleId = id, copyLines = drawCopy(m)) }','updateUi { copy(copyModuleId = id, copyLines = drawCopy(m), douyinBg = if (kind == "douyin") drawDouyinBg() else douyinBg) }'),
+('val im = data.files.image.firstOrNull { it.id == u.imgModuleId }','val im = data.files.image.firstOrNull { it.id == u.imgModuleId && !it.name.contains("抖音背景") }'),
+('fun deleteLayout(id: String) = updateData { d -> d.copy(layout = d.layout.filter { it.id != id }) }','fun deleteLayout(id: String) = updateData { d -> d.copy(layout = d.layout.filter { it.id != id }, douyinAdded = true) }'),
+('val ids = TextUtil.sampleN(data.history, 5).map { it.id }','val ids = listOf(data.history.random().id)')])
+patch("engine/PreviewEngine.kt",[
+('''    private fun buildPreview(ctx: Ctx, content: String?): Element {
+        val frag = Jsoup.parseBodyFragment(content ?: "")
+''','''    private fun buildPreview(ctx: Ctx, content: String?): Element {
+        if (ctx.kind == "douyin") return buildDouyin(ctx, content)
+        val frag = Jsoup.parseBodyFragment(content ?: "")
+'''),
+('    /** 最后一个条目去掉尾部间距','''    /** 网页 buildDouyin 等价：替换背景图并按正文长度升序填充文案。 */
+    private fun buildDouyin(ctx: Ctx, content: String?): Element {
+        val out = ctx.doc.createElement("div").attr("style", "width:100%;margin:0;padding:0;background:#ffffff;box-sizing:border-box;")
+        val frag = Jsoup.parseBodyFragment(content ?: "")
+        frag.select("script").remove()
+        out.appendChildren(frag.body().childNodes().map { it.clone() })
+        val bg = ctx.ui.douyinBg
+        if (bg.isNotBlank()) {
+            val targets = out.select("[data-lazy-bgimg]")
+            val target = targets.firstOrNull { it.attr("data-lazy-bgimg").contains("cKZHCJzxwWMjEHl3Nfrx") } ?: targets.firstOrNull { it.tagName() == "section" }
+            if (target != null) {
+                target.attr("data-lazy-bgimg", bg)
+                Css.set(target, "background-image", "url(" + bg.replace("\\\"", "") + ")", true)
+            }
+        }
+        val copy = ctx.ui.copyLines
+        if (copy.isNotEmpty()) {
+            val total = minOf(ctx.ui.quantity.coerceAtLeast(1), copy.size)
+            val ordered = copy.take(total).mapIndexed { index, line -> TextUtil.parseSource(line).copy(idx = index) }
+                .sortedWith(compareBy({ TextUtil.charLen(it.body) }, { it.idx }))
+            val span = out.select("span[leaf]").firstOrNull { it.text().trim() == "文案" }
+            if (span != null) {
+                val p = span.closest("p")
+                if (ordered.size == 1) {
+                    span.empty()
+                    copy[ordered.first().idx].split("\\n").forEachIndexed { index, line ->
+                        if (index > 0) span.appendElement("br")
+                        span.appendChild(ctx.doc.createTextNode(line))
+                    }
+                } else if (p != null && p.parent() != null) {
+                    ordered.forEach { parsed ->
+                        val para = ctx.doc.createElement("p").attr("style", "margin:0;")
+                        copy[parsed.idx].split("\\n").forEachIndexed { index, line ->
+                            if (index > 0) para.appendElement("br")
+                            para.appendChild(ctx.doc.createTextNode(line))
+                        }
+                        p.before(para)
+                    }
+                    p.remove()
+                }
+            }
+        }
+        out.children().firstOrNull()?.attr("data-unit", "0")
+        if (ctx.ui.previewEmoji.isNotEmpty()) appendEmojiToNumbers(ctx, out, ctx.ui.previewEmoji)
+        out.attr("data-douyin", "true")
+        return out
     }
 
-    /** 选中文案名称；再次点击同一名称 = 重新随机读取 */''')
-])
-
-edit("ui/MyScreens.kt", [
-    ('BackHandler { if (route == "home") vm.screen = "layout" else route = "home" }',
-     'BackHandler { if (route == "home") vm.screen = "home" else route = "home" }'),
-    ('onClick = { if (route == "home") vm.screen = "layout" else route = "home" }',
-     'onClick = { if (route == "home") vm.screen = "home" else route = "home" }')
-])
-
-edit("ui/LayoutScreen.kt", [
-    ('        ThemeChip("复制", false) {',
-     '        ThemeChip("首页", false) { vm.screen = "home" }\n        Spacer(Modifier.width(8.dp))\n        ThemeChip("复制", false) {')
-])
-
-preview = root / "source" / "ShiWanJu-Android" / "app" / "src" / "main" / "assets" / "preview.html"
-html = preview.read_text(encoding="utf-8")
-anchor = '  window.getHtml = function () { return area.innerHTML; };'
-insert = anchor + '''
-  window.selectAllContent = function () {
-    var range = document.createRange();
-    range.selectNodeContents(area);
-    var selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  };'''
-if anchor not in html:
-    raise SystemExit("Patch anchor missing in preview.html: select-all insertion point")
-preview.write_text(html.replace(anchor, insert, 1), encoding="utf-8")
+    /** 最后一个条目去掉尾部间距''')])
+patch("ui/MyScreens.kt",[
+('''            var title by remember(key) { mutableStateOf(cur.title.ifEmpty { cur.name }) }
+            var link by remember(key) { mutableStateOf(cur.link) }; var image by remember(key) { mutableStateOf(cur.image) }
+            EditDialog(if (isNew) "新增往期" else "详情与编辑", close, {
+                // 保存标题 / 链接 / 图片三项；content 为按模板生成的渲染代码（有图片=图片版，无图片=文字版）
+                val t = title.trim(); val l = link.trim(); val im = image.trim()
+                vm.saveHistory(cur.copy(name = t.ifEmpty { "未命名配置" }, title = t, link = l, image = im, content = PreviewEngine.historyEntryHtml(t.ifEmpty { "未命名配置" }, l, im))); close()
+            }, if (isNew) null else ({ confirm = true })) {
+                Field("标题", title, { title = it }); Field("链接", link, { link = it }); Field("图片（留空为文字版）", image, { image = it })
+            }
+''','''            var titles by remember(key) { mutableStateOf(cur.titles.ifEmpty { cur.title.ifEmpty { cur.name } }) }
+            var links by remember(key) { mutableStateOf(cur.links.ifEmpty { cur.link }) }
+            var images by remember(key) { mutableStateOf(cur.images.ifEmpty { cur.image }) }
+            var template by remember(key) { mutableStateOf(cur.content) }
+            EditDialog(if (isNew) "新增往期" else "详情与编辑", close, {
+                val ts = titles.trim(); val ls = links.trim(); val ims = images.trim()
+                val ft = TextUtil.splitSingleLines(ts).firstOrNull().orEmpty()
+                val fl = TextUtil.splitSingleLines(ls).firstOrNull().orEmpty()
+                val fi = TextUtil.splitSingleLines(ims).firstOrNull().orEmpty()
+                val html = template.ifBlank { PreviewEngine.historyEntryHtml(ft.ifEmpty { "未命名配置" }, fl, fi) }
+                vm.saveHistory(cur.copy(name = ft.ifEmpty { "未命名配置" }, title = ft, link = fl, image = fi, titles = ts, links = ls, images = ims, content = html)); close()
+            }, if (isNew) null else ({ confirm = true })) {
+                Field("标题（每行一条，与链接、图片按行对应）", titles, { titles = it }, 5)
+                Field("链接（每行一个）", links, { links = it }, 5)
+                Field("图片（每行一个；文字版留空）", images, { images = it }, 5)
+                Field("HTML 模板（可选，留空使用默认模板）", template, { template = it }, 5)
+            }
+''')])
