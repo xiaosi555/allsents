@@ -238,7 +238,7 @@ private fun CopyHomePage(
                         val selected = selectedLayoutKey(vm) == key
                         val supported = key != "douyin"
                         Box(
-                            modifier.clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color.White)
+                            Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color.White)
                                 .border(if (selected) 2.dp else 1.dp, if (selected) HtmlGreen else Color(0xFFE5E7EB), RoundedCornerShape(10.dp))
                                 .clickable(enabled = supported) {
                                     val item = vm.data.layout.firstOrNull { l -> layoutMatches(l.name, key) }
@@ -299,7 +299,7 @@ private fun layoutMatches(name: String, key: String): Boolean = when (key) {
 @Composable
 private fun CategoryCard(modifier: Modifier = Modifier, icon: String, title: String, desc: String, selected: Boolean, onClick: () -> Unit) {
     Column(
-        Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color(0xFFF3F4F6))
+        modifier.clip(RoundedCornerShape(10.dp)).background(if (selected) Color(0xFFF0FDF4) else Color(0xFFF3F4F6))
             .border(1.dp, if (selected) HtmlGreen else Color(0xFFE5E7EB), RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
