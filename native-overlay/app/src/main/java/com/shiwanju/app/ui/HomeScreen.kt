@@ -218,8 +218,8 @@ private fun CopyHomePage(
             Text("获取APP_ID", color = Color(0xFF9CA3AF), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 10.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            CategoryCard(Modifier.weight(1f), "▤", "名句摘录", "读书笔记、诗词佳句", vm.ui.textCat == "名句") { vm.selectTextCat("名句") }
-            CategoryCard(Modifier.weight(1f), "▣", "朋友圈文案", "朋友圈日常分享", vm.ui.textCat == "朋友圈") { vm.selectTextCat("朋友圈") }
+            CategoryCard(Modifier.weight(1f), "▤", "名句摘录", "读书笔记、诗词佳句", vm.ui.textCat == "名句") { selectHomeCategory(vm, "名句") }
+            CategoryCard(Modifier.weight(1f), "▣", "朋友圈文案", "朋友圈日常分享", vm.ui.textCat == "朋友圈") { selectHomeCategory(vm, "朋友圈") }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             listOf(3, 6, 9).forEach { n ->
@@ -277,6 +277,11 @@ private fun CopyHomePage(
     }
 }
 
+private fun selectHomeCategory(vm: AppViewModel, category: String) {
+    vm.selectTextCat(category)
+    vm.data.files.text.firstOrNull { it.category == category }?.let { vm.selectCopyModule(it.id) }
+}
+
 private fun selectedLayoutKey(vm: AppViewModel): String {
     val name = vm.data.layout.getOrNull(vm.layoutIndex)?.name.orEmpty()
     return when {
@@ -317,7 +322,7 @@ private fun TypeHomePage(vm: AppViewModel) {
         Text("内容类型", color = HtmlText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Text("HTML 原型只预留了类型页面入口，未定义更多类型字段；这里先提供与现有数据模型一致的两种文案分类。", color = Color(0xFF9CA3AF), fontSize = 12.sp)
         TEXT_CATEGORIES.forEach { cat ->
-            CategoryCard(Modifier.fillMaxWidth(), "✦", cat, if (cat == "朋友圈") "朋友圈日常分享" else "读书笔记、诗词佳句", vm.ui.textCat == cat) { vm.selectTextCat(cat); vm.toast("已切换到$cat") }
+            CategoryCard(Modifier.fillMaxWidth(), "✦", cat, if (cat == "朋友圈") "朋友圈日常分享" else "读书笔记、诗词佳句", vm.ui.textCat == cat) { selectHomeCategory(vm, cat); vm.toast("已切换到$cat") }
         }
     }
 }
