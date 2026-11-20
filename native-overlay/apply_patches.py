@@ -478,15 +478,6 @@ patch("ui/LayoutScreen.kt",[
 
 # ----------------------------------------------------------------------
 
-# Repair the helper insertion when the earlier floating-window patch has already
-# retained the original @Composable annotation.
-patch("ui/LayoutScreen.kt",[
-    ('''@Composable
-@Composable
-private fun CopyPreviewButton''',
-     '''@Composable
-private fun CopyPreviewButton''')
-])
 patch("ui/MyScreens.kt",[
     ('import androidx.compose.ui.window.DialogProperties', 'import androidx.compose.ui.window.DialogProperties\nimport androidx.compose.foundation.shape.CircleShape')
 ])
