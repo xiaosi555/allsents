@@ -19,11 +19,11 @@ jobs:
         id: source
         shell: bash
         run: |
-          if [ -f "ShiWanJu-Android.zip" ]; then
+          if [ -f "ShiWanJu-Android-deploy.zip" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "ShiWanJu-Android.zip is not in the repository yet; skipping the APK build."
+            echo "ShiWanJu-Android-deploy.zip is not in the repository yet; skipping the APK build."
           fi
 
       - name: Set up JDK 17
@@ -51,7 +51,7 @@ jobs:
         if: steps.source.outputs.present == 'true'
         shell: bash
         run: |
-          unzip -q ShiWanJu-Android.zip -d source
+          unzip -q ShiWanJu-Android-deploy.zip -d source
           PROJECT="source/ShiWanJu-Android"
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
           cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
