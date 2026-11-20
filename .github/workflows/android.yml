@@ -88,3 +88,18 @@ jobs:
           path: source/ShiWanJu-Android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Package patched native source
+        if: steps.source.outputs.present == 'true'
+        run: |
+          cd source
+          zip -qr ../ShiWanJu-Android-native-source.zip ShiWanJu-Android
+
+      - name: Upload patched native source
+        if: steps.source.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShiWanJu-native-source
+          path: ShiWanJu-Android-native-source.zip
+          if-no-files-found: error
+          retention-days: 14
