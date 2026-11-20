@@ -75,7 +75,7 @@ fun HomeScreen(vm: AppViewModel) {
     Column(Modifier.fillMaxSize().background(HtmlBg).systemBarsPadding()) {
         HeaderAndInput(
             input = vm.manualInput,
-            onInput = vm::setManualInput,
+            onInput = vm::updateManualInput,
             onExpand = { expandedInput = true },
             onAdvanced = { vm.screen = "layout" }
         )
@@ -133,7 +133,7 @@ fun HomeScreen(vm: AppViewModel) {
                     }
                     OutlinedTextField(
                         value = vm.manualInput,
-                        onValueChange = vm::setManualInput,
+                        onValueChange = vm::updateManualInput,
                         modifier = Modifier.fillMaxSize().weight(1f),
                         placeholder = { Text("输入多条链接和摘录（建议两个换行符隔开）\n快手、抖音识别的文字输入，一键上传文案") },
                         minLines = 8
