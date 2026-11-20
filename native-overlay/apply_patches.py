@@ -147,3 +147,37 @@ patch("ui/MyScreens.kt",[
                 Field("HTML 模板（可选，留空使用默认模板）", template, { template = it }, 5)
             }
 ''')])
+
+
+patch("ui/AppViewModel.kt",[
+('    var js: ((String) -> Unit)? = null','    var js: ((String) -> Unit)? = null\n    var jsResult: ((String, (String?) -> Unit) -> Unit)? = null')
+])
+patch("ui/PreviewWebView.kt",[
+('''        vm.js = { script -> webView.evaluateJavascript(script, null) }
+        onDispose { vm.js = null; webView.destroy() }''',
+'''        vm.js = { script -> webView.evaluateJavascript(script, null) }
+        vm.jsResult = { script, callback -> webView.evaluateJavascript(script) { value -> callback(value) } }
+        onDispose { vm.js = null; vm.jsResult = null; webView.destroy() }''')
+])
+patch("ui/LayoutScreen.kt",[
+('''        ThemeChip("复制", false) {
+            // 把当前预览作为富文本 HTML 复制到剪贴板（可直接粘贴进公众号编辑器）
+            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newHtmlText("拾万句", vm.previewHtml.replace(Regex("<[^>]+>"), ""), vm.previewHtml))
+            vm.toast("已复制排版内容")
+        }''',
+'''        ThemeChip("复制", false) {
+            val copyHtml: (String) -> Unit = { html ->
+                val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                cm.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+                vm.toast("已复制当前预览内容")
+            }
+            val read = vm.jsResult
+            if (read == null) copyHtml(vm.previewHtml)
+            else read("getHtml()") { raw ->
+                val html = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull()
+                copyHtml(html ?: vm.previewHtml)
+            }
+        }''')
+])
