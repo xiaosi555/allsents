@@ -992,7 +992,7 @@ patch("ui/LayoutScreen.kt",[
                 Box(Modifier.fillMaxWidth().height(28.dp).background(t.color), contentAlignment = Alignment.Center) {
                     Text(shortName(l.name), color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
-                AsyncImage(t.bg, null, Modifier.fillMaxWidth().weight(1f), contentScale = ContentScale.Crop)
+                AsyncImage(t.bg, null, Modifier.fillMaxWidth().weight(1f).background(Color(0xFF2A2A2A)), contentScale = ContentScale.Crop)
             }
         }
     }
