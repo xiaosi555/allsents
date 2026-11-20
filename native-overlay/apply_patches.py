@@ -478,9 +478,6 @@ patch("ui/LayoutScreen.kt",[
 
 # ----------------------------------------------------------------------
 
-patch("ui/MyScreens.kt",[
-    ('import androidx.compose.ui.window.DialogProperties', 'import androidx.compose.ui.window.DialogProperties\nimport androidx.compose.foundation.shape.CircleShape')
-])
 
 # HTML parity: seed starter media once, default preview media, and editor UI polish.
 shutil.copy2(root/"native-overlay/app/src/main/assets/seed.json",base/"assets/seed.json")
