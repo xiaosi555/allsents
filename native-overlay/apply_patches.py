@@ -772,7 +772,7 @@ import androidx.compose.ui.draw.shadow'''),
      '''private fun ListRow(name: String, summary: String, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().shadow(1.dp, RoundedCornerShape(12.dp)).clip(RoundedCornerShape(12.dp))
-            .background(AppColors.MyCard).clickable(onClick).padding(horizontal = 16.dp, vertical = 17.dp),
+            .background(AppColors.MyCard).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 17.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(name, color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.Medium,
