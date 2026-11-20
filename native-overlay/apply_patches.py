@@ -1011,7 +1011,7 @@ patch("ui/LayoutScreen.kt",[
         }
     }
 }'''),
-('import androidx.compose.ui.viewinterop.AndroidView','import androidx.compose.ui.viewinterop.AndroidView\nimport android.webkit.WebView\nimport android.webkit.WebViewClient\nimport com.shiwanju.app.data.LayoutItem\nimport com.shiwanju.app.engine.PreviewEngine'),
+('import androidx.compose.ui.unit.sp','import androidx.compose.ui.unit.sp\nimport androidx.compose.ui.viewinterop.AndroidView\nimport android.webkit.WebView\nimport android.webkit.WebViewClient\nimport com.shiwanju.app.data.LayoutItem\nimport com.shiwanju.app.engine.PreviewEngine'),
 ('''private fun thumbFor(name: String, index: Int) = THUMBS.firstOrNull { name.contains(it.key) } ?: THUMBS[index % THUMBS.size]''',
 '''private fun thumbFor(name: String, index: Int) = THUMBS.firstOrNull { name.contains(it.key) } ?: THUMBS[index % THUMBS.size]
 
