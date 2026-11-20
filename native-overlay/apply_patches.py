@@ -200,3 +200,7 @@ patch("engine/PreviewEngine.kt",[
 patch("ui/MyScreens.kt",[
 ('import com.shiwanju.app.engine.PreviewEngine','import com.shiwanju.app.engine.PreviewEngine\nimport com.shiwanju.app.engine.TextUtil')
 ])
+
+patch("engine/PreviewEngine.kt",[
+('ctx.doc.createTextNode(line)','TextNode(line, "")')
+])
