@@ -1830,6 +1830,11 @@ must_replace(
 )
 my_home_path = java / "ui/MyScreens.kt"
 my_home_source = my_home_path.read_text(encoding="utf-8")
+home_marker = '    val d = vm.data\\n'
+if home_marker not in my_home_source:
+    raise SystemExit("Required patch missing (My home data source): ui/MyScreens.kt")
+if "val moreCount =" not in my_home_source:
+    my_home_source = my_home_source.replace(home_marker, home_marker + '    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size\\n', 1)
 home_replacements = [
     ('    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }',
      '    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }'),
@@ -1838,7 +1843,7 @@ home_replacements = [
     ('    ListRow("版式", "布局、排版预览、代码渲染 · ${d.layout.size}") { go("layouts") }',
      '    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }'),
     ('    ListRow("更多", "emoji、往期、动图、配图") { go("more") }',
-     '    ListRow("更多", "共 " + (d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size) + " 个数据模块") { go("more") }')
+     '    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }')
 ]
 for old, new in home_replacements:
     if old not in my_home_source:
