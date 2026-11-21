@@ -2547,38 +2547,23 @@ patch("ui/LayoutScreen.kt",[
     vm.toast("已执行富文本复制，请粘贴到公众号检查")
 }''',
 '''private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
-    val fallbackHtml = vm.previewHtml
-    fun writeClipboard(html: String, plainText: String?) {
-        if (html.isBlank()) {
-            vm.toast("暂无可复制的预览内容")
-            return
-        }
-        runCatching {
-            val plain = plainText?.takeIf { it.isNotBlank() }
-                ?: android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
-            val manager = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            manager.setPrimaryClip(ClipData.newHtmlText("拾万句预览", plain, html))
-        }.onSuccess {
-            vm.toast("已复制预览内容")
-        }.onFailure {
-            vm.toast("复制失败，请检查系统剪贴板权限")
-        }
-    }
-
-    val readDom = vm.jsResult
-    if (readDom == null) {
-        writeClipboard(fallbackHtml, null)
+    val html = vm.previewHtml
+    if (html.isBlank()) {
+        vm.toast("当前预览内容为空，请先生成预览")
         return
     }
-    val script = """(function(){var area=document.getElementById('previewArea');var dy=document.querySelector('#previewArea [data-douyin]');var node=dy||area;if(!node)return JSON.stringify({html:'',text:''});var clone=node.cloneNode(true);if(dy){clone.querySelectorAll('[data-unit]').forEach(function(n){n.removeAttribute('data-unit')});clone.removeAttribute('data-unit');clone.removeAttribute('data-douyin')}return JSON.stringify({html:clone.innerHTML,text:node.innerText||node.textContent||''})})()"""
-    readDom(script) { raw ->
-        val payload = runCatching {
-            val encoded = org.json.JSONTokener(raw ?: "null").nextValue() as? String
-            if (encoded.isNullOrBlank()) null else org.json.JSONObject(encoded)
-        }.getOrNull()
-        val html = payload?.optString("html").orEmpty().ifBlank { fallbackHtml }
-        val plain = payload?.optString("text").orEmpty()
-        writeClipboard(html, plain)
+    try {
+        val plain = android.text.Html.fromHtml(
+            html, android.text.Html.FROM_HTML_MODE_LEGACY
+        ).toString()
+        val manager = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+            as android.content.ClipboardManager
+        manager.setPrimaryClip(
+            android.content.ClipData.newHtmlText("拾万句预览", plain, html)
+        )
+        vm.toast("已复制预览内容")
+    } catch (error: Throwable) {
+        vm.toast("复制失败：" + (error.message ?: "系统剪贴板不可用"))
     }
 }''')
 ])
