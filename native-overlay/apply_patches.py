@@ -1366,7 +1366,7 @@ if failed:
 print("Required UI acceptance checks passed: " + ", ".join(required.keys()))
 
 
-// ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # 2026-11-21: visually de-emphasize only the three media removal actions.
 # Keep their click targets and removal callbacks unchanged.
 must_replace(
