@@ -1175,3 +1175,71 @@ patch("ui/MyScreens.kt",[
                         Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
                 }''')
 ])
+
+
+# ----------------------------------------------------------------------
+# 2026-11-21 follow-up: whole-page copy, square account avatar, item previews.
+patch("ui/LayoutScreen.kt",[
+    ('''                AsyncImage(a.avatar, null, Modifier.size(width = 68.dp, height = 54.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 12.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(a.author.ifBlank { "公众号账号" }, color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)''',
+     '''                AsyncImage(a.avatar, null, Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 12.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)'''),
+    ('''            else read("getHtml()") { raw ->''',
+     '''            else read("(()=>{document.execCommand('selectAll');return document.documentElement.outerHTML;})()") { raw ->''')
+])
+
+patch("ui/MyScreens.kt",[
+    ('''            Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, LayoutItem(id = "edit-preview", name = name, content = content),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))''',
+     '''            Text("样式预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RawHtmlPreview(content, Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))'''),
+    ('''                Field("HTML 模板（可选，留空使用默认模板）", template, { template = it }, 5)
+            }''',
+     '''                Field("HTML 模板（可选，留空使用默认模板）", template, { template = it }, 5)
+                Text("往期样式预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                RawHtmlPreview(template.ifBlank { PreviewEngine.historyTemplateHtml(images.isNotBlank()) },
+                    Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
+            }'''),
+    ('''                if (isGif) {
+                    Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    RenderedLayoutPreview(vm, LayoutItem(id = "gif-edit-preview", name = "自定义预览", content = content),
+                        Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
+                }''',
+     '''                // 动图条目详情只编辑内容，不展示预览区。''')
+])
+
+# A raw HTML WebView is used for item-detail previews: unlike a layout selector,
+# it renders the selected item's own HTML without substituting another layout.
+patch("ui/MyScreens.kt",[
+    ('''private fun Field(''',
+     '''@Composable
+private fun RawHtmlPreview(html: String, modifier: Modifier = Modifier) {
+    val document = remember(html) {
+        val style = "<style>html,body{margin:0;padding:0;width:100%;}*{color:#111111 !important;box-sizing:border-box;}img{max-width:100%;height:auto;}</style>"
+        if (html.contains("<html", ignoreCase = true)) {
+            if (html.contains("</head>", ignoreCase = true)) html.replaceFirst(Regex("(?i)</head>"), "$style</head>")
+            else html.replaceFirst(Regex("(?i)<html[^>]*>"), "$0<head>$style</head>")
+        } else "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>$style</head><body>$html</body></html>"
+    }
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { context -> android.webkit.WebView(context).apply {
+            settings.javaScriptEnabled = false
+            isVerticalScrollBarEnabled = false
+            isHorizontalScrollBarEnabled = false
+            setBackgroundColor(android.graphics.Color.WHITE)
+            webViewClient = android.webkit.WebViewClient()
+        } },
+        modifier = modifier,
+        update = { view ->
+            if (view.tag != document) {
+                view.tag = document
+                view.loadDataWithBaseURL("https://preview.local/", document, "text/html", "UTF-8", null)
+            }
+        }
+    )
+}
+
+private fun Field(''')
+])
