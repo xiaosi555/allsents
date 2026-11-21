@@ -2194,7 +2194,12 @@ if "window.copyPreviewContent = async function" not in _final_asset:
     raise SystemExit("HTML reference copyPreviewContent function was not installed")
 if "range.selectNodeContents(area)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset:
     raise SystemExit("Live preview-area selection/copy validation failed")
-if "var clone = area.cloneNode(true)" in _final_asset or "range.selectNodeContents(holder)" in _final_asset:
+_copy_start = _final_asset.find("window.copyPreviewContent = async function")
+_copy_end = _final_asset.find("\\n  };", _copy_start)
+if _copy_start < 0 or _copy_end < 0:
+    raise SystemExit("Live preview copy function boundaries are missing")
+_copy_function = _final_asset[_copy_start:_copy_end]
+if "cloneNode(" in _copy_function or "holder" in _copy_function:
     raise SystemExit("Obsolete cloned-holder clipboard path is still present")
 print("HTML-reference WebView copy pipeline installed and validated.")
 
