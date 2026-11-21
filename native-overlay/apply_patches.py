@@ -1828,23 +1828,24 @@ must_replace(
     '''        val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
     "use the required My page layout title"
 )
-must_replace(
-    "ui/MyScreens.kt",
-    '''    val d = vm.data
-    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }
-    ListRow("文案", "文案模块管理、排序 · ${d.files.text.size}") { go("texts") }
-    ListRow("版式", "布局、排版预览、代码渲染 · ${d.layout.size}") { go("layouts") }
-    ListRow("更多", "emoji、往期、动图、配图") { go("more") }
-''',
-    '''    val d = vm.data
-    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
-    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }
-    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }
-    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }
-    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }
-''',
-    "show all required My home summary counts"
-)
+my_home_path = java / "ui/MyScreens.kt"
+my_home_source = my_home_path.read_text(encoding="utf-8")
+home_replacements = [
+    ('    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }',
+     '    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }'),
+    ('    ListRow("文案", "文案模块管理、排序 · ${d.files.text.size}") { go("texts") }',
+     '    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }'),
+    ('    ListRow("版式", "布局、排版预览、代码渲染 · ${d.layout.size}") { go("layouts") }',
+     '    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }'),
+    ('    ListRow("更多", "emoji、往期、动图、配图") { go("more") }',
+     '    ListRow("更多", "共 " + (d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size) + " 个数据模块") { go("more") }')
+]
+for old, new in home_replacements:
+    if old not in my_home_source:
+        raise SystemExit("Required patch missing (My home summary row): " + old)
+    my_home_source = my_home_source.replace(old, new, 1)
+my_home_path.write_text(my_home_source, encoding="utf-8")
+
 must_replace(
     "ui/MyScreens.kt",
     '''                val previewEntries = previewTitles.mapIndexed { index, title ->
