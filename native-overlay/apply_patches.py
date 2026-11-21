@@ -2097,138 +2097,154 @@ if failed:
 print("Copy safety and per-entry random refresh acceptance checks passed.")
 
 
-# 2026-11-21: match the HTML reference's native WebView selection-copy pipeline.
-# Do not synthesize HTML from a partial CSS allow-list: let Chromium serialize the
-# actual rendered selection, preserving pseudo content, layout order, images and media.
-_copy_js = """
-  window.selectPreviewForCopy = function () {
-    if (!area || !area.childNodes.length) return false;
-    var selection = window.getSelection();
-    if (!selection) return false;
-    var range = document.createRange();
-    range.selectNodeContents(area);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    area.classList.add("copying");
-    return !selection.isCollapsed;
-  };
-  window.clearPreviewSelection = function () {
-    var selection = window.getSelection();
-    if (selection) selection.removeAllRanges();
-    area.classList.remove("copying");
-  };
-  document.addEventListener("copy", function (event) {
-    var root = area.querySelector("[data-douyin]");
-    var selection = window.getSelection();
-    if (!root || !selection || selection.isCollapsed || !event.clipboardData) return;
-    if (!(root.contains(selection.anchorNode) || root.contains(selection.focusNode))) return;
+# 2026-11-21: port the exact HTML reference copyPreviewContent() behavior.
+# The reference selects the live #previewArea DOM and lets Chromium/WebView create
+# the rich clipboard payload via execCommand('copy'). No Kotlin HTML serialization.
+_copy_js = r"""
+(function () {
+  var area = document.getElementById("previewArea");
+  if (!area) return;
+
+  function douyinCopyPayload() {
+    var root = document.querySelector("#previewArea [data-douyin]");
+    if (!root) return null;
     var clone = root.cloneNode(true);
-    clone.querySelectorAll("[data-unit]").forEach(function (node) { node.removeAttribute("data-unit"); });
+    clone.querySelectorAll("[data-unit]").forEach(function (node) {
+      node.removeAttribute("data-unit");
+    });
     clone.removeAttribute("data-unit");
     clone.removeAttribute("data-douyin");
-    event.clipboardData.setData("text/html", clone.innerHTML);
-    event.clipboardData.setData("text/plain", root.innerText || root.textContent || "");
+    return { html: clone.innerHTML, text: root.innerText || root.textContent || "" };
+  }
+
+  document.addEventListener("copy", function (event) {
+    var selection = window.getSelection();
+    var dy = document.querySelector("#previewArea [data-douyin]");
+    if (!dy || !selection || selection.isCollapsed || !event.clipboardData) return;
+    if (!(dy.contains(selection.anchorNode) || dy.contains(selection.focusNode))) return;
+    var payload = douyinCopyPayload();
+    if (!payload) return;
+    event.clipboardData.setData("text/html", payload.html);
+    event.clipboardData.setData("text/plain", payload.text);
     event.preventDefault();
   });
+
+  window.copyPreviewContent = async function () {
+    var btn = document.getElementById("copyPreviewBtn");
+    var done = function (label) {
+      if (btn) {
+        btn.textContent = label;
+        clearTimeout(btn._copyTimer);
+        btn._copyTimer = setTimeout(function () {
+          btn.textContent = "复制预览内容";
+        }, 1400);
+      }
+    };
+    if (!area.childNodes.length) { done("暂无内容"); return false; }
+
+    var dyp = douyinCopyPayload();
+    if (dyp) {
+      var dyOk = false;
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([dyp.html], { type: "text/html" }),
+          "text/plain": new Blob([dyp.text], { type: "text/plain" })
+        })]);
+        dyOk = true;
+      } catch (error) {
+        try {
+          var handler = function (event) {
+            event.clipboardData.setData("text/html", dyp.html);
+            event.clipboardData.setData("text/plain", dyp.text);
+            event.preventDefault();
+          };
+          document.addEventListener("copy", handler, { once: true });
+          dyOk = document.execCommand("copy");
+        } catch (_) { dyOk = false; }
+      }
+      done(dyOk ? "已复制" : "复制失败，请长按选中后复制");
+      return dyOk;
+    }
+
+    var selection = window.getSelection();
+    var range = document.createRange();
+    area.classList.add("copying");
+    var ok = false;
+    try {
+      range.selectNodeContents(area);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      ok = document.execCommand("copy");
+    } catch (error) { ok = false; }
+
+    if (!ok) {
+      try {
+        var html = area.innerHTML;
+        var plain = area.innerText;
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" })
+        })]);
+        ok = true;
+      } catch (error) { ok = false; }
+    }
+    if (selection) selection.removeAllRanges();
+    area.classList.remove("copying");
+    done(ok ? "已复制" : "复制失败，请长按选中后复制");
+    return ok;
+  };
+})();
 """
-if "window.selectPreviewForCopy" not in _html:
-    _close = _html.rfind("})();")
-    if _close < 0:
-        raise SystemExit("Preview JS closure missing while installing native copy pipeline")
-    _html = _html[:_close] + _copy_js + _html[_close:]
+if "window.copyPreviewContent = async function" not in _html:
+    _body_end = _html.lower().rfind("</body>")
+    if _body_end < 0:
+        raise SystemExit("preview.html body end missing; cannot install HTML-native copy function")
+    _html = _html[:_body_end] + "<script>\n" + _copy_js + "\n</script>\n" + _html[_body_end:]
+else:
+    raise SystemExit("copyPreviewContent already exists in preview.html; inspect rather than duplicate")
 _asset.write_text(_html, encoding="utf-8")
 
-# Copy is exported from PreviewEngine's original HTML fragment below; do not use WebView selection.
-
-
-
-
-# 2026-11-21: WeChat-compatible rich clipboard export and adaptive icon safe-area correction.
-# Keep the original 640x640 app_logo.jpg as the pixel source; do not redraw or approximate its artwork.
-_copy_file = java / "ui/LayoutScreen.kt"
-_copy_src = _copy_file.read_text(encoding="utf-8")
-_old_copy = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
-    val finish: (String?) -> Unit = { raw ->
-        try {
-            val parsed = runCatching {
-                org.json.JSONTokener(raw ?: "null").nextValue() as? String
-            }.getOrNull()
-            val html = parsed?.takeIf { it.isNotBlank() } ?: vm.previewHtml
-            require(html.isNotBlank()) { "当前预览内容为空" }
-            val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
-            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
-            vm.toast("已复制当前预览内容")
-        } catch (error: Throwable) {
-            vm.toast("复制失败，请稍后重试：" + (error.message ?: "剪贴板不可用"))
-        }
+# Both native buttons call the same JavaScript function on the live WebView DOM.
+_layout = java / "ui/LayoutScreen.kt"
+_ls = _layout.read_text(encoding="utf-8")
+_cp_start = _ls.find("private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {")
+_cp_end = _ls.find("@Composable\nprivate fun CopyPreviewButton", _cp_start)
+if _cp_start < 0 or _cp_end < 0:
+    raise SystemExit("Native copy helper not found; refusing to patch")
+_copy_helper = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
+    val runCopy = vm.js
+    if (runCopy == null) {
+        vm.toast("预览页面尚未就绪，请稍后重试")
+        return
     }
-    val read = vm.jsResult
-    if (read == null) finish(null)
-    else try {
-        read("getHtml()") { raw -> finish(raw) }
-    } catch (error: Throwable) {
-        finish(null)
-    }
-}"""
-_new_copy = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
-    try {
-        // Copy the exact HTML fragment produced by PreviewEngine. Do not serialize the
-        // WebView DOM: computed-style flattening changes positioning and can break
-        // GIF images, history cards, and date/time alignment in WeChat's editor.
-        val fragment = vm.previewHtml.trim()
-        require(fragment.isNotBlank()) { "当前预览内容为空" }
-        val html = "<!doctype html><html><head><meta charset=\\"utf-8\\"></head><body>" +
-            fragment + "</body></html>"
-        val plain = android.text.Html.fromHtml(fragment, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
-        val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
-        vm.toast("已复制当前预览内容")
-    } catch (error: Throwable) {
-        vm.toast("复制失败，请稍后重试：" + (error.message ?: "剪贴板不可用"))
-    }
-}"""
-if (_old_copy not in _copy_src):
-    raise SystemExit("Expected 1.0.22 copy helper not found; refusing to patch a different implementation")
-_copy_src = _copy_src.replace(_old_copy, _new_copy, 1)
-_copy_file.write_text(_copy_src, encoding="utf-8")
+    // Invoke the HTML reference's copyPreviewContent() against the live rendered DOM.
+    // The browser/WebView, not Kotlin, writes the rich HTML clipboard representation.
+    runCopy("window.copyPreviewContent && window.copyPreviewContent()")
+    vm.toast("已执行富文本复制，请粘贴到公众号检查")
+}
 
-# Adaptive launchers are masked by Android. The artwork itself is a square 640x640 source;
-# render it inside the adaptive-icon safe zone so the full logo remains visible after masking.
-_foreground = base / "res/drawable/ic_launcher_foreground.xml"
-_foreground.write_text('''<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:width="66dp" android:height="66dp" android:gravity="center">
-        <bitmap android:src="@drawable/app_logo" android:gravity="fill" />
-    </item>
-</layer-list>
-''', encoding="utf-8")
+"""
+_ls = _ls[:_cp_start] + _copy_helper + _ls[_cp_end:]
+_layout.write_text(_ls, encoding="utf-8")
 
-# Ensure adaptive icon background matches the exact dominant background pixel of app_logo.jpg.
-from PIL import Image as _Image
-_logo = base / "res/drawable-nodpi/app_logo.jpg"
-if not _logo.exists():
-    raise SystemExit("Original 640x640 app_logo.jpg is missing; cannot preserve exact source artwork")
-with _Image.open(_logo) as _im:
-    if _im.size != (640, 640):
-        raise SystemExit("Original app_logo.jpg dimensions changed; refusing to regenerate a different icon")
-    _bg = _im.convert("RGB").getpixel((0, 0))
-_bg_hex = "#%02X%02X%02X" % _bg
-_background = base / "res/drawable/ic_launcher_background.xml"
-_background.write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="''' + _bg_hex + '''" android:pathData="M0,0h108v108h-108z" />
-</vector>
-''', encoding="utf-8")
+# Ensure the original select-all/copy CSS behavior is present in the WebView asset.
+if ".preview-area.copying" not in _html and ".copying, .copying *" not in _html:
+    _style_end = _html.lower().rfind("</style>")
+    if _style_end < 0:
+        raise SystemExit("preview.html style block missing")
+    _css = ".preview-area.copying, .preview-area.copying * { user-select:text !important; -webkit-user-select:text !important; }"
+    _html = _html[:_style_end] + _css + "\n" + _html[_style_end:]
+    _asset.write_text(_html, encoding="utf-8")
 
-# Validate that the copy action no longer serializes WebView computed styles and that
-# the full-size original artwork is retained in the adaptive-icon foreground resource.
-_verify_copy = _copy_file.read_text(encoding="utf-8")
-_verify_fg = _foreground.read_text(encoding="utf-8")
-if 'read("getHtml()")' in _verify_copy or "window.getComputedStyle" in _verify_copy:
-    raise SystemExit("Copy helper still depends on WebView DOM serialization")
-if "vm.previewHtml.trim()" not in _verify_copy or "ClipData.newHtmlText" not in _verify_copy:
-    raise SystemExit("Copy helper does not use PreviewEngine's HTML fragment")
-if 'android:width="66dp" android:height="66dp"' not in _verify_fg:
-    raise SystemExit("Adaptive icon foreground safe-zone sizing not applied")
-print("WeChat clipboard export and launcher icon safe-zone checks passed.")
+# Assertions intentionally reject any native-side ClipData.newHtmlText path.
+_final_layout = _layout.read_text(encoding="utf-8")
+_final_asset = _asset.read_text(encoding="utf-8")
+if "ClipData.newHtmlText" in _final_layout or "vm.previewHtml.trim()" in _final_layout:
+    raise SystemExit("Kotlin still writes synthesized HTML to the clipboard")
+if "window.copyPreviewContent = async function" not in _final_asset:
+    raise SystemExit("HTML reference copyPreviewContent function was not installed")
+if "range.selectNodeContents(area)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset:
+    raise SystemExit("Native WebView does not use the reference selection-copy sequence")
+if "navigator.clipboard.write([new ClipboardItem" not in _final_asset:
+    raise SystemExit("HTML reference ClipboardItem fallback is missing")
+print("HTML-reference WebView copy pipeline installed and validated.")
