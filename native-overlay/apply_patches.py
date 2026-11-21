@@ -1913,3 +1913,185 @@ failed = [label for label, ok in checks.items() if not ok]
 if failed:
     raise SystemExit("Layout and My-page acceptance checks failed: " + "; ".join(failed))
 print("Adjacent media spacing and My-page summary acceptance checks passed.")
+
+
+# 2026-11-21: stable rich-copy export, refresh random materials on every Layout entry.
+from pathlib import Path as _Path
+import re as _re
+_vm = java / "ui/AppViewModel.kt"
+_vms = _vm.read_text(encoding="utf-8")
+_marker = "    // ------------------------------------------------------------------ 编辑模式 / 悬浮窗"
+if _marker not in _vms:
+    raise SystemExit("Required insertion point missing: AppViewModel layout entry refresh")
+_refresh = r'''    /** 每次重新进入排版页时重新抽取五类素材；不依赖首次安装标记。 */
+    fun refreshRandomSelections() {
+        if (kind == "douyin") { rebuild(); return }
+        val copyModule = data.files.text.filter { it.category == ui.textCat }.randomOrNull()
+            ?: data.files.text.randomOrNull()
+        val copyLines = copyModule?.let { drawCopy(it) }.orEmpty()
+        val (imageId, imagePool) = drawImagePool()
+
+        val emoji = data.emoji.randomOrNull()?.let { randomBlock(it.content) }.orEmpty()
+
+        val textGifBlocks = data.files.gif.flatMap { module ->
+            TextUtil.splitEntries(module.content)
+                .filterNot { Regex("(?is)<img\\b|<video\\b|background-image\\s*:").containsMatchIn(it) }
+                .map { module to it }
+        }
+        val gifPick = textGifBlocks.randomOrNull()
+        val gifFallback = if (gifPick == null) data.files.gif.randomOrNull() else null
+        val gifId = gifPick?.first?.id ?: gifFallback?.id
+        val gifContent = gifPick?.second ?: gifFallback?.let { randomBlock(it.content) }.orEmpty()
+
+        val history = data.history.randomOrNull()
+        val historyIds = history?.let { listOf(it.id) }.orEmpty()
+        val historyHtml = history?.let { PreviewEngine.composeHistoryHtml(it) }.orEmpty()
+        val order = buildList {
+            if (!gifId.isNullOrBlank() && gifContent.isNotBlank()) add("gif")
+            if (historyIds.isNotEmpty()) add("history")
+        }
+        ui = ui.copy(
+            copyModuleId = copyModule?.id,
+            copyLines = copyLines,
+            imgModuleId = imageId,
+            imgPool = imagePool,
+            previewEmoji = emoji,
+            gifId = gifId,
+            gifContent = gifContent,
+            historyIds = historyIds,
+            historyHtml = historyHtml,
+            mediaOrder = order,
+            mediaInit = true
+        )
+        store.saveUi(ui)
+        rebuild()
+    }
+
+'''
+_vms = _vms.replace(_marker, _refresh + _marker, 1)
+_vm.write_text(_vms, encoding="utf-8")
+
+# Copy only a compact, supported set of computed CSS properties. Avoid selecting the
+# WebView DOM and avoid serializing hundreds of computed properties per node.
+_asset = base / "assets/preview.html"
+_html = _asset.read_text(encoding="utf-8")
+_start = _html.find("  window.getHtml = function () {")
+_end = _html.find("\n  };", _start)
+if _start < 0 or _end < 0:
+    raise SystemExit("Required getHtml() function missing in preview.html")
+_safe_get = """  window.getHtml = function () {
+    var clone = area.cloneNode(true);
+    var originals = [area].concat(Array.from(area.querySelectorAll("*")));
+    var copies = [clone].concat(Array.from(clone.querySelectorAll("*")));
+    var allowed = [
+      "display","box-sizing","width","max-width","height","margin","margin-top","margin-right",
+      "margin-bottom","margin-left","padding","padding-top","padding-right","padding-bottom",
+      "padding-left","font-family","font-size","font-weight","font-style","line-height",
+      "letter-spacing","color","background-color","background-image","background-size",
+      "background-position","text-align","text-indent","text-decoration","white-space",
+      "vertical-align","border","border-radius","border-collapse","table-layout","object-fit"
+    ];
+    originals.forEach(function (source, index) {
+      var target = copies[index];
+      var computed = window.getComputedStyle(source);
+      var css = [];
+      allowed.forEach(function (name) {
+        var value = computed.getPropertyValue(name);
+        if (value && value !== "none" && value !== "normal" && value !== "auto") {
+          css.push(name + ":" + value);
+        }
+      });
+      var inline = source.getAttribute("style");
+      if (inline) css.push(inline);
+      target.setAttribute("style", css.join(";"));
+    });
+    clone.querySelectorAll("p").forEach(function (p) {
+      if (!p.style.lineHeight || p.style.lineHeight === "normal") p.style.lineHeight = "1.5";
+      if (!p.style.marginTop) p.style.marginTop = "0";
+      if (!p.style.marginBottom) p.style.marginBottom = "0";
+    });
+    var holder = document.createElement("div");
+    holder.appendChild(clone);
+    return holder.innerHTML;
+  };"""
+_html = _html[:_start] + _safe_get + _html[_end+4:]
+_asset.write_text(_html, encoding="utf-8")
+
+_layout = java / "ui/LayoutScreen.kt"
+_ls = _layout.read_text(encoding="utf-8")
+# Replace TopBar copy lambda with the shared guarded copy path.
+_top_start = _ls.find('        ThemeChip("复制", false) {')
+_top_end = _ls.find('\n        Spacer(Modifier.width(8.dp))', _top_start)
+if _top_start < 0 or _top_end < 0:
+    raise SystemExit("Required TopBar copy action missing")
+_ls = _ls[:_top_start] + '        ThemeChip("复制", false) { copyRenderedPreview(ctx, vm) }' + _ls[_top_end:]
+# Replace the floating-window copy helper.
+_cp_start = _ls.find("@Composable\nprivate fun CopyPreviewButton")
+_cp_end = _ls.find("@Composable\nprivate fun EntryIcon", _cp_start)
+if _cp_start < 0 or _cp_end < 0:
+    raise SystemExit("Required CopyPreviewButton composable missing")
+_copy_helper = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
+    val finish: (String?) -> Unit = { raw ->
+        try {
+            val parsed = runCatching {
+                org.json.JSONTokener(raw ?: "null").nextValue() as? String
+            }.getOrNull()
+            val html = parsed?.takeIf { it.isNotBlank() } ?: vm.previewHtml
+            require(html.isNotBlank()) { "当前预览内容为空" }
+            val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+            vm.toast("已复制当前预览内容")
+        } catch (error: Throwable) {
+            vm.toast("复制失败，请稍后重试：" + (error.message ?: "剪贴板不可用"))
+        }
+    }
+    val read = vm.jsResult
+    if (read == null) finish(null)
+    else try {
+        read("getHtml()") { raw -> finish(raw) }
+    } catch (error: Throwable) {
+        finish(null)
+    }
+}
+
+@Composable
+private fun CopyPreviewButton(vm: AppViewModel) {
+    val ctx = LocalContext.current
+    ThemeChip("复制预览内容", true, modifier = Modifier.fillMaxWidth()) {
+        copyRenderedPreview(ctx, vm)
+    }
+}
+
+"""
+_ls = _ls[:_cp_start] + _copy_helper + _ls[_cp_end:]
+_layout.write_text(_ls, encoding="utf-8")
+
+# Refresh selections when returning from My to the layout screen.
+_my = java / "ui/MyScreens.kt"
+_ms = _my.read_text(encoding="utf-8")
+_ms = _ms.replace('BackHandler { if (route == "home") vm.screen = "layout" else route = "home" }',
+                  'BackHandler { if (route == "home") { vm.refreshRandomSelections(); vm.screen = "layout" } else route = "home" }', 1)
+_ms = _ms.replace('TextButton(onClick = { if (route == "home") vm.screen = "layout" else route = "home" })',
+                  'TextButton(onClick = { if (route == "home") { vm.refreshRandomSelections(); vm.screen = "layout" } else route = "home" })', 1)
+_my.write_text(_ms, encoding="utf-8")
+
+# Acceptance checks: all requested random pools refresh together; both copy entry points use safe helper.
+_vmcheck = _vm.read_text(encoding="utf-8")
+_lcheck = _layout.read_text(encoding="utf-8")
+_ac = _asset.read_text(encoding="utf-8")
+checks = {
+    "refresh method rerolls copy": "copyLines = copyLines" in _vmcheck,
+    "refresh method rerolls image pool": "imgPool = imagePool" in _vmcheck,
+    "refresh method rerolls emoji": "previewEmoji = emoji" in _vmcheck,
+    "refresh method rerolls text GIF": "gifContent = gifContent" in _vmcheck,
+    "refresh method rerolls history": "historyHtml = historyHtml" in _vmcheck,
+    "top copy uses safe helper": 'ThemeChip("复制", false) { copyRenderedPreview(ctx, vm) }' in _lcheck,
+    "floating copy uses safe helper": "copyRenderedPreview(ctx, vm)" in _lcheck,
+    "HTML export uses compact allowlist": 'var allowed = [' in _ac,
+    "HTML export no longer selects page content": "selection.addRange(range)" not in _ac,
+}
+failed = [name for name, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("Copy/random refresh acceptance checks failed: " + "; ".join(failed))
+print("Copy safety and per-entry random refresh acceptance checks passed.")
