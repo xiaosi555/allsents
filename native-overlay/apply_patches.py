@@ -1083,3 +1083,61 @@ patch("ui/LayoutScreen.kt",[
                 Box(Modifier.matchParentSize().clickable { vm.selectLayout(l.id) })
             }''')
 ])
+
+
+# ----------------------------------------------------------------------
+# 2026-11-21 detail/edit parity, real live template preview, full tap targets.
+# Keep these anchors aligned with the deployed native source archive.
+patch("ui/MyScreens.kt",[
+    ('EditDialog(if (isNew) "新增账号" else "编辑账号"',
+     'EditDialog("详情与编辑"'),
+    ('EditDialog(if (isNew) "新建文案模块" else "编辑文案模块"',
+     'EditDialog("详情与编辑"'),
+    ('EditDialog(if (isNew) "新增版式" else "详情与编辑"',
+     'EditDialog("详情与编辑"'),
+    ('EditDialog(if (isNew) "新增配置" else "详情与编辑"',
+     'EditDialog("详情与编辑"'),
+    ('EditDialog(if (isNew) "新增往期" else "详情与编辑"',
+     'EditDialog("详情与编辑"'),
+    ('EditDialog(if (isNew) "新建模块" else "编辑模块"',
+     'EditDialog("详情与编辑"'),
+    ('Field("配置名称", name, { name = it }); Field("模板代码（HTML）", content, { content = it }, 10)',
+     '''Field("配置名称", name, { name = it })
+            Field("模板代码（HTML）", content, { content = it }, 10)
+            Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, LayoutItem(id = "edit-preview", name = name, content = content),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('''            Row(Modifier.widthIn(min = 112.dp, max = 160.dp).height(76.dp).clickable { vm.selectAccount(a.id) }.padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                AsyncImage(a.avatar, null, Modifier.size(46.dp).clip(CircleShape).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 13.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(a.author.ifBlank { "公众号账号" }, color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }''',
+     '''            Column(Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable { vm.selectAccount(a.id) }.padding(horizontal = 4.dp, vertical = 5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                AsyncImage(a.avatar, null, Modifier.size(width = 68.dp, height = 54.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 12.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(a.author.ifBlank { "公众号账号" }, color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }'''),
+    ('''            Column(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (i == cur) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp)).clickable { vm.selectLayout(l.id) }) {
+                RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                Text(shortName(l.name), Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (i == cur) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (i == cur) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            }''',
+     '''            Box(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (i == cur) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp))) {
+                Column(Modifier.fillMaxWidth()) {
+                    RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                    Text(shortName(l.name), Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (i == cur) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (i == cur) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+                Box(Modifier.matchParentSize().clickable { vm.selectLayout(l.id) })
+            }''')
+])
+
+patch("ui/AppViewModel.kt",[
+    ('''val history = data.history.firstOrNull { it.name.contains("文字") } ?: data.history.firstOrNull()''',
+     '''val history = data.history.firstOrNull { it.name.contains("文字") && it.image.isBlank() && it.images.isBlank() }
+                    ?: data.history.firstOrNull { it.image.isBlank() && it.images.isBlank() }''')
+])
