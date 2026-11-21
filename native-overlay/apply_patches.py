@@ -1837,11 +1837,13 @@ if home_start < 0 or home_end < 0:
 home_lines = my_home_source[home_start:home_end].splitlines()
 new_home_lines = []
 seen = {"account": 0, "text": 0, "layout": 0, "more": 0}
+has_more_count = any("val moreCount =" in line for line in home_lines)
 for line in home_lines:
     stripped = line.strip()
     if stripped == "val d = vm.data":
         new_home_lines.append(line)
-        new_home_lines.append("    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size")
+        if not has_more_count:
+            new_home_lines.append("    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size")
     elif 'ListRow("账号",' in line:
         new_home_lines.append('    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }')
         seen["account"] += 1
