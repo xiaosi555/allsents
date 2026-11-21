@@ -2352,3 +2352,337 @@ patch("engine/PreviewEngine.kt",[
                     ordered.forEachIndexed { position, parsed ->
                         val para = ctx.doc.createElement("p").attr("style", if (position < ordered.lastIndex) "margin:0;margin-bottom:${gap}px;" else "margin:0;")''')
 ])
+
+
+# ----------------------------------------------------------------------
+# Follow-up reliability fixes: native clipboard, entry-time randomization,
+# Moments as the initial layout, original account-list styling, and launcher safe area.
+patch("data/Models.kt",[
+('    val layoutSpacing: Map<String, Int> = emptyMap(), // 版式条目之间的间距：* 为全局，版式 id 为单独设置\n',
+ '    val layoutSpacing: Map<String, Int> = emptyMap(), // 版式条目之间的间距：* 为全局，版式 id 为单独设置\n    val emojiModuleId: String? = null,\n    val layoutDefaultMigrated: Boolean = false,\n'),
+('const val LAYOUT_VER = 2','const val LAYOUT_VER = 3')
+])
+
+# Add the four standard templates to fresh / legacy data when absent.
+patch("data/Store.kt",[
+('''        var layout = fill(raw.layout, "layout", { it.id }, { x, i -> x.copy(id = i) })
+            .map { it.copy(name = it.name ?: "", content = it.content ?: "") }
+        var douyinAdded = raw.douyinAdded''',
+'''        var layout = fill(raw.layout, "layout", { it.id }, { x, i -> x.copy(id = i) })
+            .map { it.copy(name = it.name ?: "", content = it.content ?: "") }
+        val defaultLayouts = listOf(
+            "moments" to LayoutItem("layout_moments", "01_朋友圈版", templates["moments"] ?: ""),
+            "duan" to LayoutItem("layout_duan", "02_断章序引版", templates["duan"] ?: ""),
+            "card" to LayoutItem("layout_card", "03_卡片版", templates["card"] ?: ""),
+            "sentence" to LayoutItem("layout_sentence", "04_文字断句版", templates["sentence"] ?: "")
+        )
+        defaultLayouts.forEach { (kind, item) ->
+            if (layout.none { layoutKindOf(it.name) == kind }) {
+                layout = if (kind == "moments") listOf(item) + layout else layout + item
+            }
+        }
+        var douyinAdded = raw.douyinAdded'''),
+('name = "04_抖音版"','name = "05_抖音版"')
+])
+
+patch("ui/AppViewModel.kt",[
+('''        validateSelections()
+        applyDefaultMediaOnce()
+        rebuild()''',
+'''        val moments = data.layout.firstOrNull { layoutKindOf(it.name) == "moments" }
+        if (!ui.layoutDefaultMigrated) {
+            val selected = data.layout.firstOrNull { it.id == ui.layoutId }
+            if (moments != null && (selected == null || layoutKindOf(selected.name) == "douyin")) {
+                ui = ui.copy(layoutId = moments.id, layoutDefaultMigrated = true)
+            } else {
+                ui = ui.copy(layoutDefaultMigrated = true)
+            }
+            store.saveUi(ui)
+        }
+        validateSelections()
+        applyDefaultMediaOnce()
+        rebuild()'''),
+('''    private fun drawImagePool(): Pair<String?, List<String>> {
+        val mods = data.files.image.filter { TextUtil.imageUrls(it.content).isNotEmpty() && !it.name.contains("抖音背景") }
+        if (mods.isEmpty()) return null to emptyList()
+        val m = mods.random()
+        return m.id to TextUtil.sampleN(TextUtil.imageUrls(m.content), IMG_POOL_SIZE)
+    }''',
+'''    private fun drawImagePool(excludeId: String? = null): Pair<String?, List<String>> {
+        val mods = data.files.image.filter { TextUtil.imageUrls(it.content).isNotEmpty() && !it.name.contains("抖音背景") }
+        if (mods.isEmpty()) return null to emptyList()
+        val choices = mods.filterNot { it.id == excludeId }.ifEmpty { mods }
+        val m = choices.random()
+        return m.id to TextUtil.sampleN(TextUtil.imageUrls(m.content), IMG_POOL_SIZE)
+    }'''),
+('''    fun clearEmoji() = updateUi { copy(previewEmoji = "") }
+
+    fun applyRandomEmoji() {
+        val item = data.emoji.randomOrNull() ?: return toast("暂无emoji条目，请到【我的】-更多-emoji中添加")
+        val v = randomBlock(item.content)
+        if (v.isEmpty()) return toast("所选emoji条目没有可用内容")
+        updateUi { copy(previewEmoji = v) }
+    }''',
+'''    fun clearEmoji() = updateUi { copy(previewEmoji = "", emojiModuleId = null) }
+
+    fun applyRandomEmoji() {
+        val choices = data.emoji.filterNot { it.id == ui.emojiModuleId }.ifEmpty { data.emoji }
+        val item = choices.randomOrNull() ?: return toast("暂无emoji条目，请到【我的】-更多-emoji中添加")
+        val v = randomBlock(item.content)
+        if (v.isEmpty()) return toast("所选emoji条目没有可用内容")
+        updateUi { copy(previewEmoji = v, emojiModuleId = item.id) }
+    }'''),
+('''    /** 每次重新进入排版页时重新抽取五类素材；不依赖首次安装标记。 */
+    fun refreshRandomSelections() {
+        if (kind == "douyin") { rebuild(); return }
+        val copyModule = data.files.text.filter { it.category == ui.textCat }.randomOrNull()
+            ?: data.files.text.randomOrNull()
+        val copyLines = copyModule?.let { drawCopy(it) }.orEmpty()
+        val (imageId, imagePool) = drawImagePool()
+
+        val emoji = data.emoji.randomOrNull()?.let { randomBlock(it.content) }.orEmpty()
+
+        val textGifBlocks = data.files.gif.flatMap { module ->
+            TextUtil.splitEntries(module.content)
+                .filterNot { Regex("(?is)<img\\\\b|<video\\\\b|background-image\\\\s*:").containsMatchIn(it) }
+                .map { module to it }
+        }
+        val gifPick = textGifBlocks.randomOrNull()
+        val gifFallback = if (gifPick == null) data.files.gif.randomOrNull() else null
+        val gifId = gifPick?.first?.id ?: gifFallback?.id
+        val gifContent = gifPick?.second ?: gifFallback?.let { randomBlock(it.content) }.orEmpty()
+
+        val history = data.history.randomOrNull()
+        val historyIds = history?.let { listOf(it.id) }.orEmpty()
+        val historyHtml = history?.let { PreviewEngine.composeHistoryHtml(it) }.orEmpty()
+        val order = buildList {
+            if (!gifId.isNullOrBlank() && gifContent.isNotBlank()) add("gif")
+            if (historyIds.isNotEmpty()) add("history")
+        }
+        ui = ui.copy(
+            copyModuleId = copyModule?.id,
+            copyLines = copyLines,
+            imgModuleId = imageId,
+            imgPool = imagePool,
+            previewEmoji = emoji,
+            gifId = gifId,
+            gifContent = gifContent,
+            historyIds = historyIds,
+            historyHtml = historyHtml,
+            mediaOrder = order,
+            mediaInit = true
+        )
+        store.saveUi(ui)
+        rebuild()
+    }''',
+'''    /** 每次进入排版页都重新抽取：文案类别、图片文件、emoji 模块、动图模块分别随机。 */
+    fun refreshRandomSelections() {
+        if (kind == "douyin") { rebuild(); return }
+
+        val categories = TEXT_CATEGORIES.filter { category -> data.files.text.any { it.category == category } }
+        val categoryChoices = categories.filterNot { it == ui.textCat }.ifEmpty { categories }
+        val textCategory = categoryChoices.randomOrNull() ?: ui.textCat
+        val categoryModules = data.files.text.filter { it.category == textCategory }
+        val copyChoices = categoryModules.filterNot { it.id == ui.copyModuleId }.ifEmpty { categoryModules }
+        val copyModule = copyChoices.randomOrNull()
+            ?: data.files.text.filterNot { it.id == ui.copyModuleId }.ifEmpty { data.files.text }.randomOrNull()
+        val copyLines = copyModule?.let { drawCopy(it) }.orEmpty()
+
+        val (imageId, imagePool) = drawImagePool(ui.imgModuleId)
+
+        val emojiChoices = data.emoji.filterNot { it.id == ui.emojiModuleId }.ifEmpty { data.emoji }
+        val emojiModule = emojiChoices.randomOrNull()
+        val emoji = emojiModule?.let { randomBlock(it.content) }.orEmpty()
+
+        val gifChoices = data.files.gif.filterNot { it.id == ui.gifId }.ifEmpty { data.files.gif }
+        val gifModule = gifChoices.randomOrNull()
+        val gifTextBlocks = gifModule?.let { module ->
+            TextUtil.splitEntries(module.content)
+                .filterNot { Regex("(?is)<img\\\\b|<video\\\\b|background-image\\\\s*:").containsMatchIn(it) }
+        }.orEmpty()
+        val gifContent = gifTextBlocks.randomOrNull() ?: gifModule?.let { randomBlock(it.content) }.orEmpty()
+        val gifId = gifModule?.id
+
+        val history = data.history.firstOrNull { it.name.contains("文字") }
+            ?: data.history.firstOrNull { it.image.isBlank() && it.images.isBlank() }
+            ?: data.history.firstOrNull()
+        val historyIds = history?.let { listOf(it.id) }.orEmpty()
+        val historyHtml = history?.let { PreviewEngine.composeHistoryHtml(it) }.orEmpty()
+        val order = buildList {
+            if (!gifId.isNullOrBlank() && gifContent.isNotBlank()) add("gif")
+            if (historyIds.isNotEmpty()) add("history")
+        }
+        ui = ui.copy(
+            textCat = textCategory,
+            copyModuleId = copyModule?.id,
+            copyLines = copyLines,
+            imgModuleId = imageId,
+            imgPool = imagePool,
+            emojiModuleId = emojiModule?.id,
+            previewEmoji = emoji,
+            gifId = gifId,
+            gifContent = gifContent,
+            historyIds = historyIds,
+            historyHtml = historyHtml,
+            mediaOrder = order,
+            mediaInit = true
+        )
+        store.saveUi(ui)
+        rebuild()
+    }''')
+])
+
+# Account list follows 000_拾万句.html: white rounded card, circular 40dp avatar,
+# title + AppID/author metadata, and a right chevron.
+patch("ui/MyScreens.kt",[
+('import androidx.compose.ui.graphics.Color\n','import androidx.compose.ui.graphics.Color\nimport androidx.compose.ui.layout.ContentScale\nimport coil.compose.AsyncImage\n'),
+('''@Composable
+private fun AccountsPage(vm: AppViewModel) = Page {
+    var edit by remember { mutableStateOf<Account?>(null) }
+    var isNew by remember { mutableStateOf(false) }
+    TopActions { ThemeChip("+ 新增账号", true, dark = false) { edit = Account(id = vm.newId()); isNew = true } }
+    if (vm.data.accounts.isEmpty()) Empty("暂无数据，请点击右上角新增")
+    vm.data.accounts.forEach { a -> ListRow(a.name, a.author.ifEmpty { a.appId }) { edit = a; isNew = false } }
+
+    edit?.let { a ->
+        var avatar by remember(a.id) { mutableStateOf(a.avatar) }; var name by remember(a.id) { mutableStateOf(a.name) }
+        var appId by remember(a.id) { mutableStateOf(a.appId) }; var secret by remember(a.id) { mutableStateOf(a.secret) }
+        var mp by remember(a.id) { mutableStateOf(a.mpAvatar) }; var author by remember(a.id) { mutableStateOf(a.author) }
+        var confirm by remember { mutableStateOf(false) }
+        EditDialog("详情与编辑", { edit = null },
+            { vm.saveAccount(a.copy(avatar = avatar, name = name.ifEmpty { "未命名账号" }, appId = appId, secret = secret, mpAvatar = mp, author = author)); edit = null },
+            if (isNew) null else ({ confirm = true })) {
+            Field("微信头像链接（朋友圈版头像取自这里）", avatar, { avatar = it }); Field("账号名称", name, { name = it })
+            Field("AppID", appId, { appId = it }); Field("AppSecret", secret, { secret = it })
+            Field("公众号头像", mp, { mp = it }); Field("作者", author, { author = it })
+        }
+        if (confirm) ConfirmDelete("账号", { vm.deleteAccount(a.id); confirm = false; edit = null }, { confirm = false })
+    }
+}''',
+'''@Composable
+private fun AccountsPage(vm: AppViewModel) = Page {
+    var edit by remember { mutableStateOf<Account?>(null) }
+    var isNew by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("已有账号列表", color = Color(0xFF6B7280), fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        ThemeChip("+ 新增账号", true, dark = false) { edit = Account(id = vm.newId()); isNew = true }
+    }
+    if (vm.data.accounts.isEmpty()) Empty("暂无账号，请点击右上角新增")
+    vm.data.accounts.forEach { account ->
+        AccountListRow(account) { edit = account; isNew = false }
+    }
+
+    edit?.let { a ->
+        var avatar by remember(a.id) { mutableStateOf(a.avatar) }; var name by remember(a.id) { mutableStateOf(a.name) }
+        var appId by remember(a.id) { mutableStateOf(a.appId) }; var secret by remember(a.id) { mutableStateOf(a.secret) }
+        var mp by remember(a.id) { mutableStateOf(a.mpAvatar) }; var author by remember(a.id) { mutableStateOf(a.author) }
+        var confirm by remember { mutableStateOf(false) }
+        EditDialog("详情与编辑", { edit = null },
+            { vm.saveAccount(a.copy(avatar = avatar, name = name.ifEmpty { "未命名账号" }, appId = appId, secret = secret, mpAvatar = mp, author = author)); edit = null },
+            if (isNew) null else ({ confirm = true })) {
+            Field("本地配置头像（图片 URL 或 Base64）", avatar, { avatar = it })
+            Field("公众号名称", name, { name = it })
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) { Field("APP_ID", appId, { appId = it }) }
+                Box(Modifier.weight(1f)) { Field("APP_SECRET", secret, { secret = it }) }
+            }
+            Field("公众号头像", mp, { mp = it })
+            Field("公众号作者", author, { author = it })
+        }
+        if (confirm) ConfirmDelete("账号", { vm.deleteAccount(a.id); confirm = false; edit = null }, { confirm = false })
+    }
+}
+
+@Composable
+private fun AccountListRow(account: Account, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().shadow(1.dp, RoundedCornerShape(12.dp)).clip(RoundedCornerShape(12.dp))
+            .background(Color.White).clickable(onClick = onClick).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (account.avatar.isNotBlank()) {
+            AsyncImage(
+                model = account.avatar,
+                contentDescription = "头像",
+                modifier = Modifier.size(40.dp).clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFF3F4F6)), contentAlignment = Alignment.Center) {
+                Text("头像", color = Color(0xFF9CA3AF), fontSize = 10.sp)
+            }
+        }
+        Column(Modifier.weight(1f).padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(account.name.ifBlank { "未命名账号" }, color = Color(0xFF111827), fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                "AppID: " + account.appId.ifBlank { "未填" } + " | 作者: " + account.author.ifBlank { "未填" },
+                color = Color(0xFF9CA3AF), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        Text("›", color = Color(0xFF9CA3AF), fontSize = 23.sp, modifier = Modifier.padding(start = 7.dp))
+    }
+}''')
+])
+
+# Copy the actual rendered WebView DOM into Android's system clipboard.
+patch("ui/LayoutScreen.kt",[
+('''private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
+    val runCopy = vm.js
+    if (runCopy == null) {
+        vm.toast("预览页面尚未就绪，请稍后重试")
+        return
+    }
+    // Invoke the HTML reference's copyPreviewContent() against the live rendered DOM.
+    // The browser/WebView, not Kotlin, writes the rich HTML clipboard representation.
+    runCopy("window.copyPreviewContent && window.copyPreviewContent()")
+    vm.toast("已执行富文本复制，请粘贴到公众号检查")
+}''',
+'''private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
+    val fallbackHtml = vm.previewHtml
+    fun writeClipboard(html: String, plainText: String?) {
+        if (html.isBlank()) {
+            vm.toast("暂无可复制的预览内容")
+            return
+        }
+        runCatching {
+            val plain = plainText?.takeIf { it.isNotBlank() }
+                ?: android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+            val manager = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            manager.setPrimaryClip(ClipData.newHtmlText("拾万句预览", plain, html))
+        }.onSuccess {
+            vm.toast("已复制预览内容")
+        }.onFailure {
+            vm.toast("复制失败，请检查系统剪贴板权限")
+        }
+    }
+
+    val readDom = vm.jsResult
+    if (readDom == null) {
+        writeClipboard(fallbackHtml, null)
+        return
+    }
+    val script = """(function(){var area=document.getElementById('previewArea');var dy=document.querySelector('#previewArea [data-douyin]');var node=dy||area;if(!node)return JSON.stringify({html:'',text:''});var clone=node.cloneNode(true);if(dy){clone.querySelectorAll('[data-unit]').forEach(function(n){n.removeAttribute('data-unit')});clone.removeAttribute('data-unit');clone.removeAttribute('data-douyin')}return JSON.stringify({html:clone.innerHTML,text:node.innerText||node.textContent||''})})()"""
+    readDom(script) { raw ->
+        val payload = runCatching {
+            val encoded = org.json.JSONTokener(raw ?: "null").nextValue() as? String
+            if (encoded.isNullOrBlank()) null else org.json.JSONObject(encoded)
+        }.getOrNull()
+        val html = payload?.optString("html").orEmpty().ifBlank { fallbackHtml }
+        val plain = payload?.optString("text").orEmpty()
+        writeClipboard(html, plain)
+    }
+}''')
+])
+
+# Refresh every time the app enters the layout screen; do not depend on saved mediaInit.
+patch("MainActivity.kt",[
+('''                LaunchedEffect(vm.message) { vm.message?.let { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show(); vm.message = null } }
+                if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)''',
+'''                LaunchedEffect(vm.message) { vm.message?.let { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show(); vm.message = null } }
+                LaunchedEffect(vm.screen) { if (vm.screen == "layout") vm.refreshRandomSelections() }
+                if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)''')
+])
+patch("ui/MyScreens.kt",[
+('vm.refreshRandomSelections(); vm.screen = "layout"','vm.screen = "layout"')
+])
+print("Applied clipboard, random-entry, Moments-default, account-list and icon-safe-area patches.")
