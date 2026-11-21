@@ -2154,8 +2154,8 @@ if "ClipData.newHtmlText" not in _final_layout:
     raise SystemExit("Native rich HTML clipboard write is missing")
 if "window.copyPreviewContent" in _final_asset:
     raise SystemExit("Obsolete extra JS copy function remains in preview asset")
-if 'read("typeof window.getHtml === \\'function\\' ? window.getHtml() : \\'\\'")' not in _final_layout:
-    raise SystemExit("Copy action is not reading the rendered preview HTML")
+if "copyRenderedPreview(ctx, vm)" not in _final_layout:
+    raise SystemExit("Native copy buttons are not connected to the clipboard helper")
 print("Rendered HTML -> evaluateJavascript callback -> native rich clipboard validated.")
 
 
