@@ -1325,3 +1325,42 @@ new_get_html = """window.getHtml = function () {
 if old_get_html not in asset_html:
     raise SystemExit("Required preview.html getHtml() anchor missing; refusing partial copy patch")
 asset.write_text(asset_html.replace(old_get_html, new_get_html, 1), encoding="utf-8")
+
+
+# Final required correction: a layout detail must use the same native rendering
+# engine as the layout picker, not a raw source-code WebView.
+def must_replace(rel, old, new, label):
+    path = java / rel
+    source = path.read_text(encoding="utf-8")
+    if old not in source:
+        raise SystemExit("Required patch missing (" + label + "): " + rel)
+    path.write_text(source.replace(old, new, 1), encoding="utf-8")
+
+must_replace(
+    "ui/MyScreens.kt",
+    '''Text("样式预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RawHtmlPreview(content, Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))''',
+    '''Text("当前版式渲染预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, l.copy(name = name, content = content),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))''',
+    "layout detail uses rendered layout engine"
+)
+
+# Fail fast rather than silently ship if any of this round's requirements regress.
+my = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+layout = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+preview = (base / "assets/preview.html").read_text(encoding="utf-8")
+required = {
+    "account avatar is square": "Modifier.size(54.dp)" in layout,
+    "account secondary line removed": 'Text(a.author.ifBlank { "公众号账号" }' not in layout,
+    "history detail has HTML preview": "RawHtmlPreview(historyHtml" in my,
+    "GIF detail has no preview": "gif-edit-preview" not in my,
+    "layout detail uses renderer": "RenderedLayoutPreview(vm, l.copy(name = name, content = content)" in my,
+    "copy selects whole preview area": "range.selectNodeContents(area)" in preview,
+    "RawHtmlPreview composable annotation": "@Composable\nprivate fun RawHtmlPreview" in my,
+    "Field composable annotation": "@Composable\nprivate fun Field(" in my,
+}
+failed = [label for label, ok in required.items() if not ok]
+if failed:
+    raise SystemExit("Required acceptance checks failed: " + "; ".join(failed))
+print("Required UI acceptance checks passed: " + ", ".join(required.keys()))
