@@ -1137,7 +1137,23 @@ patch("ui/LayoutScreen.kt",[
 ])
 
 patch("ui/AppViewModel.kt",[
-    ('''val history = data.history.firstOrNull { it.name.contains("文字") } ?: data.history.firstOrNull()''',
-     '''val history = data.history.firstOrNull { it.name.contains("文字") && it.image.isBlank() && it.images.isBlank() }
-                    ?: data.history.firstOrNull { it.image.isBlank() && it.images.isBlank() }''')
+    ('''                val gif = data.files.gif.randomOrNull()
+                val content = gif?.let { randomBlock(it.content) }.orEmpty()
+                if (gif != null && content.isNotBlank()) { gifId = gif.id; gifContent = content }''',
+     '''                // 默认优先从文字版动图模块中随机抽取一个纯文字片段，避免初始预览误放图片版。
+                val textModules = data.files.gif.filter { it.name.contains("文字") }
+                val textBlocks = (textModules.ifEmpty { data.files.gif }).flatMap { module ->
+                    TextUtil.splitEntries(module.content)
+                        .filterNot { Regex("(?is)<img\\\\b|<video\\\\b|background-image\\\\s*:").containsMatchIn(it) }
+                        .map { module to it }
+                }
+                val chosenText = textBlocks.randomOrNull()
+                if (chosenText != null) {
+                    gifId = chosenText.first.id
+                    gifContent = chosenText.second
+                } else {
+                    val gif = textModules.randomOrNull() ?: data.files.gif.randomOrNull()
+                    val content = gif?.let { randomBlock(it.content) }.orEmpty()
+                    if (gif != null && content.isNotBlank()) { gifId = gif.id; gifContent = content }
+                }''')
 ])
