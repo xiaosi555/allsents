@@ -1157,3 +1157,21 @@ patch("ui/AppViewModel.kt",[
                     if (gif != null && content.isNotBlank()) { gifId = gif.id; gifContent = content }
                 }''')
 ])
+
+
+# Render HTML-backed history and GIF module source as actual content, not source text.
+patch("ui/MyScreens.kt",[
+    ('''                Field("HTML 模板（可选）", template, { template = it }, 4, "留空时自动使用默认模板")''',
+     '''                Field("HTML 模板（可选）", template, { template = it }, 4, "留空时自动使用默认模板")
+                Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                RenderedLayoutPreview(vm, LayoutItem(id = "history-edit-preview", name = "自定义预览",
+                    content = template.ifBlank { PreviewEngine.historyTemplateHtml(images.isNotBlank()) }),
+                    Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))'''),
+    ('''                Field(if (isGif) "内容（按两个换行分隔，随机取一段）" else "内容（每行一个图片地址，可省略 https://）", content, { content = it }, 8)''',
+     '''                Field(if (isGif) "内容（按两个换行分隔，随机取一段）" else "内容（每行一个图片地址，可省略 https://）", content, { content = it }, 8)
+                if (isGif) {
+                    Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    RenderedLayoutPreview(vm, LayoutItem(id = "gif-edit-preview", name = "自定义预览", content = content),
+                        Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
+                }''')
+])
