@@ -2597,7 +2597,7 @@ print("Applied clipboard, random-entry, Moments-default, account-list and icon-s
 _final_layout = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
 _final_asset = (base / "assets/preview.html").read_text(encoding="utf-8")
 _copy_start = _final_layout.find("private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {")
-_copy_end = _final_layout.find("@Composable\\nprivate fun CopyPreviewButton", _copy_start)
+_copy_end = _final_layout.find("@Composable\nprivate fun CopyPreviewButton", _copy_start)
 if _copy_start < 0 or _copy_end < 0:
     raise SystemExit("Authoritative rendered-copy helper missing")
 _copy_impl = _final_layout[_copy_start:_copy_end]
