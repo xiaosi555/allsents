@@ -1779,3 +1779,93 @@ failed = [label for label, ok in checks.items() if not ok]
 if failed:
     raise SystemExit("Douyin/media initialization acceptance checks failed: " + "; ".join(failed))
 print("Douyin media transition acceptance checks passed.")
+
+
+# 2026-11-21: align adjacent media spacing and complete My-page summary counts.
+must_replace(
+    "engine/PreviewEngine.kt",
+    '        order.forEach { body.appendChild(blocks.getValue(it)) }',
+    '''        order.forEachIndexed { index, key ->
+            val block = blocks.getValue(key)
+            if (index > 0) Css.set(block, "margin-top", "0px", true)
+            if (index < order.lastIndex) {
+                Css.set(block, "margin-bottom", maxOf(m[2], m[0]).toString() + "px", true)
+            }
+            body.appendChild(block)
+        }''',
+    "merge margins between adjacent history and GIF blocks"
+)
+
+preview_path = base / "assets/preview.html"
+preview_source = preview_path.read_text(encoding="utf-8")
+old_margins = '''  window.setMargins = function (t, r, b, l) {
+    var v = [t, r, b, l], names = ['top', 'right', 'bottom', 'left'];
+    Array.from(area.querySelectorAll('[data-preview-gif], [data-preview-history]')).forEach(function (el) {
+      names.forEach(function (n, i) { el.style.setProperty('margin-' + n, v[i] + 'px', 'important'); });
+    });
+  };'''
+new_margins = '''  window.setMargins = function (t, r, b, l) {
+    var v = [t, r, b, l], names = ['top', 'right', 'bottom', 'left'];
+    var blocks = Array.from(area.querySelectorAll('[data-preview-gif], [data-preview-history]'));
+    blocks.forEach(function (el) {
+      names.forEach(function (n, i) { el.style.setProperty('margin-' + n, v[i] + 'px', 'important'); });
+    });
+    // Flex items do not collapse vertical margins: use max(bottom, top) between adjacent media blocks.
+    var between = Math.max(t, b);
+    blocks.forEach(function (el, index) {
+      if (index > 0) el.style.setProperty('margin-top', '0px', 'important');
+      if (index < blocks.length - 1) el.style.setProperty('margin-bottom', between + 'px', 'important');
+    });
+  };'''
+if old_margins not in preview_source:
+    raise SystemExit("Required patch missing (adjacent media margins): assets/preview.html")
+preview_path.write_text(preview_source.replace(old_margins, new_margins, 1), encoding="utf-8")
+
+must_replace(
+    "ui/MyScreens.kt",
+    '''        val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式管理"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
+    '''        val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
+    "use the required My page layout title"
+)
+must_replace(
+    "ui/MyScreens.kt",
+    '''    val d = vm.data
+    ListRow("账号", "多账号管理、配置信息 · " + d.accounts.size) { go("accounts") }
+    ListRow("文案", "文案模块管理、排序 · " + d.files.text.size) { go("texts") }
+    ListRow("版式", "布局、排版预览、代码渲染 · " + d.layout.size) { go("layouts") }
+    ListRow("更多", "emoji、往期、动图、配图") { go("more") }
+''',
+    '''    val d = vm.data
+    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
+    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }
+    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }
+    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }
+    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }
+''',
+    "show all required My home summary counts"
+)
+must_replace(
+    "ui/MyScreens.kt",
+    '''                val previewEntries = previewTitles.mapIndexed { index, title ->
+                    HistoryEntry(id = "history-preview-$index", title = title,
+                        link = previewLinks.getOrNull(index).orEmpty(),
+                        image = previewImages.getOrNull(index).orEmpty())
+                }
+''',
+    "",
+    "remove obsolete generic history preview rows"
+)
+
+engine_source = (java / "engine/PreviewEngine.kt").read_text(encoding="utf-8")
+my_source = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+preview_source = (base / "assets/preview.html").read_text(encoding="utf-8")
+checks = {
+    "initial media margins merge by maximum": "maxOf(m[2], m[0])" in engine_source,
+    "live media margins merge by maximum": "Math.max(t, b)" in preview_source,
+    "My home shows more module count": '"共 " + moreCount + " 个数据模块"' in my_source,
+    "My layout page title is concise": '"layouts" -> "版式"' in my_source,
+}
+failed = [label for label, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("Layout and My-page acceptance checks failed: " + "; ".join(failed))
+print("Adjacent media spacing and My-page summary acceptance checks passed.")
