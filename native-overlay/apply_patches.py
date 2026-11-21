@@ -1423,3 +1423,277 @@ for label, needle in [
     if needle not in layout_source:
         raise SystemExit("Required acceptance check failed: " + label)
 print("Media removal actions now use subtle border and typography.")
+
+
+# 2026-11-21: preserve the selected history template and its randomized row content,
+# matching the actual 000_拾万句.html behavior. Also copy only the preview area.
+must_replace(
+    "data/Models.kt",
+    '    val historyIds: List<String> = emptyList(),    // 随机读取的 5 条往期',
+    '    val historyIds: List<String> = emptyList(),    // 当前选中的往期模块\n    val historyHtml: String = "",                   // 已随机填充并持久化的往期 HTML',
+    "persist selected history HTML in UI state"
+)
+
+must_replace(
+    "engine/PreviewEngine.kt",
+    '''        val hist = ui.historyIds.mapNotNull { id -> data.history.firstOrNull { it.id == id } }
+        val blocks = LinkedHashMap<String, Element>()
+        val m = margins(ui, ctx.kind)
+''',
+    '''        val hist = ui.historyIds.mapNotNull { id -> data.history.firstOrNull { it.id == id } }
+        val histHtml = ui.historyHtml.ifBlank { hist.firstOrNull()?.let { composeHistoryHtml(it) }.orEmpty() }
+        val blocks = LinkedHashMap<String, Element>()
+        val m = margins(ui, ctx.kind)
+''',
+    "resolve persisted history HTML"
+)
+must_replace(
+    "engine/PreviewEngine.kt",
+    '''        if (hist.isNotEmpty()) {
+            val h = htmlBlock(ctx, buildHistoryHtml(hist))
+''',
+    '''        if (histHtml.isNotBlank()) {
+            val h = htmlBlock(ctx, histHtml)
+''',
+    "render selected history HTML"
+)
+
+must_replace(
+    "engine/PreviewEngine.kt",
+    '''    private fun histImageCell(e: HistoryEntry): String {''',
+    r'''    private data class HistoryRow(val title: String, val link: String, val image: String)
+
+    private fun historyRows(item: HistoryEntry): List<HistoryRow> {
+        val titles = TextUtil.splitSingleLines(item.titles.ifBlank { item.title })
+        val links = TextUtil.splitSingleLines(item.links.ifBlank { item.link })
+        val images = TextUtil.splitSingleLines(item.images.ifBlank { item.image })
+        return (0 until minOf(titles.size, links.size)).map { i ->
+            HistoryRow(titles[i], links[i], images.getOrNull(i).orEmpty())
+        }
+    }
+
+    private fun historyTitleLines(title: String): List<String> {
+        val parts = Regex("[^，,、。！？!?；;：:]+[，,、。！？!?；;：:]?")
+            .findAll(title).map { it.value }.filter { it.isNotEmpty() }.toList()
+        return parts.flatMap { part ->
+            val chars = part.toList()
+            if (chars.isEmpty()) emptyList() else {
+                val count = (chars.size + 6) / 7
+                val chunk = (chars.size + count - 1) / count
+                chars.chunked(chunk).map { it.joinToString("") }
+            }
+        }
+    }
+
+    /** 对应网页版 composeHistoryHtml：按当前往期模块模板随机填充标题、链接和图片。 */
+    fun composeHistoryHtml(item: HistoryEntry): String {
+        val template = item.content.ifBlank {
+            historyTemplateHtml(item.images.isNotBlank() || item.image.isNotBlank())
+        }
+        val doc = Jsoup.parseBodyFragment(template)
+        doc.outputSettings().prettyPrint(false)
+        doc.select("script").remove()
+        val anchors = doc.select("a[href]").toList()
+        if (anchors.isEmpty()) return template
+
+        var rows = historyRows(item)
+        val hasImages = anchors.any { it.selectFirst("img") != null }
+        if (hasImages) rows = rows.filter { it.image.isNotBlank() }
+        if (rows.isEmpty()) return template
+
+        val pool = rows.shuffled()
+        anchors.forEachIndexed { index, anchor ->
+            val entry = anchor.parent() as? Element ?: anchor
+            val row = pool.getOrNull(index)
+            if (row == null) {
+                entry.remove()
+                return@forEachIndexed
+            }
+            anchor.attr("href", row.link)
+            val image = anchor.selectFirst("img")
+            if (image == null) {
+                anchor.text(row.title)
+            } else {
+                image.attr("src", row.image)
+                if (image.hasAttr("alt")) image.attr("alt", row.title)
+                val title = entry.selectFirst("p")
+                if (title != null) {
+                    title.text(row.title)
+                } else {
+                    val overlay = entry.selectFirst("[class*=random-style]")
+                    if (overlay != null) {
+                        val styleClass = overlay.classNames().firstOrNull { it.startsWith("random-style-") }
+                        val verticalByClass = styleClass?.let {
+                            Regex("\\\\." + Regex.escape(it) + "\\\\s*\\\\{[^}]*writing-mode", RegexOption.IGNORE_CASE)
+                                .containsMatchIn(template)
+                        } ?: false
+                        val vertical = verticalByClass ||
+                            Regex("writing-mode", RegexOption.IGNORE_CASE).containsMatchIn(overlay.attr("style"))
+                        overlay.empty()
+                        if (vertical) {
+                            overlay.appendText(row.title)
+                        } else {
+                            historyTitleLines(row.title).forEachIndexed { lineIndex, line ->
+                                if (lineIndex > 0) overlay.appendElement("br")
+                                overlay.appendText(line)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return doc.body().html()
+    }
+
+    private fun histImageCell(e: HistoryEntry): String {''',
+    "implement HTML-compatible history template composition"
+)
+
+must_replace(
+    "data/Models.kt",
+    '    val historyIds: List<String> = emptyList(),    // 随机读取的 5 条往期',
+    '    val historyIds: List<String> = emptyList(),    // 当前选中的往期模块\n    val historyHtml: String = "",                   // 已随机填充并持久化的往期 HTML',
+    "persist selected history HTML in UI state"
+)
+
+must_replace(
+    "ui/AppViewModel.kt",
+    '''            var historyIds = ui.historyIds
+            if (historyIds.isEmpty()) {
+                val history = data.history.firstOrNull { it.name.contains("文字") } ?: data.history.firstOrNull()
+                if (history != null) historyIds = listOf(history.id)
+            }
+            val order = buildList {
+''',
+    '''            var historyIds = ui.historyIds
+            var historyHtml = ui.historyHtml
+            if (historyIds.isEmpty()) {
+                val history = data.history.firstOrNull { it.name.contains("文字") } ?: data.history.firstOrNull()
+                if (history != null) {
+                    historyIds = listOf(history.id)
+                    historyHtml = PreviewEngine.composeHistoryHtml(history)
+                }
+            } else if (historyHtml.isBlank()) {
+                historyIds.firstOrNull()?.let { id ->
+                    data.history.firstOrNull { it.id == id }?.let { historyHtml = PreviewEngine.composeHistoryHtml(it) }
+                }
+            }
+            val order = buildList {
+''',
+    "initialize default history template content"
+)
+must_replace(
+    "ui/AppViewModel.kt",
+    'ui = ui.copy(previewEmoji = emoji, gifId = gifId, gifContent = gifContent, historyIds = historyIds, mediaOrder = order, mediaInit = true)',
+    'ui = ui.copy(previewEmoji = emoji, gifId = gifId, gifContent = gifContent, historyIds = historyIds, historyHtml = historyHtml, mediaOrder = order, mediaInit = true)',
+    "save default history HTML"
+)
+must_replace(
+    "ui/AppViewModel.kt",
+    '''        val hids = u.historyIds.filter { id -> data.history.any { it.id == id } }
+        u = u.copy(historyIds = hids, mediaOrder = if (hids.isEmpty()) u.mediaOrder.filter { it != "history" } else u.mediaOrder)
+''',
+    '''        val hids = u.historyIds.filter { id -> data.history.any { it.id == id } }
+        val selectedHistory = hids.firstOrNull()?.let { id -> data.history.firstOrNull { it.id == id } }
+        val historyHtml = when {
+            hids.isEmpty() -> ""
+            u.historyHtml.isNotBlank() -> u.historyHtml
+            else -> selectedHistory?.let { PreviewEngine.composeHistoryHtml(it) }.orEmpty()
+        }
+        u = u.copy(historyIds = hids, historyHtml = historyHtml,
+            mediaOrder = if (hids.isEmpty()) u.mediaOrder.filter { it != "history" } else u.mediaOrder)
+''',
+    "validate and retain selected history HTML"
+)
+must_replace(
+    "ui/AppViewModel.kt",
+    'gifContent = "", historyIds = emptyList(), mediaOrder = emptyList(), mediaInit = true',
+    'gifContent = "", historyIds = emptyList(), historyHtml = "", mediaOrder = emptyList(), mediaInit = true',
+    "clear history HTML when switching to Douyin"
+)
+must_replace(
+    "ui/AppViewModel.kt",
+    '''    /** 往期：每次随机读取 5 条 */
+    fun rollHistory(id: String? = null) {
+        if (data.history.isEmpty()) return toast("暂无往期条目，请到【我的】-更多-往期中添加")
+        val item = data.history.firstOrNull { it.id == id } ?: data.history.random()
+        pendingScroll = "history"
+        updateUi { copy(historyIds = listOf(item.id), mediaOrder = if ("history" in mediaOrder) mediaOrder else mediaOrder + "history") }
+    }
+
+    fun clearHistory() = updateUi { copy(historyIds = emptyList(), mediaOrder = mediaOrder.filter { it != "history" }) }
+''',
+    '''    /** 往期：选择一个模块，并按网页版模板随机填充其标题 / 链接 / 图片 */
+    fun rollHistory(id: String? = null) {
+        if (data.history.isEmpty()) return toast("暂无往期条目，请到【我的】-更多-往期中添加")
+        val selectedId = ui.historyIds.firstOrNull()
+        val item = data.history.firstOrNull { it.id == id }
+            ?: data.history.firstOrNull { it.id == selectedId }
+            ?: data.history.first()
+        val html = PreviewEngine.composeHistoryHtml(item)
+        pendingScroll = "history"
+        updateUi { copy(historyIds = listOf(item.id), historyHtml = html,
+            mediaOrder = if ("history" in mediaOrder) mediaOrder else mediaOrder + "history") }
+    }
+
+    fun clearHistory() = updateUi { copy(historyIds = emptyList(), historyHtml = "", mediaOrder = mediaOrder.filter { it != "history" }) }
+''',
+    "randomize and persist history template on selection"
+)
+
+must_replace(
+    "ui/LayoutScreen.kt",
+    '''            else read("(()=>{document.execCommand('selectAll');return document.documentElement.outerHTML;})()") { raw ->''',
+    '''            else read("getHtml()") { raw ->''',
+    "copy only the preview area"
+)
+must_replace(
+    "ui/LayoutScreen.kt",
+    'historyIds = emptyList(), gifId = null, gifContent = "",',
+    'historyIds = emptyList(), historyHtml = "", gifId = null, gifContent = "",',
+    "clear history from rendered layout sample"
+)
+
+must_replace(
+    "ui/MyScreens.kt",
+    '''                val historyHtml = if (previewEntries.isNotEmpty()) PreviewEngine.buildHistoryHtml(previewEntries)
+                    else template.ifBlank { cur.content }
+''',
+    '''                val previewItem = cur.copy(
+                    title = previewTitles.firstOrNull().orEmpty(),
+                    link = previewLinks.firstOrNull().orEmpty(),
+                    image = previewImages.firstOrNull().orEmpty(),
+                    titles = titles, links = links, images = images,
+                    content = template.ifBlank { PreviewEngine.historyTemplateHtml(previewImages.any { it.isNotBlank() }) }
+                )
+                val historyHtml = remember(cur.id, titles, links, images, template) {
+                    PreviewEngine.composeHistoryHtml(previewItem)
+                }
+''',
+    "preview the actual selected history template"
+)
+must_replace(
+    "ui/MyScreens.kt",
+    'val html = template.ifBlank { PreviewEngine.historyTemplateHtml(fi.isNotBlank()) }',
+    'val html = template.ifBlank { PreviewEngine.historyTemplateHtml(ims.isNotBlank()) }',
+    "choose history template from all image rows"
+)
+
+# Fail fast on the history parity and preview-copy fixes.
+models = (java / "data/Models.kt").read_text(encoding="utf-8")
+vm = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+engine = (java / "engine/PreviewEngine.kt").read_text(encoding="utf-8")
+layout = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+my = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+checks = {
+    "history HTML is persisted": 'val historyHtml: String = ""' in models,
+    "history template composer exists": "fun composeHistoryHtml(item: HistoryEntry)" in engine,
+    "render uses persisted history HTML": "htmlBlock(ctx, histHtml)" in engine,
+    "history selection stores composed HTML": "historyHtml = html" in vm,
+    "history edit preview uses template composer": "PreviewEngine.composeHistoryHtml(previewItem)" in my,
+    "top copy reads only preview area": 'read("getHtml()")' in layout,
+}
+failed = [label for label, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("History parity acceptance checks failed: " + "; ".join(failed))
+print("History template parity and preview-copy acceptance checks passed.")
