@@ -14,7 +14,7 @@ def patch(rel,pairs):
    continue
   s=s.replace(a,b,1)
  p.write_text(s,encoding="utf-8")
-shutil.copy2(root/"native-overlay/app/src/main/assets/douyin_template.html",base/"assets/douyin_template.html")
+shutil.copy2(root/"native-overlay/app/src/main/assets/douyin_template.txt",base/"assets/douyin_template.html")
 patch("engine/TextUtil.kt",[(
 '    /** 按单个换行符分割并剔除空行（随机标题的读取规则） */',
 '''    /** 网页 splitEntries：空行分条，条目内部单换行保留。 */
