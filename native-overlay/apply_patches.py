@@ -2697,3 +2697,59 @@ patch("ui/AppViewModel.kt",[
 ('fun rerollImages() { val (id, p) = drawImagePool(); updateUi { copy(imgModuleId = id, imgPool = p) } }',
  'fun rerollImages() { val (id, p) = drawImagePool(ui.imgModuleId); updateUi { copy(imgModuleId = id, imgPool = p) } }')
 ])
+
+
+# Match the centered rounded account editor modal from 000_拾万句.html.
+patch("ui/MyScreens.kt",[
+('''        EditDialog("详情与编辑", { edit = null },
+            { vm.saveAccount(a.copy(avatar = avatar, name = name.ifEmpty { "未命名账号" }, appId = appId, secret = secret, mpAvatar = mp, author = author)); edit = null },
+            if (isNew) null else ({ confirm = true })) {''',
+'''        AccountEditDialog(if (isNew) "新增账号" else "编辑账号", { edit = null },
+            { vm.saveAccount(a.copy(avatar = avatar, name = name.ifEmpty { "未命名账号" }, appId = appId, secret = secret, mpAvatar = mp, author = author)); edit = null },
+            if (isNew) null else ({ confirm = true })) {'''),
+('''// ---------------------------------------------------------------------- 文案（宫格 / 列表、排序）''',
+'''@Composable
+private fun AccountEditDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+    onDelete: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            Modifier.fillMaxWidth(0.92f).widthIn(max = 480.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = Color.White,
+            shadowElevation = 14.dp
+        ) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(title, color = Color(0xFF111827), fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                Column(
+                    Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = content
+                )
+                HorizontalDivider(color = Color(0xFFF3F4F6))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (onDelete != null) {
+                        TextButton(onClick = onDelete, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                            Text("删除账号", color = Color(0xFFDC2626), fontSize = 13.sp)
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = onDismiss) { Text("取消", color = Color(0xFF6B7280)) }
+                    Button(
+                        onClick = onSave,
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Theme, contentColor = AppColors.OnTheme),
+                        shape = RoundedCornerShape(9.dp),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 9.dp)
+                    ) { Text("保存", fontWeight = FontWeight.Medium) }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------- 文案（宫格 / 列表、排序）''')
+])
