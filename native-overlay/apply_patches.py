@@ -2547,23 +2547,36 @@ patch("ui/LayoutScreen.kt",[
     vm.toast("已执行富文本复制，请粘贴到公众号检查")
 }''',
 '''private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
-    val html = vm.previewHtml
-    if (html.isBlank()) {
-        vm.toast("当前预览内容为空，请先生成预览")
+    val read = vm.jsResult
+    if (read == null) {
+        vm.toast("预览尚未就绪，请稍后重试")
         return
     }
     try {
-        val plain = android.text.Html.fromHtml(
-            html, android.text.Html.FROM_HTML_MODE_LEGACY
-        ).toString()
-        val manager = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-            as android.content.ClipboardManager
-        manager.setPrimaryClip(
-            android.content.ClipData.newHtmlText("拾万句预览", plain, html)
-        )
-        vm.toast("已复制预览内容")
+        read("typeof window.getHtml === 'function' ? window.getHtml() : ''") { raw ->
+            try {
+                val html = runCatching {
+                    org.json.JSONTokener(raw ?: "null").nextValue() as? String
+                }.getOrNull()
+                if (html.isNullOrBlank()) {
+                    vm.toast("读取实时预览失败，请重新进入排版页")
+                } else {
+                    val plain = android.text.Html.fromHtml(
+                        html, android.text.Html.FROM_HTML_MODE_LEGACY
+                    ).toString()
+                    val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(
+                        android.content.ClipData.newHtmlText("拾万句", plain, html)
+                    )
+                    vm.toast("已复制实时预览内容")
+                }
+            } catch (error: Throwable) {
+                vm.toast("复制失败：" + (error.message ?: "剪贴板不可用"))
+            }
+        }
     } catch (error: Throwable) {
-        vm.toast("复制失败：" + (error.message ?: "系统剪贴板不可用"))
+        vm.toast("读取预览失败：" + (error.message ?: "页面尚未就绪"))
     }
 }''')
 ])
@@ -2580,6 +2593,24 @@ patch("ui/MyScreens.kt",[
 ('vm.refreshRandomSelections(); vm.screen = "layout"','vm.screen = "layout"')
 ])
 print("Applied clipboard, random-entry, Moments-default, account-list and icon-safe-area patches.")
+# Final clipboard authority check: only the live rendered WebView export may be copied.
+_final_layout = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+_final_asset = (base / "assets/preview.html").read_text(encoding="utf-8")
+_copy_start = _final_layout.find("private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {")
+_copy_end = _final_layout.find("@Composable\\nprivate fun CopyPreviewButton", _copy_start)
+if _copy_start < 0 or _copy_end < 0:
+    raise SystemExit("Authoritative rendered-copy helper missing")
+_copy_impl = _final_layout[_copy_start:_copy_end]
+if "vm.jsResult" not in _copy_impl or "window.getHtml()" not in _copy_impl:
+    raise SystemExit("Clipboard must read the live rendered WebView DOM")
+if "vm.previewHtml" in _copy_impl:
+    raise SystemExit("Raw source HTML must never override the rendered clipboard export")
+if "ClipData.newHtmlText" not in _copy_impl:
+    raise SystemExit("Rich HTML clipboard write missing from authoritative helper")
+if "window.getHtml = function" not in _final_asset or "var allowed = [" not in _final_asset:
+    raise SystemExit("Rendered DOM export with WeChat-safe inline style allowlist missing")
+print("Authoritative live-rendered DOM clipboard checks passed.")
+
 
 
 # Avoid a duplicate random draw on the toolbar return path; the screen-entry effect owns it.
