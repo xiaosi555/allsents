@@ -1549,12 +1549,7 @@ must_replace(
     "implement HTML-compatible history template composition"
 )
 
-must_replace(
-    "data/Models.kt",
-    '    val historyIds: List<String> = emptyList(),    // 随机读取的 5 条往期',
-    '    val historyIds: List<String> = emptyList(),    // 当前选中的往期模块\n    val historyHtml: String = "",                   // 已随机填充并持久化的往期 HTML',
-    "persist selected history HTML in UI state"
-)
+
 
 must_replace(
     "ui/AppViewModel.kt",
