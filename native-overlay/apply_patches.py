@@ -2341,3 +2341,14 @@ patch("ui/MyScreens.kt",[
 
 // ---------------------------------------------------------------------- 更多：emoji''')
 ])
+
+
+# 抖音版式以多个段落承载多个文案条目，同样应用全局 / 单独版式间距。
+patch("engine/PreviewEngine.kt",[
+('''                    ordered.forEach { parsed ->
+                        val para = ctx.doc.createElement("p").attr("style", "margin:0;")''',
+'''                    val layoutId = ctx.data.layout.getOrNull(ctx.layoutIdx)?.id.orEmpty()
+                    val gap = (ctx.ui.layoutSpacing[layoutId] ?: ctx.ui.layoutSpacing["*"] ?: 25).coerceIn(0, 100)
+                    ordered.forEachIndexed { position, parsed ->
+                        val para = ctx.doc.createElement("p").attr("style", if (position < ordered.lastIndex) "margin:0;margin-bottom:${gap}px;" else "margin:0;")''')
+])
