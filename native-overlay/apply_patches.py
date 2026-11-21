@@ -1696,3 +1696,86 @@ failed = [label for label, ok in checks.items() if not ok]
 if failed:
     raise SystemExit("History parity acceptance checks failed: " + "; ".join(failed))
 print("History template parity and preview-copy acceptance checks passed.")
+
+
+# 2026-11-21: restore default media after leaving Douyin and wait for media data.
+must_replace(
+    "ui/AppViewModel.kt",
+    '''    private fun applyDefaultMediaOnce() {
+        if (ui.mediaInit) return
+        if (kind == "douyin") {''',
+    '''    private fun applyDefaultMediaOnce() {
+        if (ui.mediaInit) return
+        if (kind != "douyin" && data.emoji.isEmpty() && data.files.gif.isEmpty() && data.history.isEmpty()) return
+        if (kind == "douyin") {''',
+    "do not mark media initialized before media data exists"
+)
+must_replace(
+    "ui/AppViewModel.kt",
+    '''    fun updateData(block: (AppData) -> AppData) {
+        data = block(data)
+        store.saveData(data)
+        validateSelections()
+        rebuild()
+    }
+''',
+    '''    fun updateData(block: (AppData) -> AppData) {
+        data = block(data)
+        store.saveData(data)
+        validateSelections()
+        if (!ui.mediaInit) applyDefaultMediaOnce()
+        rebuild()
+    }
+''',
+    "initialize default media after data becomes available"
+)
+must_replace(
+    "ui/AppViewModel.kt",
+    '''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        updateUi {
+            if (item?.name?.contains("抖音") == true) copy(
+                layoutId = id, douyinBg = drawDouyinBg(), previewEmoji = "", gifId = null,
+                gifContent = "", historyIds = emptyList(), mediaOrder = emptyList(), mediaInit = true
+            ) else copy(layoutId = id)
+        }
+    }
+''',
+    '''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        val wasDouyin = kind == "douyin"
+        val isDouyin = item?.name?.contains("抖音") == true
+        updateUi {
+            when {
+                isDouyin -> copy(
+                    layoutId = id, douyinBg = drawDouyinBg(), previewEmoji = "", gifId = null,
+                    gifContent = "", historyIds = emptyList(), historyHtml = "",
+                    mediaOrder = emptyList(), mediaInit = true
+                )
+                wasDouyin -> copy(
+                    layoutId = id, previewEmoji = "", gifId = null, gifContent = "",
+                    historyIds = emptyList(), historyHtml = "", mediaOrder = emptyList(), mediaInit = false
+                )
+                else -> copy(layoutId = id)
+            }
+        }
+        if (wasDouyin && !isDouyin) {
+            applyDefaultMediaOnce()
+            rebuild()
+        }
+    }
+''',
+    "restore default media when leaving Douyin layout"
+)
+
+vm_source = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+checks = {
+    "leaving Douyin resets media initialization": "if (wasDouyin && !isDouyin)" in vm_source,
+    "Douyin transition clears history HTML": 'historyIds = emptyList(), historyHtml = ""' in vm_source,
+    "late media data initializes defaults": "if (!ui.mediaInit) applyDefaultMediaOnce()" in vm_source,
+    "empty media data does not lock initialization": "data.emoji.isEmpty() && data.files.gif.isEmpty() && data.history.isEmpty()" in vm_source,
+}
+failed = [label for label, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("Douyin/media initialization acceptance checks failed: " + "; ".join(failed))
+print("Douyin media transition acceptance checks passed.")
