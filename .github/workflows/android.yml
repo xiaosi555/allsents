@@ -86,7 +86,7 @@ jobs:
           XML
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:width="54dp" android:height="54dp" android:gravity="center">
+              <item android:width="84dp" android:height="84dp" android:gravity="center">
                   <bitmap android:src="@drawable/app_logo" android:gravity="fill" />
               </item>
           </layer-list>
@@ -97,6 +97,22 @@ jobs:
               <foreground android:drawable="@drawable/ic_launcher_foreground" />
           </adaptive-icon>
           XML
+          cp "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
+          # Keep every APK build installable as an update: APP_VERSION is bumped in the repository per release.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path(".")
+          code = int((root / "APP_VERSION").read_text(encoding="utf-8").strip())
+          gradle = Path("source/ShiWanJu-Android/app/build.gradle.kts")
+          source = gradle.read_text(encoding="utf-8")
+          source, n1 = re.subn(r'(?m)^(\\s*versionCode\\s*=\\s*)\\d+', rf'\\g<1>{code}', source, count=1)
+          source, n2 = re.subn(r'(?m)^(\\s*versionName\\s*=\\s*)"[^"]+"', rf'\\g<1>"1.0.{code}"', source, count=1)
+          if n1 != 1 or n2 != 1:
+              raise SystemExit(f"Unable to set APK version: versionCode={n1}, versionName={n2}")
+          gradle.write_text(source, encoding="utf-8")
+          print(f"APK version set to 1.0.{code} (versionCode {code})")
+          PY
           sed -i 's/android:roundIcon="@mipmap\/ic_launcher"/android:roundIcon="@mipmap\/ic_launcher_round"/' "$PROJECT/app/src/main/AndroidManifest.xml"
           # Kotlin property setter and custom method had the same JVM signature.
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
