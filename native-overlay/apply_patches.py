@@ -1388,7 +1388,7 @@ required = {
     "history detail has HTML preview": "RawHtmlPreview(historyHtml" in my,
     "GIF detail has no preview": "gif-edit-preview" not in my,
     "layout detail uses renderer": "RenderedLayoutPreview(vm, l.copy(name = name, content = content)" in my,
-    "copy selects whole preview area": "range.selectNodeContents(area)" in preview,
+    "copy selects whole preview area": "range.selectNode(area)" in preview,
     "RawHtmlPreview composable annotation": "@Composable\nprivate fun RawHtmlPreview" in my,
     "Field composable annotation": "@Composable\nprivate fun Field(" in my,
 }
