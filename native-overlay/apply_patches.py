@@ -797,10 +797,11 @@ import androidx.compose.ui.draw.shadow'''),
     ListRow("版式", "已保存 ${d.layout.size} 个版式") { go("layouts") }
     ListRow("更多", "共 ${d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size} 个数据模块") { go("more") }
     ListRow("备份", "导出 / 导入全部数据") { go("backup") }''',
-     '''    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }
-    ListRow("文案", "文案模块管理、排序 · ${d.files.text.size}") { go("texts") }
-    ListRow("版式", "布局、排版预览、代码渲染 · ${d.layout.size}") { go("layouts") }
-    ListRow("更多", "emoji、往期、动图、配图") { go("more") }
+     '''    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
+    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }
+    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }
+    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }
+    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }
     ListRow("备份", "完整数据导出与恢复导入") { go("backup") }'''),
     ('''    if (vm.data.layout.isEmpty()) Empty("暂无数据，请点击右上角新增")
     vm.data.layout.forEach { l -> ListRow(l.name, summarize(l.content)) { edit = l; isNew = false } }''',
@@ -1830,9 +1831,9 @@ must_replace(
 must_replace(
     "ui/MyScreens.kt",
     '''    val d = vm.data
-    ListRow("账号", "多账号管理、配置信息 · " + d.accounts.size) { go("accounts") }
-    ListRow("文案", "文案模块管理、排序 · " + d.files.text.size) { go("texts") }
-    ListRow("版式", "布局、排版预览、代码渲染 · " + d.layout.size) { go("layouts") }
+    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }
+    ListRow("文案", "文案模块管理、排序 · ${d.files.text.size}") { go("texts") }
+    ListRow("版式", "布局、排版预览、代码渲染 · ${d.layout.size}") { go("layouts") }
     ListRow("更多", "emoji、往期、动图、配图") { go("more") }
 ''',
     '''    val d = vm.data
