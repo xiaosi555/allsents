@@ -1243,3 +1243,85 @@ private fun RawHtmlPreview(html: String, modifier: Modifier = Modifier) {
 
 private fun Field(''')
 ])
+
+
+# ----------------------------------------------------------------------
+# 2026-11-21 item-detail rendering and full-page copy correction.
+# These corrections intentionally run after earlier compatibility patches.
+patch("ui/MyScreens.kt",[
+    ('''@Composable
+@Composable
+private fun RawHtmlPreview''',
+     '''@Composable
+private fun RawHtmlPreview'''),
+    ('''}
+
+private fun Field(label: String''',
+     '''}
+
+@Composable
+private fun Field(label: String'''),
+    ('''Field("HTML 模板（可选）", template, { template = it }, 4, "留空时自动使用默认模板")
+                Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                RenderedLayoutPreview(vm, LayoutItem(id = "history-edit-preview", name = "自定义预览",
+                    content = template.ifBlank { PreviewEngine.historyTemplateHtml(images.isNotBlank()) }),
+                    Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))''',
+     '''val previewTitles = TextUtil.splitSingleLines(titles)
+                val previewLinks = TextUtil.splitSingleLines(links)
+                val previewImages = TextUtil.splitSingleLines(images)
+                val previewEntries = previewTitles.mapIndexed { index, title ->
+                    HistoryEntry(id = "history-preview-$index", title = title,
+                        link = previewLinks.getOrNull(index).orEmpty(),
+                        image = previewImages.getOrNull(index).orEmpty())
+                }
+                val historyHtml = if (previewEntries.isNotEmpty()) PreviewEngine.buildHistoryHtml(previewEntries)
+                    else template.ifBlank { cur.content }
+                Field("HTML 模板（可选）", template, { template = it }, 4, "留空时自动使用默认模板")
+                Text("往期样式预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                RawHtmlPreview(historyHtml, Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))'''),
+    ('''            Field("配置名称", name, { name = it }); Field("模板代码（HTML）", content, { content = it }, 10)
+            Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, LayoutItem(id = "edit-preview", name = name, content = content),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))''',
+     '''            Field("配置名称", name, { name = it }); Field("模板代码（HTML）", content, { content = it }, 10)
+            Text("当前版式渲染预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, l.copy(name = name, content = content),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))'''),
+    ('''                if (isGif) {
+                    Text("实时渲染预览", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    RenderedLayoutPreview(vm, LayoutItem(id = "gif-edit-preview", name = "自定义预览", content = content),
+                        Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
+                }''',
+     '''                // 动图条目详情按要求仅编辑内容，不显示预览。''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('''            Row(Modifier.widthIn(min = 112.dp, max = 160.dp).height(76.dp).clickable { vm.selectAccount(a.id) }.padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                AsyncImage(a.avatar, null, Modifier.size(46.dp).clip(CircleShape).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 13.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(a.author.ifBlank { "公众号账号" }, color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }''',
+     '''            Column(Modifier.width(76.dp).clip(RoundedCornerShape(10.dp)).clickable { vm.selectAccount(a.id) }.padding(horizontal = 4.dp, vertical = 5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                AsyncImage(a.avatar, null, Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
+                Text(a.name, color = if (i == sel) AppColors.Theme else AppColors.TextMain, fontSize = 12.sp, fontWeight = if (i == sel) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }''')
+])
+
+# Selecting the rendered content area is equivalent to Select All before copying.
+asset = base / "assets/preview.html"
+asset_html = asset.read_text(encoding="utf-8")
+old_get_html = "window.getHtml = function () { return area.innerHTML; };"
+new_get_html = """window.getHtml = function () {
+    var selection = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(area);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return area.innerHTML;
+  };"""
+if old_get_html not in asset_html:
+    raise SystemExit("Required preview.html getHtml() anchor missing; refusing partial copy patch")
+asset.write_text(asset_html.replace(old_get_html, new_get_html, 1), encoding="utf-8")
