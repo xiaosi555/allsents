@@ -159,7 +159,14 @@ patch("ui/AppViewModel.kt",[
 patch("ui/PreviewWebView.kt",[
 ('''        vm.js = { script -> webView.evaluateJavascript(script, null) }
         onDispose { vm.js = null; webView.destroy() }''',
-'''        vm.js = { script -> webView.evaluateJavascript(script, null) }
+'''        webView.addJavascriptInterface(object {
+            @android.webkit.JavascriptInterface
+            fun copyRichText(html: String, plain: String) {
+                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newHtmlText("拾万句", plain, html))
+            }
+        }, "ShiWanJuClipboard")
+        vm.js = { script -> webView.evaluateJavascript(script, null) }
         vm.jsResult = { script, callback -> webView.evaluateJavascript(script) { value -> callback(value) } }
         onDispose { vm.js = null; vm.jsResult = null; webView.destroy() }''')
 ])
@@ -2217,7 +2224,11 @@ _copy_js = r"""
     var text = area.innerText || area.textContent || "";
     var ok = false;
     try {
-      if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
+      if (window.ShiWanJuClipboard && window.ShiWanJuClipboard.copyRichText) {
+        window.ShiWanJuClipboard.copyRichText(html, text);
+        ok = true;
+      }
+      if (!ok && navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
         await navigator.clipboard.write([new ClipboardItem({
           "text/html": new Blob([html], { type: "text/html" }),
           "text/plain": new Blob([text], { type: "text/plain" })
@@ -2279,7 +2290,7 @@ if "ClipData.newHtmlText" in _final_layout or "vm.previewHtml.trim()" in _final_
     raise SystemExit("Kotlin still writes synthesized HTML to the clipboard")
 if "window.copyPreviewContent = async function" not in _final_asset:
     raise SystemExit("HTML reference copyPreviewContent function was not installed")
-if "range.selectNodeContents(holder)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset:
+if "range.selectNodeContents(holder)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset or "ShiWanJuClipboard.copyRichText" not in _final_asset:
     raise SystemExit("Native WebView rendered-copy structure or fallback validation failed")
 if "navigator.clipboard.write([new ClipboardItem" not in _final_asset:
     raise SystemExit("HTML reference ClipboardItem fallback is missing")
