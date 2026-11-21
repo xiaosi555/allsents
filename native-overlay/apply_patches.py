@@ -1830,25 +1830,36 @@ must_replace(
 )
 my_home_path = java / "ui/MyScreens.kt"
 my_home_source = my_home_path.read_text(encoding="utf-8")
-home_marker = '    val d = vm.data' + chr(10)
-if home_marker not in my_home_source:
-    raise SystemExit("Required patch missing (My home data source): ui/MyScreens.kt")
-if "val moreCount =" not in my_home_source:
-    my_home_source = my_home_source.replace(home_marker, home_marker + '    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size' + chr(10), 1)
-home_replacements = [
-    ('    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }',
-     '    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }'),
-    ('    ListRow("文案", "文案模块管理、排序 · ${d.files.text.size}") { go("texts") }',
-     '    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }'),
-    ('    ListRow("版式", "布局、排版预览、代码渲染 · ${d.layout.size}") { go("layouts") }',
-     '    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }'),
-    ('    ListRow("更多", "emoji、往期、动图、配图") { go("more") }',
-     '    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }')
-]
-for old, new in home_replacements:
-    if old not in my_home_source:
-        raise SystemExit("Required patch missing (My home summary row): " + old)
-    my_home_source = my_home_source.replace(old, new, 1)
+home_start = my_home_source.find("private fun HomePage")
+home_end = my_home_source.find("// ---------------------------------------------------------------------- 账号", home_start)
+if home_start < 0 or home_end < 0:
+    raise SystemExit("Required patch missing (My HomePage section): ui/MyScreens.kt")
+home_lines = my_home_source[home_start:home_end].splitlines()
+new_home_lines = []
+seen = {"account": 0, "text": 0, "layout": 0, "more": 0}
+for line in home_lines:
+    stripped = line.strip()
+    if stripped == "val d = vm.data":
+        new_home_lines.append(line)
+        new_home_lines.append("    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size")
+    elif 'ListRow("账号",' in line:
+        new_home_lines.append('    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }')
+        seen["account"] += 1
+    elif 'ListRow("文案",' in line:
+        new_home_lines.append('    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }')
+        seen["text"] += 1
+    elif 'ListRow("版式",' in line:
+        new_home_lines.append('    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }')
+        seen["layout"] += 1
+    elif 'ListRow("更多",' in line:
+        new_home_lines.append('    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }')
+        seen["more"] += 1
+    else:
+        new_home_lines.append(line)
+if any(v != 1 for v in seen.values()):
+    raise SystemExit("Required My HomePage rows missing or duplicated: " + str(seen))
+new_home = "\n".join(new_home_lines) + "\n"
+my_home_source = my_home_source[:home_start] + new_home + my_home_source[home_end:]
 my_home_path.write_text(my_home_source, encoding="utf-8")
 
 must_replace(
