@@ -2105,73 +2105,89 @@ _copy_js = r"""
   var area = document.getElementById("previewArea");
   if (!area) return;
 
-  function copyComputedStyle(source, target, pseudo) {
-    var computed = window.getComputedStyle(source, pseudo || null);
-    var css = [];
-    for (var i = 0; i < computed.length; i++) {
-      var name = computed[i];
-      var value = computed.getPropertyValue(name);
-      if (value && name !== "content" && name !== "animation" && name !== "transition") {
-        css.push(name + ":" + value);
+  // Export the rendered content, not the phone-sized preview viewport.
+  // Keep template-authored inline styles as the source of truth; only add
+  // presentation properties that are otherwise inherited from preview CSS.
+  var STYLE_PROPS = [
+    "color", "font-family", "font-size", "font-style", "font-weight",
+    "line-height", "letter-spacing", "text-align", "text-decoration",
+    "text-indent", "white-space", "word-break", "overflow-wrap",
+    "vertical-align", "background-color", "background-image",
+    "border", "border-top", "border-right", "border-bottom", "border-left",
+    "border-radius", "display", "list-style-type"
+  ];
+
+  function inlineStyleMap(el) {
+    var map = {};
+    for (var i = 0; i < el.style.length; i++) {
+      var key = el.style[i];
+      map[key] = true;
+    }
+    return map;
+  }
+
+  function copySafeStyles(source, target) {
+    var existing = inlineStyleMap(target);
+    var computed = window.getComputedStyle(source);
+    STYLE_PROPS.forEach(function (name) {
+      if (!existing[name]) {
+        var value = computed.getPropertyValue(name);
+        if (value && value !== "normal" && value !== "none" && value !== "rgba(0, 0, 0, 0)") {
+          target.style.setProperty(name, value);
+        }
+      }
+    });
+
+    // A flex row is fragile in rich-text editors. Use inline-block children
+    // for simple horizontal rows (avatar/name, icon/text) instead.
+    if (computed.display === "flex" || computed.display === "inline-flex") {
+      var direction = computed.flexDirection || "row";
+      target.style.display = direction.indexOf("column") === 0 ? "block" : "block";
+      if (direction.indexOf("column") !== 0) {
+        Array.from(target.children).forEach(function (child) {
+          child.style.display = "inline-block";
+          child.style.verticalAlign = computed.alignItems === "center" ? "middle" : "top";
+          child.style.maxWidth = "100%";
+        });
       }
     }
-    target.setAttribute("style", css.join(";"));
   }
 
-  function pseudoNode(source, pseudo) {
-    var style = window.getComputedStyle(source, pseudo);
-    var content = style.getPropertyValue("content");
-    if (!content || content === "none" || content === "normal" || content === '""' || content === "''") return null;
-    var node = document.createElement("span");
-    var value = content;
-    if ((value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') ||
-        (value.charAt(0) === "'" && value.charAt(value.length - 1) === "'")) {
-      value = value.slice(1, -1).replace(/\\A/g, "\\n");
-    }
-    node.textContent = value;
-    copyComputedStyle(source, node, pseudo);
-    node.style.display = style.display === "inline" ? "inline" : style.display;
-    return node;
-  }
+  function buildRenderedCopy() {
+    var holder = document.createElement("div");
+    holder.setAttribute("data-shiwanju-copy", "true");
+    holder.style.cssText = "display:block;width:100%;max-width:600px;margin:0 auto;padding:0;box-sizing:border-box;";
+    Array.from(area.childNodes).forEach(function (node) {
+      holder.appendChild(node.cloneNode(true));
+    });
 
-  function buildRenderedCopy(root) {
-    var clone = root.cloneNode(true);
-    var originals = [root].concat(Array.from(root.querySelectorAll("*")));
-    var copies = [clone].concat(Array.from(clone.querySelectorAll("*")));
+    var originals = Array.from(area.querySelectorAll("*"));
+    var copies = Array.from(holder.querySelectorAll("*"));
     originals.forEach(function (source, index) {
       var target = copies[index];
-      if (!target) return;
-      copyComputedStyle(source, target, null);
-      var before = pseudoNode(source, "::before");
-      var after = pseudoNode(source, "::after");
-      if (before) target.insertBefore(before, target.firstChild);
-      if (after) target.appendChild(after);
+      if (!target || source.nodeType !== 1) return;
+      copySafeStyles(source, target);
     });
-    clone.querySelectorAll("script,button,[data-copy-ignore]").forEach(function (node) { node.remove(); });
-    clone.querySelectorAll("img").forEach(function (img) {
+
+    holder.querySelectorAll("script,button,[data-copy-ignore]").forEach(function (node) { node.remove(); });
+    holder.querySelectorAll("img").forEach(function (img) {
       var source = img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("data-original");
       if (source && !img.getAttribute("src")) img.setAttribute("src", source);
       img.removeAttribute("loading");
+      img.removeAttribute("srcset");
+      img.style.maxWidth = "100%";
     });
-    return clone;
+    return holder;
   }
 
-  function payloadFor(root) {
-    var clone = buildRenderedCopy(root);
-    var holder = document.createElement("div");
-    holder.appendChild(clone);
-    return {
-      html: holder.innerHTML,
-      text: root.innerText || root.textContent || ""
-    };
-  }
-
-  function writeBySelection(html) {
-    var holder = document.createElement("div");
+  function writeBySelection(holder) {
     holder.setAttribute("contenteditable", "true");
     holder.setAttribute("aria-hidden", "true");
-    holder.style.cssText = "position:fixed;left:-10000px;top:0;width:100%;opacity:0;pointer-events:none;";
-    holder.innerHTML = html;
+    holder.style.position = "fixed";
+    holder.style.left = "-10000px";
+    holder.style.top = "0";
+    holder.style.opacity = "0";
+    holder.style.pointerEvents = "none";
     document.body.appendChild(holder);
     var selection = window.getSelection();
     var range = document.createRange();
@@ -2196,19 +2212,21 @@ _copy_js = r"""
     };
     if (!area.childNodes.length) { done("暂无内容"); return false; }
 
-    var payload = payloadFor(area);
+    var holder = buildRenderedCopy();
+    var html = holder.outerHTML;
+    var text = area.innerText || area.textContent || "";
     var ok = false;
     try {
       if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
         await navigator.clipboard.write([new ClipboardItem({
-          "text/html": new Blob([payload.html], { type: "text/html" }),
-          "text/plain": new Blob([payload.text], { type: "text/plain" })
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" })
         })]);
         ok = true;
       }
     } catch (_) { ok = false; }
-    if (!ok) ok = writeBySelection(payload.html);
-    done(ok ? "已复制预览样式" : "复制失败，请长按选中后复制");
+    if (!ok) ok = writeBySelection(holder);
+    done(ok ? "已复制预览排版" : "复制失败，请重试");
     return ok;
   };
 })();
@@ -2262,7 +2280,7 @@ if "ClipData.newHtmlText" in _final_layout or "vm.previewHtml.trim()" in _final_
 if "window.copyPreviewContent = async function" not in _final_asset:
     raise SystemExit("HTML reference copyPreviewContent function was not installed")
 if "range.selectNodeContents(holder)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset:
-    raise SystemExit("Native WebView does not use the rendered HTML clipboard fallback")
+    raise SystemExit("Native WebView rendered-copy structure or fallback validation failed")
 if "navigator.clipboard.write([new ClipboardItem" not in _final_asset:
     raise SystemExit("HTML reference ClipboardItem fallback is missing")
 print("HTML-reference WebView copy pipeline installed and validated.")
