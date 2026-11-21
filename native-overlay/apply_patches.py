@@ -2261,8 +2261,8 @@ if "ClipData.newHtmlText" in _final_layout or "vm.previewHtml.trim()" in _final_
     raise SystemExit("Kotlin still writes synthesized HTML to the clipboard")
 if "window.copyPreviewContent = async function" not in _final_asset:
     raise SystemExit("HTML reference copyPreviewContent function was not installed")
-if "range.selectNodeContents(area)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset:
-    raise SystemExit("Native WebView does not use the reference selection-copy sequence")
+if "range.selectNodeContents(holder)" not in _final_asset or "document.execCommand(\"copy\")" not in _final_asset:
+    raise SystemExit("Native WebView does not use the rendered HTML clipboard fallback")
 if "navigator.clipboard.write([new ClipboardItem" not in _final_asset:
     raise SystemExit("HTML reference ClipboardItem fallback is missing")
 print("HTML-reference WebView copy pipeline installed and validated.")
