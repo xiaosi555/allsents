@@ -2248,3 +2248,96 @@ if "range.selectNodeContents(area)" not in _final_asset or "document.execCommand
 if "navigator.clipboard.write([new ClipboardItem" not in _final_asset:
     raise SystemExit("HTML reference ClipboardItem fallback is missing")
 print("HTML-reference WebView copy pipeline installed and validated.")
+
+
+# ---------------------------------------------------------------------- 版式条目间距：全局 / 单独版式，排版预览实时同步
+patch("data/Models.kt",[
+('    val margins: Map<String, List<Int>> = emptyMap(), // 往期/动图共用边距（上右下左），按版式种类记忆\n',
+ '    val margins: Map<String, List<Int>> = emptyMap(), // 往期/动图共用边距（上右下左），按版式种类记忆\n    val layoutSpacing: Map<String, Int> = emptyMap(), // 版式条目之间的间距：* 为全局，版式 id 为单独设置\n')
+])
+patch("engine/PreviewEngine.kt",[
+('            if (i < total - 1 && clones.isNotEmpty()) Css.set(clones.last(), "margin-bottom", "25px", true)   // 条目之间统一 25px',
+ '            if (i < total - 1 && clones.isNotEmpty()) {\n                val layoutId = ctx.data.layout.getOrNull(ctx.layoutIdx)?.id.orEmpty()\n                val gap = ctx.ui.layoutSpacing[layoutId] ?: ctx.ui.layoutSpacing["*"] ?: 25\n                Css.set(clones.last(), "margin-bottom", "${gap.coerceIn(0, 100)}px", true)\n            }')
+])
+patch("ui/AppViewModel.kt",[
+('    fun saveLayout(x: LayoutItem) = updateData { d ->',
+'''    fun layoutSpacingFor(layoutId: String?): Int = if (layoutId == null) (ui.layoutSpacing["*"] ?: 25) else (ui.layoutSpacing[layoutId] ?: ui.layoutSpacing["*"] ?: 25)
+    fun setLayoutSpacing(layoutId: String?, value: Int) = updateUi {
+        copy(layoutSpacing = layoutSpacing + ((layoutId ?: "*") to value.coerceIn(0, 100)))
+    }
+
+    fun saveLayout(x: LayoutItem) = updateData { d ->''')
+])
+patch("ui/MyScreens.kt",[
+('''private fun LayoutsPage(vm: AppViewModel) = Page {
+    var edit by remember { mutableStateOf<LayoutItem?>(null) }
+    var isNew by remember { mutableStateOf(false) }
+    TopActions { ThemeChip("+ 新增", true, dark = false) { edit = LayoutItem(id = vm.newId()); isNew = true } }''',
+'''private fun LayoutsPage(vm: AppViewModel) = Page {
+    var edit by remember { mutableStateOf<LayoutItem?>(null) }
+    var isNew by remember { mutableStateOf(false) }
+    var showSpacing by remember { mutableStateOf(false) }
+    TopActions {
+        ThemeChip("增加间距", false, dark = false) { showSpacing = true }
+        Spacer(Modifier.weight(1f))
+        ThemeChip("+ 新增", true, dark = false) { edit = LayoutItem(id = vm.newId()); isNew = true }
+    }'''),
+('''        if (confirm) ConfirmDelete("版式", { vm.deleteLayout(l.id); confirm = false; edit = null }, { confirm = false })
+    }
+}
+
+// ---------------------------------------------------------------------- 更多：emoji''',
+'''        if (confirm) ConfirmDelete("版式", { vm.deleteLayout(l.id); confirm = false; edit = null }, { confirm = false })
+    }
+
+    if (showSpacing) {
+        var targetId by remember { mutableStateOf<String?>(null) } // null = 全部版式
+        var spacing by remember(targetId) { mutableIntStateOf(vm.layoutSpacingFor(targetId)) }
+        Dialog(onDismissRequest = { showSpacing = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.92f).widthIn(max = 420.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = Color.White
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("版式间距", color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text("调整排版预览中每一个版式单元与下一个单元之间的距离。修改后立即生效并自动保存。", color = AppColors.MyDim, fontSize = 12.sp)
+                    Text("应用范围", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    ThemeChip(if (targetId == null) "✓ 全部版式统一调整" else "全部版式统一调整", targetId == null, dark = false) {
+                        targetId = null
+                        spacing = vm.layoutSpacingFor(null)
+                    }
+                    vm.data.layout.forEach { item ->
+                        ThemeChip(if (targetId == item.id) "✓ ${item.name}" else item.name, targetId == item.id, dark = false) {
+                            targetId = item.id
+                            spacing = vm.layoutSpacingFor(item.id)
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("当前间距", color = AppColors.MyText, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text("${spacing} dp", color = AppColors.Theme, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Slider(
+                        value = spacing.toFloat(),
+                        onValueChange = { v ->
+                            spacing = v.roundToInt()
+                            vm.setLayoutSpacing(targetId, spacing)
+                        },
+                        valueRange = 0f..100f,
+                        steps = 19
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("紧凑 0 dp", color = AppColors.MyDim, fontSize = 11.sp)
+                        Text("宽松 100 dp", color = AppColors.MyDim, fontSize = 11.sp)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        ThemeChip("完成", true, dark = false) { showSpacing = false }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------- 更多：emoji''')
+])
