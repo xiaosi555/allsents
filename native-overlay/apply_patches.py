@@ -1325,7 +1325,7 @@ old_get_html = "window.getHtml = function () { return area.innerHTML; };"
 new_get_html = """window.getHtml = function () {
     var selection = window.getSelection();
     var range = document.createRange();
-    range.selectNodeContents(area);
+    range.selectNode(area);
     selection.removeAllRanges();
     selection.addRange(range);
 
