@@ -2152,8 +2152,8 @@ if "evaluateJavascript(script) { value -> callback(value) }" not in _final_previ
     raise SystemExit("WebView JavaScript result callback is missing")
 if "ClipData.newHtmlText" not in _final_layout:
     raise SystemExit("Native rich HTML clipboard write is missing")
-if "window.copyPreviewContent" in _final_asset:
-    raise SystemExit("Obsolete extra JS copy function remains in preview asset")
+if "window.copyPreviewContent()" in _final_asset:
+    raise SystemExit("Obsolete JavaScript copy action is still invoked")
 if "copyRenderedPreview(ctx, vm)" not in _final_layout:
     raise SystemExit("Native copy buttons are not connected to the clipboard helper")
 print("Rendered HTML -> evaluateJavascript callback -> native rich clipboard validated.")
