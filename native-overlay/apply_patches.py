@@ -1053,11 +1053,6 @@ fun RenderedLayoutPreview(vm: AppViewModel, layout: LayoutItem, modifier: Modifi
 
 # Detail & edit terminology, complete clickable cards, and live template preview.
 patch("ui/MyScreens.kt",[
-('''                Field("HTML 源码", content, { content = it }, 10, "保留完整模板结构，仅在需要时修改")''',
-'''                Text("HTML 源码", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Field("HTML 源码", content, { content = it }, 10, "保留完整模板结构，仅在需要时修改")
-                Text("实时渲染预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                RenderedLayoutPreview(vm, LayoutItem(id = "edit-preview", name = name, content = content), Modifier.fillMaxWidth().aspectRatio(3f / 4f))'''),
 ('''                Row(Modifier.widthIn(min = 112.dp, max = 160.dp).height(76.dp).clickable { vm.selectAccount(a.id) }.padding(horizontal = 4.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                 AsyncImage(a.avatar, null, Modifier.size(46.dp).clip(CircleShape).background(Color(0xFF333333)), contentScale = ContentScale.Crop)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
