@@ -75,12 +75,10 @@ jobs:
               canvas.save(folder / "ic_launcher_round.png", optimize=True)
           # Adaptive icons are masked by Android launchers. Keep the complete logo artwork
           # inside the central safe circle instead of filling the 108dp foreground square.
-          adaptive = Image.new("RGBA", (108, 108), (0, 0, 0, 0))
           safe = ImageOps.contain(src, (58, 58), method=Image.Resampling.LANCZOS)
-          adaptive.alpha_composite(safe, ((108-safe.width)//2, (108-safe.height)//2))
           drawable = Path("source/ShiWanJu-Android/app/src/main/res/drawable-nodpi")
           drawable.mkdir(parents=True, exist_ok=True)
-          adaptive.save(drawable / "launcher_logo_foreground.png", optimize=True)
+          safe.save(drawable / "launcher_logo_foreground.png", optimize=True)
           PY
           # Apply Kotlin/engine/data fixes onto the untouched original native project.
           # Do not overlay the previous HomeScreen/MainActivity experiment.
