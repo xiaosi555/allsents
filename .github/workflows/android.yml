@@ -73,6 +73,14 @@ jobs:
               canvas.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
               canvas.save(folder / "ic_launcher.png", optimize=True)
               canvas.save(folder / "ic_launcher_round.png", optimize=True)
+          # Adaptive icons are masked by Android launchers. Keep the complete logo artwork
+          # inside the central safe circle instead of filling the 108dp foreground square.
+          adaptive = Image.new("RGBA", (108, 108), (0, 0, 0, 0))
+          safe = ImageOps.contain(src, (58, 58), method=Image.Resampling.LANCZOS)
+          adaptive.alpha_composite(safe, ((108-safe.width)//2, (108-safe.height)//2))
+          drawable = Path("source/ShiWanJu-Android/app/src/main/res/drawable-nodpi")
+          drawable.mkdir(parents=True, exist_ok=True)
+          adaptive.save(drawable / "launcher_logo_foreground.png", optimize=True)
           PY
           # Apply Kotlin/engine/data fixes onto the untouched original native project.
           # Do not overlay the previous HomeScreen/MainActivity experiment.
@@ -86,8 +94,8 @@ jobs:
           XML
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
           <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:width="66dp" android:height="66dp" android:gravity="center">
-                  <bitmap android:src="@drawable/app_logo" android:gravity="fill" />
+              <item android:width="58dp" android:height="58dp" android:gravity="center">
+                  <bitmap android:src="@drawable/launcher_logo_foreground" android:gravity="fill" />
               </item>
           </layer-list>
           XML
