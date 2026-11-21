@@ -2105,29 +2105,85 @@ _copy_js = r"""
   var area = document.getElementById("previewArea");
   if (!area) return;
 
-  function douyinCopyPayload() {
-    var root = document.querySelector("#previewArea [data-douyin]");
-    if (!root) return null;
-    var clone = root.cloneNode(true);
-    clone.querySelectorAll("[data-unit]").forEach(function (node) {
-      node.removeAttribute("data-unit");
-    });
-    clone.removeAttribute("data-unit");
-    clone.removeAttribute("data-douyin");
-    return { html: clone.innerHTML, text: root.innerText || root.textContent || "" };
+  function copyComputedStyle(source, target, pseudo) {
+    var computed = window.getComputedStyle(source, pseudo || null);
+    var css = [];
+    for (var i = 0; i < computed.length; i++) {
+      var name = computed[i];
+      var value = computed.getPropertyValue(name);
+      if (value && name !== "content" && name !== "animation" && name !== "transition") {
+        css.push(name + ":" + value);
+      }
+    }
+    target.setAttribute("style", css.join(";"));
   }
 
-  document.addEventListener("copy", function (event) {
+  function pseudoNode(source, pseudo) {
+    var style = window.getComputedStyle(source, pseudo);
+    var content = style.getPropertyValue("content");
+    if (!content || content === "none" || content === "normal" || content === '""' || content === "''") return null;
+    var node = document.createElement("span");
+    var value = content;
+    if ((value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') ||
+        (value.charAt(0) === "'" && value.charAt(value.length - 1) === "'")) {
+      value = value.slice(1, -1).replace(/\\A/g, "\\n");
+    }
+    node.textContent = value;
+    copyComputedStyle(source, node, pseudo);
+    node.style.display = style.display === "inline" ? "inline" : style.display;
+    return node;
+  }
+
+  function buildRenderedCopy(root) {
+    var clone = root.cloneNode(true);
+    var originals = [root].concat(Array.from(root.querySelectorAll("*")));
+    var copies = [clone].concat(Array.from(clone.querySelectorAll("*")));
+    originals.forEach(function (source, index) {
+      var target = copies[index];
+      if (!target) return;
+      copyComputedStyle(source, target, null);
+      var before = pseudoNode(source, "::before");
+      var after = pseudoNode(source, "::after");
+      if (before) target.insertBefore(before, target.firstChild);
+      if (after) target.appendChild(after);
+    });
+    clone.querySelectorAll("script,button,[data-copy-ignore]").forEach(function (node) { node.remove(); });
+    clone.querySelectorAll("img").forEach(function (img) {
+      var source = img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("data-original");
+      if (source && !img.getAttribute("src")) img.setAttribute("src", source);
+      img.removeAttribute("loading");
+    });
+    return clone;
+  }
+
+  function payloadFor(root) {
+    var clone = buildRenderedCopy(root);
+    var holder = document.createElement("div");
+    holder.appendChild(clone);
+    return {
+      html: holder.innerHTML,
+      text: root.innerText || root.textContent || ""
+    };
+  }
+
+  function writeBySelection(html) {
+    var holder = document.createElement("div");
+    holder.setAttribute("contenteditable", "true");
+    holder.setAttribute("aria-hidden", "true");
+    holder.style.cssText = "position:fixed;left:-10000px;top:0;width:100%;opacity:0;pointer-events:none;";
+    holder.innerHTML = html;
+    document.body.appendChild(holder);
     var selection = window.getSelection();
-    var dy = document.querySelector("#previewArea [data-douyin]");
-    if (!dy || !selection || selection.isCollapsed || !event.clipboardData) return;
-    if (!(dy.contains(selection.anchorNode) || dy.contains(selection.focusNode))) return;
-    var payload = douyinCopyPayload();
-    if (!payload) return;
-    event.clipboardData.setData("text/html", payload.html);
-    event.clipboardData.setData("text/plain", payload.text);
-    event.preventDefault();
-  });
+    var range = document.createRange();
+    range.selectNodeContents(holder);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (_) { ok = false; }
+    selection.removeAllRanges();
+    holder.remove();
+    return ok;
+  }
 
   window.copyPreviewContent = async function () {
     var btn = document.getElementById("copyPreviewBtn");
@@ -2135,62 +2191,24 @@ _copy_js = r"""
       if (btn) {
         btn.textContent = label;
         clearTimeout(btn._copyTimer);
-        btn._copyTimer = setTimeout(function () {
-          btn.textContent = "复制预览内容";
-        }, 1400);
+        btn._copyTimer = setTimeout(function () { btn.textContent = "复制预览内容"; }, 1400);
       }
     };
     if (!area.childNodes.length) { done("暂无内容"); return false; }
 
-    var dyp = douyinCopyPayload();
-    if (dyp) {
-      var dyOk = false;
-      try {
-        await navigator.clipboard.write([new ClipboardItem({
-          "text/html": new Blob([dyp.html], { type: "text/html" }),
-          "text/plain": new Blob([dyp.text], { type: "text/plain" })
-        })]);
-        dyOk = true;
-      } catch (error) {
-        try {
-          var handler = function (event) {
-            event.clipboardData.setData("text/html", dyp.html);
-            event.clipboardData.setData("text/plain", dyp.text);
-            event.preventDefault();
-          };
-          document.addEventListener("copy", handler, { once: true });
-          dyOk = document.execCommand("copy");
-        } catch (_) { dyOk = false; }
-      }
-      done(dyOk ? "已复制" : "复制失败，请长按选中后复制");
-      return dyOk;
-    }
-
-    var selection = window.getSelection();
-    var range = document.createRange();
-    area.classList.add("copying");
+    var payload = payloadFor(area);
     var ok = false;
     try {
-      range.selectNodeContents(area);
-      selection.removeAllRanges();
-      selection.addRange(range);
-      ok = document.execCommand("copy");
-    } catch (error) { ok = false; }
-
-    if (!ok) {
-      try {
-        var html = area.innerHTML;
-        var plain = area.innerText;
+      if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
         await navigator.clipboard.write([new ClipboardItem({
-          "text/html": new Blob([html], { type: "text/html" }),
-          "text/plain": new Blob([plain], { type: "text/plain" })
+          "text/html": new Blob([payload.html], { type: "text/html" }),
+          "text/plain": new Blob([payload.text], { type: "text/plain" })
         })]);
         ok = true;
-      } catch (error) { ok = false; }
-    }
-    if (selection) selection.removeAllRanges();
-    area.classList.remove("copying");
-    done(ok ? "已复制" : "复制失败，请长按选中后复制");
+      }
+    } catch (_) { ok = false; }
+    if (!ok) ok = writeBySelection(payload.html);
+    done(ok ? "已复制预览样式" : "复制失败，请长按选中后复制");
     return ok;
   };
 })();
