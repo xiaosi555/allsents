@@ -162,7 +162,7 @@ patch("ui/PreviewWebView.kt",[
 '''        webView.addJavascriptInterface(object {
             @android.webkit.JavascriptInterface
             fun copyRichText(html: String, plain: String) {
-                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clipboard = webView.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newHtmlText("拾万句", plain, html))
             }
         }, "ShiWanJuClipboard")
