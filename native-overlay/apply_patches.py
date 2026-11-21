@@ -159,14 +159,7 @@ patch("ui/AppViewModel.kt",[
 patch("ui/PreviewWebView.kt",[
 ('''        vm.js = { script -> webView.evaluateJavascript(script, null) }
         onDispose { vm.js = null; webView.destroy() }''',
-'''        webView.addJavascriptInterface(object {
-            @android.webkit.JavascriptInterface
-            fun copyRichText(html: String, plain: String) {
-                val clipboard = webView.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                clipboard.setPrimaryClip(android.content.ClipData.newHtmlText("拾万句", plain, html))
-            }
-        }, "ShiWanJuClipboard")
-        vm.js = { script -> webView.evaluateJavascript(script, null) }
+'''        vm.js = { script -> webView.evaluateJavascript(script, null) }
         vm.jsResult = { script, callback -> webView.evaluateJavascript(script) { value -> callback(value) } }
         onDispose { vm.js = null; vm.jsResult = null; webView.destroy() }''')
 ])
@@ -2104,102 +2097,8 @@ if failed:
 print("Copy safety and per-entry random refresh acceptance checks passed.")
 
 
-# 2026-11-22: export the visible preview as self-contained rich HTML.
-# Keep the live preview untouched; inline computed styles into a serialization copy,
-# then use the Android native clipboard bridge (ClipData.newHtmlText).
-_copy_js = r"""
-(function () {
-  var area = document.getElementById("previewArea");
-  if (!area) return;
-  window.copyPreviewContent = function () {
-    var btn = document.getElementById("copyPreviewBtn");
-    var done = function (label) {
-      if (btn) {
-        btn.textContent = label;
-        clearTimeout(btn._copyTimer);
-        btn._copyTimer = setTimeout(function () { btn.textContent = "复制预览内容"; }, 1400);
-      }
-    };
-    if (!area.childNodes.length) { done("暂无内容"); return false; }
-
-    function escapeHtml(value) {
-      return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-    function copyPseudo(source, target, pseudo) {
-      var style = window.getComputedStyle(source, pseudo);
-      var content = style && style.content;
-      if (!content || content === "none" || content === "normal" || content === '""') return;
-      content = content.replace(/^(['"])(.*)\1$/, "$2");
-      var span = document.createElement("span");
-      span.textContent = content;
-      span.setAttribute("style", "display:inline;white-space:pre-wrap;");
-      if (pseudo === "::before") target.insertBefore(span, target.firstChild);
-      else target.appendChild(span);
-    }
-    function inlineTree(source, target) {
-      if (source.nodeType === Node.TEXT_NODE) {
-        target.textContent = source.nodeValue;
-        return;
-      }
-      if (source.nodeType !== Node.ELEMENT_NODE) return;
-      var computed = window.getComputedStyle(source);
-      var css = [];
-      for (var i = 0; i < computed.length; i++) {
-        var name = computed[i];
-        var value = computed.getPropertyValue(name);
-        if (value) css.push(name + ":" + value);
-      }
-      target.setAttribute("style", css.join(";"));
-      for (var a = 0; a < source.attributes.length; a++) {
-        var attr = source.attributes[a];
-        if (attr.name !== "style" && attr.name !== "class") target.setAttribute(attr.name, attr.value);
-      }
-      if (source.tagName === "IMG") {
-        target.setAttribute("src", source.currentSrc || source.src || source.getAttribute("src") || "");
-        target.setAttribute("alt", source.alt || "");
-      }
-      if (source.tagName === "A") target.setAttribute("href", source.href || source.getAttribute("href") || "");
-      copyPseudo(source, target, "::before");
-      Array.prototype.forEach.call(source.childNodes, function (child) {
-        var node = child.cloneNode(false);
-        if (child.nodeType === Node.TEXT_NODE) node.nodeValue = child.nodeValue;
-        else if (child.nodeType === Node.ELEMENT_NODE) inlineTree(child, node);
-        target.appendChild(node);
-      });
-      copyPseudo(source, target, "::after");
-    }
-
-    var root = document.createElement("div");
-    inlineTree(area, root);
-    var html = "<!doctype html><html><head><meta charset=\"utf-8\"></head><body>" +
-      root.outerHTML + "</body></html>";
-    var plain = area.innerText || area.textContent || "";
-    try {
-      if (!window.ShiWanJuClipboard || !window.ShiWanJuClipboard.copyRichText) {
-        done("复制组件未就绪");
-        return false;
-      }
-      window.ShiWanJuClipboard.copyRichText(html, plain);
-      done("已复制预览排版");
-      return true;
-    } catch (error) {
-      done("复制失败，请重试");
-      return false;
-    }
-  };
-})();
-"""
-if "window.copyPreviewContent = function" not in _html:
-    _body_end = _html.lower().rfind("</body>")
-    if _body_end < 0:
-        raise SystemExit("preview.html body end missing; cannot install rich HTML copy function")
-    _html = _html[:_body_end] + "<script>\n" + _copy_js + "\n</script>\n" + _html[_body_end:]
-else:
-    raise SystemExit("copyPreviewContent already exists in preview.html; inspect rather than duplicate")
-_asset.write_text(_html, encoding="utf-8")
-
-# Both native copy entry points invoke one renderer-to-native clipboard bridge.
+# 2026-11-22: use the existing rendered-HTML export and native clipboard directly.
+# No extra JS clipboard bridge: evaluate getHtml(), then write ClipData.newHtmlText in Kotlin.
 _layout = java / "ui/LayoutScreen.kt"
 _ls = _layout.read_text(encoding="utf-8")
 _cp_start = _ls.find("private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {")
@@ -2207,35 +2106,57 @@ _cp_end = _ls.find("@Composable\nprivate fun CopyPreviewButton", _cp_start)
 if _cp_start < 0 or _cp_end < 0:
     raise SystemExit("Native copy helper not found; refusing to patch")
 _copy_helper = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
-    val runCopy = vm.js
-    if (runCopy == null) {
-        vm.toast("预览页面尚未就绪，请稍后重试")
+    val read = vm.jsResult
+    if (read == null) {
+        vm.toast("预览尚未就绪，请稍后重试")
         return
     }
-    runCopy("window.copyPreviewContent && window.copyPreviewContent()")
+    try {
+        read("typeof window.getHtml === 'function' ? window.getHtml() : ''") { raw ->
+            try {
+                val html = runCatching {
+                    org.json.JSONTokener(raw ?: "null").nextValue() as? String
+                }.getOrNull()
+                if (html.isNullOrBlank()) {
+                    vm.toast("读取预览失败，请重新进入排版页")
+                } else {
+                    val plain = android.text.Html.fromHtml(
+                        html, android.text.Html.FROM_HTML_MODE_LEGACY
+                    ).toString()
+                    val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(
+                        android.content.ClipData.newHtmlText("拾万句", plain, html)
+                    )
+                    vm.toast("已复制预览内容")
+                }
+            } catch (error: Throwable) {
+                vm.toast("复制失败：" + (error.message ?: "剪贴板不可用"))
+            }
+        }
+    } catch (error: Throwable) {
+        vm.toast("读取预览失败：" + (error.message ?: "请重试"))
+    }
 }
 
 """
 _ls = _ls[:_cp_start] + _copy_helper + _ls[_cp_end:]
 _layout.write_text(_ls, encoding="utf-8")
 
-# Validate that the native bridge is installed and that the exported HTML is self-contained.
 _final_layout = _layout.read_text(encoding="utf-8")
+_final_preview = (java / "ui/PreviewWebView.kt").read_text(encoding="utf-8")
 _final_asset = _asset.read_text(encoding="utf-8")
-_preview_webview = (java / "ui/PreviewWebView.kt").read_text(encoding="utf-8")
-if "window.copyPreviewContent = function" not in _final_asset:
-    raise SystemExit("Rich HTML copy function was not installed")
-if "getComputedStyle(source)" not in _final_asset or "outerHTML" not in _final_asset:
-    raise SystemExit("Rich HTML export does not inline rendered styles")
-if "ShiWanJuClipboard.copyRichText(html, plain)" not in _final_asset:
-    raise SystemExit("Rich HTML export does not call native clipboard bridge")
-if "ClipData.newHtmlText" not in _preview_webview or '}, "ShiWanJuClipboard")' not in _preview_webview:
-    raise SystemExit("Android rich HTML clipboard bridge is missing")
-if "window.copyPreviewContent && window.copyPreviewContent()" not in _final_layout:
-    raise SystemExit("Native copy button is not connected to rich HTML export")
-if "range.selectNodeContents(area)" in _final_asset or "document.execCommand(\"copy\")" in _final_asset:
-    raise SystemExit("Obsolete browser-selection clipboard path is still active")
-print("Self-contained rich HTML clipboard bridge installed and validated.")
+if "window.getHtml = function" not in _final_asset:
+    raise SystemExit("Rendered HTML export function getHtml() is missing")
+if "evaluateJavascript(script) { value -> callback(value) }" not in _final_preview:
+    raise SystemExit("WebView JavaScript result callback is missing")
+if "ClipData.newHtmlText" not in _final_layout:
+    raise SystemExit("Native rich HTML clipboard write is missing")
+if "window.copyPreviewContent" in _final_asset:
+    raise SystemExit("Obsolete extra JS copy function remains in preview asset")
+if 'read("typeof window.getHtml === \\'function\\' ? window.getHtml() : \\'\\'")' not in _final_layout:
+    raise SystemExit("Copy action is not reading the rendered preview HTML")
+print("Rendered HTML -> evaluateJavascript callback -> native rich clipboard validated.")
 
 
 # ---------------------------------------------------------------------- 版式条目间距：全局 / 单独版式，排版预览实时同步
