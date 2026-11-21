@@ -2206,7 +2206,7 @@ _ls = _ls[:_cs] + _new_copy + _ls[_ce:]
 _ls_path.write_text(_ls, encoding="utf-8")
 
 # Source-level acceptance checks for exact native selection copy and complete icon safety.
-_pw_check = _pw_path.read_text(encoding="utf-8")
+_pw_check = _pw.read_text(encoding="utf-8")
 _ls_check = _ls_path.read_text(encoding="utf-8")
 _vm_check = _vm_path.read_text(encoding="utf-8")
 _html_check = _asset.read_text(encoding="utf-8")
