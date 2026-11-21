@@ -1364,3 +1364,62 @@ failed = [label for label, ok in required.items() if not ok]
 if failed:
     raise SystemExit("Required acceptance checks failed: " + "; ".join(failed))
 print("Required UI acceptance checks passed: " + ", ".join(required.keys()))
+
+
+// ----------------------------------------------------------------------
+// 2026-11-21: visually de-emphasize only the three media removal actions.
+// Keep their click targets and removal callbacks unchanged.
+must_replace(
+    "ui/LayoutScreen.kt",
+    'if (vm.ui.previewEmoji.isNotEmpty()) GridCard("移除emoji") { vm.clearEmoji() }',
+    'if (vm.ui.previewEmoji.isNotEmpty()) SubtleRemoveAction("移除 emoji") { vm.clearEmoji() }',
+    "subtle emoji removal action"
+)
+must_replace(
+    "ui/LayoutScreen.kt",
+    'if (on) GridCard("移除往期") { vm.clearHistory() }',
+    'if (on) SubtleRemoveAction("移除往期") { vm.clearHistory() }',
+    "subtle history removal action"
+)
+must_replace(
+    "ui/LayoutScreen.kt",
+    'if (vm.ui.gifId != null) GridCard("移除动图") { vm.clearGif() }',
+    'if (vm.ui.gifId != null) SubtleRemoveAction("移除动图") { vm.clearGif() }',
+    "subtle GIF removal action"
+)
+must_replace(
+    "ui/LayoutScreen.kt",
+    '''@Composable
+private fun CopyPanel(vm: AppViewModel) {''',
+    '''@Composable
+private fun SubtleRemoveAction(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier.clip(RoundedCornerShape(7.dp))
+            .background(Color.Transparent)
+            .border(0.5.dp, AppColors.Line.copy(alpha = 0.42f), RoundedCornerShape(7.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text,
+            color = AppColors.TextDim.copy(alpha = 0.78f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Normal
+        )
+    }
+}
+
+@Composable
+private fun CopyPanel(vm: AppViewModel) {''',
+    "insert subtle removal action style"
+)
+
+layout_source = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+for label, needle in [
+    ("emoji removal action", 'SubtleRemoveAction("移除 emoji")'),
+    ("history removal action", 'SubtleRemoveAction("移除往期")'),
+    ("GIF removal action", 'SubtleRemoveAction("移除动图")'),
+]:
+    if needle not in layout_source:
+        raise SystemExit("Required acceptance check failed: " + label)
+print("Media removal actions now use subtle border and typography.")
