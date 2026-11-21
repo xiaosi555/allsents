@@ -2219,24 +2219,20 @@ _copy_js = r"""
     };
     if (!area.childNodes.length) { done("暂无内容"); return false; }
 
-    var holder = buildRenderedCopy();
-    var html = holder.outerHTML;
-    var text = area.innerText || area.textContent || "";
+    // Select the actual visible preview DOM, just like long-press -> Select all -> Copy.
+    // Do not clone nodes, rewrite styles, or calculate a second layout for the clipboard.
+    var selection = window.getSelection();
+    var range = document.createRange();
     var ok = false;
+    area.classList.add("copying");
     try {
-      if (window.ShiWanJuClipboard && window.ShiWanJuClipboard.copyRichText) {
-        window.ShiWanJuClipboard.copyRichText(html, text);
-        ok = true;
-      }
-      if (!ok && navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
-        await navigator.clipboard.write([new ClipboardItem({
-          "text/html": new Blob([html], { type: "text/html" }),
-          "text/plain": new Blob([text], { type: "text/plain" })
-        })]);
-        ok = true;
-      }
+      range.selectNodeContents(area);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      ok = document.execCommand("copy");
     } catch (_) { ok = false; }
-    if (!ok) ok = writeBySelection(holder);
+    selection.removeAllRanges();
+    area.classList.remove("copying");
     done(ok ? "已复制预览排版" : "复制失败，请重试");
     return ok;
   };
