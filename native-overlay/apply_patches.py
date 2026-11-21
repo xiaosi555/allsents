@@ -1427,12 +1427,16 @@ print("Media removal actions now use subtle border and typography.")
 
 # 2026-11-21: preserve the selected history template and its randomized row content,
 # matching the actual 000_拾万句.html behavior. Also copy only the preview area.
-must_replace(
-    "data/Models.kt",
-    '    val historyIds: List<String> = emptyList(),    // 随机读取的 5 条往期',
-    '    val historyIds: List<String> = emptyList(),    // 当前选中的往期模块\n    val historyHtml: String = "",                   // 已随机填充并持久化的往期 HTML',
-    "persist selected history HTML in UI state"
-)
+models_path = java / "data/Models.kt"
+models_source = models_path.read_text(encoding="utf-8")
+if 'val historyHtml: String = ""' not in models_source:
+    model_lines = models_source.splitlines()
+    history_line = next((i for i, line in enumerate(model_lines) if "val historyIds:" in line), None)
+    if history_line is None:
+        raise SystemExit("Required patch missing (historyIds state field): data/Models.kt")
+    indent = model_lines[history_line][:len(model_lines[history_line]) - len(model_lines[history_line].lstrip())]
+    model_lines.insert(history_line + 1, indent + 'val historyHtml: String = "",                   // 已随机填充并持久化的往期 HTML')
+    models_path.write_text("\n".join(model_lines) + "\n", encoding="utf-8")
 
 must_replace(
     "engine/PreviewEngine.kt",
@@ -1524,7 +1528,7 @@ must_replace(
                     if (overlay != null) {
                         val styleClass = overlay.classNames().firstOrNull { it.startsWith("random-style-") }
                         val verticalByClass = styleClass?.let {
-                            Regex("\\\\." + Regex.escape(it) + "\\\\s*\\\\{[^}]*writing-mode", RegexOption.IGNORE_CASE)
+                            Regex("\\." + Regex.escape(it) + "\\s*\\{[^}]*writing-mode", RegexOption.IGNORE_CASE)
                                 .containsMatchIn(template)
                         } ?: false
                         val vertical = verticalByClass ||
