@@ -1367,8 +1367,8 @@ print("Required UI acceptance checks passed: " + ", ".join(required.keys()))
 
 
 // ----------------------------------------------------------------------
-// 2026-11-21: visually de-emphasize only the three media removal actions.
-// Keep their click targets and removal callbacks unchanged.
+# 2026-11-21: visually de-emphasize only the three media removal actions.
+# Keep their click targets and removal callbacks unchanged.
 must_replace(
     "ui/LayoutScreen.kt",
     'if (vm.ui.previewEmoji.isNotEmpty()) GridCard("移除emoji") { vm.clearEmoji() }',
