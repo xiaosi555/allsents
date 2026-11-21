@@ -1830,11 +1830,11 @@ must_replace(
 )
 my_home_path = java / "ui/MyScreens.kt"
 my_home_source = my_home_path.read_text(encoding="utf-8")
-home_marker = '    val d = vm.data\\n'
+home_marker = '    val d = vm.data' + chr(10)
 if home_marker not in my_home_source:
     raise SystemExit("Required patch missing (My home data source): ui/MyScreens.kt")
 if "val moreCount =" not in my_home_source:
-    my_home_source = my_home_source.replace(home_marker, home_marker + '    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size\\n', 1)
+    my_home_source = my_home_source.replace(home_marker, home_marker + '    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size' + chr(10), 1)
 home_replacements = [
     ('    ListRow("账号", "多账号管理、配置信息 · ${d.accounts.size}") { go("accounts") }',
      '    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }'),
