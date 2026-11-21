@@ -2686,3 +2686,14 @@ patch("ui/MyScreens.kt",[
 ('vm.refreshRandomSelections(); vm.screen = "layout"','vm.screen = "layout"')
 ])
 print("Applied clipboard, random-entry, Moments-default, account-list and icon-safe-area patches.")
+
+
+# Avoid a duplicate random draw on the toolbar return path; the screen-entry effect owns it.
+patch("ui/MyScreens.kt",[
+('vm.refreshRandomSelections(); vm.screen = "layout"','vm.screen = "layout"'),
+('vm.refreshRandomSelections(); vm.screen = "layout"','vm.screen = "layout"')
+])
+patch("ui/AppViewModel.kt",[
+('fun rerollImages() { val (id, p) = drawImagePool(); updateUi { copy(imgModuleId = id, imgPool = p) } }',
+ 'fun rerollImages() { val (id, p) = drawImagePool(ui.imgModuleId); updateUi { copy(imgModuleId = id, imgPool = p) } }')
+])
