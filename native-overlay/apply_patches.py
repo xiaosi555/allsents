@@ -2223,3 +2223,94 @@ failed = [label for label, ok in checks.items() if not ok]
 if failed:
     raise SystemExit("Native copy acceptance checks failed: " + "; ".join(failed))
 print("Native WebView selection-copy acceptance checks passed.")
+
+
+# 2026-11-21: WeChat-compatible rich clipboard export and adaptive icon safe-area correction.
+# Keep the original 640x640 app_logo.jpg as the pixel source; do not redraw or approximate its artwork.
+_copy_file = java / "ui/LayoutScreen.kt"
+_copy_src = _copy_file.read_text(encoding="utf-8")
+_old_copy = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
+    val finish: (String?) -> Unit = { raw ->
+        try {
+            val parsed = runCatching {
+                org.json.JSONTokener(raw ?: "null").nextValue() as? String
+            }.getOrNull()
+            val html = parsed?.takeIf { it.isNotBlank() } ?: vm.previewHtml
+            require(html.isNotBlank()) { "当前预览内容为空" }
+            val plain = android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+            val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+            vm.toast("已复制当前预览内容")
+        } catch (error: Throwable) {
+            vm.toast("复制失败，请稍后重试：" + (error.message ?: "剪贴板不可用"))
+        }
+    }
+    val read = vm.jsResult
+    if (read == null) finish(null)
+    else try {
+        read("getHtml()") { raw -> finish(raw) }
+    } catch (error: Throwable) {
+        finish(null)
+    }
+}"""
+_new_copy = """private fun copyRenderedPreview(ctx: android.content.Context, vm: AppViewModel) {
+    try {
+        // Copy the exact HTML fragment produced by PreviewEngine. Do not serialize the
+        // WebView DOM: computed-style flattening changes positioning and can break
+        // GIF images, history cards, and date/time alignment in WeChat's editor.
+        val fragment = vm.previewHtml.trim()
+        require(fragment.isNotBlank()) { "当前预览内容为空" }
+        val html = "<!doctype html><html><head><meta charset=\\"utf-8\\"></head><body>" +
+            fragment + "</body></html>"
+        val plain = android.text.Html.fromHtml(fragment, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+        val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newHtmlText("拾万句", plain, html))
+        vm.toast("已复制当前预览内容")
+    } catch (error: Throwable) {
+        vm.toast("复制失败，请稍后重试：" + (error.message ?: "剪贴板不可用"))
+    }
+}"""
+if (_old_copy not in _copy_src):
+    raise SystemExit("Expected 1.0.22 copy helper not found; refusing to patch a different implementation")
+_copy_src = _copy_src.replace(_old_copy, _new_copy, 1)
+_copy_file.write_text(_copy_src, encoding="utf-8")
+
+# Adaptive launchers are masked by Android. The artwork itself is a square 640x640 source;
+# render it inside the adaptive-icon safe zone so the full logo remains visible after masking.
+_foreground = base / "res/drawable/ic_launcher_foreground.xml"
+_foreground.write_text('''<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="66dp" android:height="66dp" android:gravity="center">
+        <bitmap android:src="@drawable/app_logo" android:gravity="fill" />
+    </item>
+</layer-list>
+''', encoding="utf-8")
+
+# Ensure adaptive icon background matches the exact dominant background pixel of app_logo.jpg.
+from PIL import Image as _Image
+_logo = base / "res/drawable-nodpi/app_logo.jpg"
+if not _logo.exists():
+    raise SystemExit("Original 640x640 app_logo.jpg is missing; cannot preserve exact source artwork")
+with _Image.open(_logo) as _im:
+    if _im.size != (640, 640):
+        raise SystemExit("Original app_logo.jpg dimensions changed; refusing to regenerate a different icon")
+    _bg = _im.convert("RGB").getpixel((0, 0))
+_bg_hex = "#%02X%02X%02X" % _bg
+_background = base / "res/drawable/ic_launcher_background.xml"
+_background.write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="''' + _bg_hex + '''" android:pathData="M0,0h108v108h-108z" />
+</vector>
+''', encoding="utf-8")
+
+# Validate that the copy action no longer serializes WebView computed styles and that
+# the full-size original artwork is retained in the adaptive-icon foreground resource.
+_verify_copy = _copy_file.read_text(encoding="utf-8")
+_verify_fg = _foreground.read_text(encoding="utf-8")
+if 'read("getHtml()")' in _verify_copy or "window.getComputedStyle" in _verify_copy:
+    raise SystemExit("Copy helper still depends on WebView DOM serialization")
+if "vm.previewHtml.trim()" not in _verify_copy or "ClipData.newHtmlText" not in _verify_copy:
+    raise SystemExit("Copy helper does not use PreviewEngine's HTML fragment")
+if 'android:width="66dp" android:height="66dp"' not in _verify_fg:
+    raise SystemExit("Adaptive icon foreground safe-zone sizing not applied")
+print("WeChat clipboard export and launcher icon safe-zone checks passed.")
