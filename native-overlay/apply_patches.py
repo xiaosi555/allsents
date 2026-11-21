@@ -1321,7 +1321,31 @@ new_get_html = """window.getHtml = function () {
     range.selectNodeContents(area);
     selection.removeAllRanges();
     selection.addRange(range);
-    return area.innerHTML;
+
+    // Export rendered appearance rather than a fragment dependent on preview CSS.
+    var clone = area.cloneNode(true);
+    var originals = [area].concat(Array.from(area.querySelectorAll("*")));
+    var copies = [clone].concat(Array.from(clone.querySelectorAll("*")));
+    originals.forEach(function (source, index) {
+      var target = copies[index];
+      var computed = window.getComputedStyle(source);
+      var css = [];
+      for (var i = 0; i < computed.length; i++) {
+        var name = computed[i];
+        var value = computed.getPropertyValue(name);
+        if (value) css.push(name + ":" + value);
+      }
+      target.setAttribute("style", css.join(";"));
+    });
+
+    clone.querySelectorAll("p").forEach(function (p) {
+      if (!p.style.lineHeight || p.style.lineHeight === "normal") p.style.lineHeight = "1.5";
+      if (!p.style.marginTop) p.style.marginTop = "0";
+      if (!p.style.marginBottom) p.style.marginBottom = "0";
+    });
+    var holder = document.createElement("div");
+    holder.appendChild(clone);
+    return holder.innerHTML;
   };"""
 if old_get_html not in asset_html:
     raise SystemExit("Required preview.html getHtml() anchor missing; refusing partial copy patch")
