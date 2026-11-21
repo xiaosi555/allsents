@@ -2138,91 +2138,9 @@ if "window.selectPreviewForCopy" not in _html:
     _html = _html[:_close] + _copy_js + _html[_close:]
 _asset.write_text(_html, encoding="utf-8")
 
-# Give the native WebView the selection -> platform clipboard action. This invokes
-# WebView.copySelection(), the same Chromium rich-copy path as a user selecting all.
-_vm_path = java / "ui/AppViewModel.kt"
-_vm_src = _vm_path.read_text(encoding="utf-8")
-_js_anchor = '    var jsResult: ((String, (String?) -> Unit) -> Unit)? = null\n'
-if 'var copyPreview:' not in _vm_src:
-    if _js_anchor not in _vm_src:
-        raise SystemExit("AppViewModel jsResult anchor missing")
-    _vm_src = _vm_src.replace(_js_anchor, _js_anchor + '    var copyPreview: (((Boolean) -> Unit) -> Unit)? = null\n', 1)
-_vm_path.write_text(_vm_src, encoding="utf-8")
+# Copy is exported from PreviewEngine's original HTML fragment below; do not use WebView selection.
 
-_pw = java / "ui/PreviewWebView.kt"
-_pw_src = _pw.read_text(encoding="utf-8")
-_pw_src = _pw_src.replace(
-    '        vm.jsResult = { script, callback -> webView.evaluateJavascript(script) { value -> callback(value) } }\n',
-    '''        vm.jsResult = { script, callback -> webView.evaluateJavascript(script) { value -> callback(value) } }
-        vm.copyPreview = { callback ->
-            webView.evaluateJavascript("selectPreviewForCopy()") { selected ->
-                if (selected == "true") {
-                    runCatching { webView.copySelection() }
-                    webView.evaluateJavascript("clearPreviewSelection()", null)
-                    callback(true)
-                } else callback(false)
-            }
-        }
-''', 1)
-_pw_src = _pw_src.replace('onDispose { vm.js = null; vm.jsResult = null; webView.destroy() }',
-                          'onDispose { vm.js = null; vm.jsResult = null; vm.copyPreview = null; webView.destroy() }', 1)
-if 'vm.copyPreview = { callback ->' not in _pw_src:
-    raise SystemExit("Unable to install WebView native copy callback")
-_pw.write_text(_pw_src, encoding="utf-8")
 
-_ls_path = java / "ui/LayoutScreen.kt"
-_ls = _ls_path.read_text(encoding="utf-8")
-_ls = _ls.replace('    val ctx = LocalContext.current\n    Row(Modifier.fillMaxWidth().height(56.dp)', '    Row(Modifier.fillMaxWidth().height(56.dp)', 1)
-_ls = _ls.replace('ThemeChip("复制", false) { copyRenderedPreview(ctx, vm) }',
-                  'ThemeChip("复制", false) { copyRenderedPreview(vm) }', 1)
-_cs = _ls.find("private fun copyRenderedPreview(")
-_ce = _ls.find("@Composable\nprivate fun EntryIcon", _cs)
-if _cs < 0 or _ce < 0:
-    raise SystemExit("Copy helper boundaries missing in LayoutScreen.kt")
-_new_copy = """private fun copyRenderedPreview(vm: AppViewModel) {
-    val copy = vm.copyPreview
-    if (copy == null) {
-        vm.toast("预览尚未就绪，请稍后重试")
-        return
-    }
-    try {
-        copy { success ->
-            vm.toast(if (success) "已复制当前预览内容" else "复制失败，请稍后重试")
-        }
-    } catch (error: Throwable) {
-        vm.toast("复制失败，请稍后重试：" + (error.message ?: "剪贴板不可用"))
-    }
-}
-
-@Composable
-private fun CopyPreviewButton(vm: AppViewModel) {
-    ThemeChip("复制预览内容", true, modifier = Modifier.fillMaxWidth()) {
-        copyRenderedPreview(vm)
-    }
-}
-
-"""
-_ls = _ls[:_cs] + _new_copy + _ls[_ce:]
-_ls_path.write_text(_ls, encoding="utf-8")
-
-# Source-level acceptance checks for exact native selection copy and complete icon safety.
-_pw_check = _pw.read_text(encoding="utf-8")
-_ls_check = _ls_path.read_text(encoding="utf-8")
-_vm_check = _vm_path.read_text(encoding="utf-8")
-_html_check = _asset.read_text(encoding="utf-8")
-checks = {
-    "native WebView copySelection used": "webView.copySelection()" in _pw_check,
-    "WebView selection copy is registered": "vm.copyPreview = { callback ->" in _pw_check,
-    "both UI copy controls use native path": "copyRenderedPreview(vm)" in _ls_check,
-    "no computed-style allowlist remains": "var allowed = [" not in _html_check,
-    "select whole preview for native copy": "range.selectNodeContents(area)" in _html_check,
-    "copy event keeps Douyin full card": 'root.querySelector("[data-douyin]")' in _html_check,
-    "viewmodel has native copy callback": "var copyPreview:" in _vm_check,
-}
-failed = [label for label, ok in checks.items() if not ok]
-if failed:
-    raise SystemExit("Native copy acceptance checks failed: " + "; ".join(failed))
-print("Native WebView selection-copy acceptance checks passed.")
 
 
 # 2026-11-21: WeChat-compatible rich clipboard export and adaptive icon safe-area correction.
