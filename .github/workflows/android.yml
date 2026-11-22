@@ -101,6 +101,8 @@ jobs:
           # Do not overlay the previous HomeScreen/MainActivity experiment.
           python3 native-overlay/apply_patches.py
           python3 native-overlay/apply_theme_colors.py
+          python3 native-overlay/generate_icon_styles.py
+          python3 native-overlay/apply_icon_styles.py
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml" <<'XML'
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
