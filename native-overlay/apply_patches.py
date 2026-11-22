@@ -2748,6 +2748,7 @@ patch("ui/LayoutScreen.kt",[
         Spacer(Modifier.height(10.dp))
         CopyPreviewButton(vm)''',
      '''            ThemeChip("换一个", false) { vm.loadRandomTitle() }
+            val ctx = LocalContext.current
             ThemeChip("文章全选", false) {
                 vm.js?.invoke("(function(){var root=document.body;if(!root)return false;root.style.webkitUserSelect='text';root.style.userSelect='text';var range=document.createRange();range.selectNodeContents(root);var selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);return true;})()")
                 vm.toast("已全选文章内容")
