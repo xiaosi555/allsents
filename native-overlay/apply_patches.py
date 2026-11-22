@@ -3429,3 +3429,90 @@ if "var layoutVer = raw.layoutVer" not in _store_text:
     raise SystemExit("Layout version declaration was not restored")
 _store_path.write_text(_store_text, encoding="utf-8")
 print("Layout version declaration restored after removing automatic Douyin insertion.")
+
+
+# ----------------------------------------------------------------------
+# Appearance settings: persisted theme colors + real Android launcher aliases.
+shutil.copy2(
+    root / "native-overlay/app/src/main/java/com/shiwanju/app/ui/AppearanceSettings.kt",
+    java / "ui/AppearanceSettings.kt"
+)
+
+patch("ui/Theme.kt", [
+    ("import androidx.compose.runtime.Composable",
+     "import androidx.compose.runtime.Composable\nimport androidx.compose.runtime.getValue\nimport androidx.compose.runtime.mutableStateOf\nimport androidx.compose.runtime.setValue"),
+    ('''object AppColors {
+    val Theme = Color(0xFFCCFF00)
+    val OnTheme = Color(0xFF000000)
+''',
+     '''object AppColors {
+    private var themeState by mutableStateOf(Color(0xFFCCFF00))
+    private var onThemeState by mutableStateOf(Color(0xFF000000))
+    val Theme: Color get() = themeState
+    val OnTheme: Color get() = onThemeState
+
+    fun setThemeColor(hex: String) {
+        val parsed = runCatching { android.graphics.Color.parseColor(hex) }.getOrNull() ?: return
+        val r = android.graphics.Color.red(parsed)
+        val g = android.graphics.Color.green(parsed)
+        val b = android.graphics.Color.blue(parsed)
+        val luminance = .299 * r + .587 * g + .114 * b
+        themeState = Color(parsed)
+        onThemeState = if (luminance > 150) Color.Black else Color.White
+    }
+''')
+])
+
+patch("data/Store.kt", [
+    ("import android.content.Context",
+     "import android.content.Context\nimport android.content.ComponentName\nimport android.content.pm.PackageManager"),
+    ('''    // ---- 界面状态 ----''',
+     '''    // ---- 外观偏好：独立于业务数据，升级 / 备份恢复时保留 ----
+    var themeColor: String
+        get() = prefs.getString("theme_color", "#CCFF00") ?: "#CCFF00"
+        set(value) { prefs.edit().putString("theme_color", value).apply() }
+
+    var iconStyle: String
+        get() = prefs.getString("icon_style", "original") ?: "original"
+        private set(value) { prefs.edit().putString("icon_style", value).apply() }
+
+    fun setIconStyle(style: String) {
+        val aliases = mapOf(
+            "original" to "LauncherOriginal", "cowboy" to "LauncherCowboy", "code" to "LauncherCode",
+            "line" to "LauncherLine", "plush" to "LauncherPlush", "sky" to "LauncherSky",
+            "space" to "LauncherSpace", "graffiti" to "LauncherGraffiti", "kids" to "LauncherKids",
+            "pixel" to "LauncherPixel", "sketch" to "LauncherSketch"
+        )
+        val selected = aliases[style] ?: aliases.getValue("original")
+        iconStyle = aliases.entries.firstOrNull { it.value == selected }?.key ?: "original"
+        applyLauncherIcon(iconStyle)
+    }
+
+    fun applyLauncherIcon(style: String = iconStyle) {
+        val aliases = mapOf(
+            "original" to "LauncherOriginal", "cowboy" to "LauncherCowboy", "code" to "LauncherCode",
+            "line" to "LauncherLine", "plush" to "LauncherPlush", "sky" to "LauncherSky",
+            "space" to "LauncherSpace", "graffiti" to "LauncherGraffiti", "kids" to "LauncherKids",
+            "pixel" to "LauncherPixel", "sketch" to "LauncherSketch"
+        )
+        val selected = aliases[style] ?: aliases.getValue("original")
+        val pm = ctx.packageManager
+        // 先启用新入口，再关闭旧入口，避免桌面短暂失去应用图标。
+        runCatching {
+            pm.setComponentEnabledSetting(
+                ComponentName(ctx, "${ctx.packageName}.$selected"),
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
+            aliases.values.filter { it != selected }.forEach { name ->
+                pm.setComponentEnabledSetting(
+                    ComponentName(ctx, "${ctx.packageName}.$name"),
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
+        }
+    }
+
+    // ---- 界面状态 ----''')
+]);
