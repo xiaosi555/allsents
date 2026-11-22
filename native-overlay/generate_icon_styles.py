@@ -129,7 +129,9 @@ for name in names:
     bg.save(folder/f"icon_style_{name}.png",optimize=True)
     # 108x108 transparent foreground for adaptive launcher icon.
     fg=Image.new("RGBA",(108,108),(0,0,0,0))
-    iconmark=ImageOps.contain(recolor(fitted_mask,color),(66,66),method=Image.Resampling.LANCZOS)
+    fgmark=Image.new("RGBA",fitted_mask.size,color)
+    fgmark.putalpha(fitted_mask)
+    iconmark=ImageOps.contain(fgmark,(66,66),method=Image.Resampling.LANCZOS)
     fg.alpha_composite(iconmark,((108-iconmark.width)//2,(108-iconmark.height)//2))
     fg.save(folder/f"launcher_{name}_foreground.png",optimize=True)
 print("Generated 11 icon styles from the original SVG silhouette.")
