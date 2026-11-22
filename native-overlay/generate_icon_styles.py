@@ -19,10 +19,12 @@ mark = Image.open(BytesIO(raw)).convert("RGBA")
 mark_canvas = Image.new("RGBA", (S, S), (0,0,0,0))
 mark_canvas.alpha_composite(mark, ((S-mark.width)//2, (S-mark.height)//2))
 alpha = mark_canvas.getchannel("A")
-# Keep the full SVG silhouette inside the launcher safe zone.
+# Crop only transparent SVG margins, then fit the complete original path to the
+# Android 66/108 safe-area ratio. This keeps the icon visually consistent.
 bbox = alpha.getbbox()
-if not bbox or bbox[2]-bbox[0] > 430 or bbox[3]-bbox[1] > 430:
-    raise SystemExit(f"Logo exceeds icon safe area: {bbox}")
+if not bbox:
+    raise SystemExit("Original SVG contains no visible artwork")
+mark_crop = mark_canvas.crop(bbox)
 
 names = ["original","cowboy","code","line","plush","sky","space","graffiti","playful","8bit","sketch"]
 random.seed(23)
@@ -106,10 +108,14 @@ for name in names:
     elif name in ("line","sketch"): color=(63,57,49,255)
     elif name=="plush": color=(255,250,245,255)
     else: color=(255,248,232,255)
+    safe_size = round(S * 66 / 108)
+    fitted = ImageOps.contain(mark_crop, (safe_size, safe_size), method=Image.Resampling.LANCZOS)
+    fitted_mask = fitted.getchannel("A")
     if name=="8bit":
-        small=alpha.resize((72,72),Image.Resampling.LANCZOS).resize((S,S),Image.Resampling.NEAREST)
-        mask=small
-    else: mask=alpha
+        pix = fitted_mask.resize((max(1,safe_size//7), max(1,safe_size//7)),Image.Resampling.LANCZOS)
+        fitted_mask = pix.resize((safe_size,safe_size),Image.Resampling.NEAREST)
+    mask = Image.new("L",(S,S),0)
+    mask.paste(fitted_mask,((S-fitted.width)//2,(S-fitted.height)//2))
     logo=recolor(mask,color)
     if name=="plush":
         shadow=Image.new("RGBA",(S,S),(0,0,0,0)); shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(7)))
@@ -123,7 +129,7 @@ for name in names:
     bg.save(folder/f"icon_style_{name}.png",optimize=True)
     # 108x108 transparent foreground for adaptive launcher icon.
     fg=Image.new("RGBA",(108,108),(0,0,0,0))
-    iconmark=ImageOps.contain(logo,(66,66),method=Image.Resampling.LANCZOS)
+    iconmark=ImageOps.contain(recolor(fitted_mask,color),(66,66),method=Image.Resampling.LANCZOS)
     fg.alpha_composite(iconmark,((108-iconmark.width)//2,(108-iconmark.height)//2))
     fg.save(folder/f"launcher_{name}_foreground.png",optimize=True)
 print("Generated 11 icon styles from the original SVG silhouette.")
