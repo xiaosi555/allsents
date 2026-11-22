@@ -3269,3 +3269,23 @@ else:
 if "val douyinAdded = true" not in _store_path.read_text(encoding="utf-8"):
     raise SystemExit("Imported layout list may still receive an automatic extra layout")
 print("Layout import count remains exact; only empty data receives the single default.")
+
+
+patch("ui/LayoutScreen.kt",[
+    ('''    val html = remember(layout.id, layout.content, vm.data.files, vm.data.accounts, vm.ui.copyLines, vm.ui.imgPool) {
+        val textModule = vm.data.files.text.firstOrNull()''',
+'''    val html = remember(layout, vm.data.files, vm.data.accounts, vm.ui.copyLines, vm.ui.imgPool) {
+        val textModule = vm.data.files.text.firstOrNull()'''),
+    ('''        val previewState = vm.ui.copy(layoutId = layout.id, quantity = 3, copyModuleId = textModule?.id, copyLines = sample,
+            imgModuleId = imageModule?.id, imgPool = images, historyIds = emptyList(), historyHtml = "", gifId = null, gifContent = "",
+            mediaOrder = emptyList(), previewEmoji = "")
+        val body = PreviewEngine.render(vm.data, previewState)''',
+'''        val emojiSample = vm.data.emoji.firstOrNull()?.let { TextUtil.splitEntries(it.content).firstOrNull() }.orEmpty()
+        val previewState = vm.ui.copy(layoutId = layout.id, quantity = 3, copyModuleId = textModule?.id, copyLines = sample,
+            imgModuleId = imageModule?.id, imgPool = images, historyIds = emptyList(), historyHtml = "", gifId = null, gifContent = "",
+            mediaOrder = emptyList(), previewEmoji = emojiSample)
+        val previewData = if (vm.data.layout.any { it.id == layout.id })
+            vm.data.copy(layout = vm.data.layout.map { if (it.id == layout.id) layout else it })
+            else vm.data.copy(layout = vm.data.layout + layout)
+        val body = PreviewEngine.render(previewData, previewState)''')
+])
