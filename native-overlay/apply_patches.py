@@ -3525,8 +3525,19 @@ patch("ui/AppViewModel.kt", [
     var themeColor by mutableStateOf(store.themeColor); private set
     var iconStyle by mutableStateOf(store.iconStyle); private set
 '''),
-    ('''    init { validateSelections(); rebuild() }''',
+    ('''    init {
+        if (ui.tab == "image") {
+            ui = ui.copy(tab = "more", moreCat = "image")
+            store.saveUi(ui)
+        }
+        validateSelections()
+        rebuild()
+    }''',
      '''    init {
+        if (ui.tab == "image") {
+            ui = ui.copy(tab = "more", moreCat = "image")
+            store.saveUi(ui)
+        }
         AppColors.setThemeColor(themeColor)
         store.applyLauncherIcon(iconStyle)
         validateSelections()
