@@ -3384,3 +3384,17 @@ if "fun marginsFor(target: String)" not in _vm or 'vm.setMargin(marginTarget, id
 if 'ui.margins[targetKey]' not in _engine or "window.setMarginsFor = function" not in _asset_text:
     raise SystemExit("Separate media margin persistence/live preview is incomplete")
 print("Independent GIF/history margin controls passed.")
+
+
+# Keep the layout schema version declaration when removing the legacy auto-added Douyin item.
+_store_path = java / "data/Store.kt"
+_store_text = _store_path.read_text(encoding="utf-8")
+_store_text = _store_text.replace(
+    "        val douyinAdded = true\n        if (layoutVer != LAYOUT_VER)",
+    "        val douyinAdded = true\n        var layoutVer = raw.layoutVer\n        if (layoutVer != LAYOUT_VER)",
+    1
+)
+if "var layoutVer = raw.layoutVer" not in _store_text:
+    raise SystemExit("Layout version declaration was not restored")
+_store_path.write_text(_store_text, encoding="utf-8")
+print("Layout version declaration restored after removing automatic Douyin insertion.")
