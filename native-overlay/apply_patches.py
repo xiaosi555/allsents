@@ -1879,7 +1879,7 @@ preview_path.write_text(preview_source.replace(old_margins, new_margins, 1), enc
 
 must_replace(
     "ui/MyScreens.kt",
-    '''        val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式管理"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
+    '''        val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
     '''        val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
     "use the required My page layout title"
 )
@@ -3557,6 +3557,8 @@ patch("ui/MyScreens.kt", [
                 "accounts" -> AccountsPage(vm)'''),
     ('''private fun HomePage(vm: AppViewModel, go: (String) -> Unit) = Page {
     val d = vm.data
+    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
+    ListRow("设置", "主题颜色、图标风格") { go("settings") }
     ListRow("账号",''',
      '''private fun HomePage(vm: AppViewModel, go: (String) -> Unit) = Page {
     val d = vm.data
