@@ -79,16 +79,22 @@ jobs:
           for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
               folder = Path("source/ShiWanJu-Android/app/src/main/res") / f"mipmap-{density}"
               folder.mkdir(parents=True, exist_ok=True)
-              fitted = ImageOps.contain(square, (int(size * 0.82), int(size * 0.82)), method=Image.Resampling.LANCZOS)
+              # Match the adaptive icon safe-area ratio exactly (66/108); no legacy/adaptive size drift.
+              fitted = ImageOps.contain(square, (round(size * 66 / 108), round(size * 66 / 108)), method=Image.Resampling.LANCZOS)
               canvas = Image.new("RGBA", (size, size), bg)
               canvas.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
               canvas.save(folder / "ic_launcher.png", optimize=True)
               canvas.save(folder / "ic_launcher_round.png", optimize=True)
-          # Android adaptive icon foreground: preserve the complete logo inside its safe area.
-          safe = ImageOps.contain(square, (64, 64), method=Image.Resampling.LANCZOS)
+          # Android adaptive icon foreground: artwork occupies the standard 66dp safe area
+          # of the 108dp canvas. Legacy launcher PNGs use the same 66/108 ratio.
+          safe = ImageOps.contain(square, (66, 66), method=Image.Resampling.LANCZOS)
           safe_canvas = Image.new("RGBA", (108, 108), (0, 0, 0, 0))
           safe_canvas.alpha_composite(safe, ((108-safe.width)//2, (108-safe.height)//2))
           safe_canvas.save(drawable / "launcher_logo_foreground.png", optimize=True)
+          bounds = safe_canvas.getchannel("A").getbbox()
+          if not bounds or bounds[2] - bounds[0] > 66 or bounds[3] - bounds[1] > 66:
+              raise SystemExit(f"Adaptive icon artwork exceeds safe area: {bounds}")
+          print(f"Logo assets normalized: legacy/adaptive artwork ratio {66/108:.4f}; adaptive alpha bounds {bounds}")
           PY
           rm -f "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
           # Apply Kotlin/engine/data fixes onto the untouched original native project.
@@ -102,17 +108,13 @@ jobs:
               <path android:fillColor="#56D274" android:pathData="M0,0h108v108h-108z" />
           </vector>
           XML
-          cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml" <<'XML'
-          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-              <item android:width="58dp" android:height="58dp" android:gravity="center">
-                  <bitmap android:src="@drawable/launcher_logo_foreground" android:gravity="fill" />
-              </item>
-          </layer-list>
-          XML
+          # Use the 108x108 PNG directly. Do not wrap it in another sized layer-list:
+          # that previously applied a second 58dp shrink to adaptive/splash icons.
+          rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml"
           cat > "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" <<'XML'
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
               <background android:drawable="@drawable/ic_launcher_background" />
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+              <foreground android:drawable="@drawable/launcher_logo_foreground" />
           </adaptive-icon>
           XML
           cp "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
