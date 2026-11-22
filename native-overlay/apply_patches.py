@@ -2778,3 +2778,179 @@ if 'selection.selectAll' in _layoutScreen or 'selection.addRange(range)' not in 
 if 'data.layout.firstOrNull { it.name.contains("文字断句") || it.name.contains("断句") }' not in _viewModel:
     raise SystemExit("Default sentence-break layout selection missing")
 print("Sentence-break-only UI and article select-all acceptance checks passed.")
+
+# ----------------------------------------------------------------------
+# 2026-11-22: one UI layout type, data-driven card count, and Android text actions.
+# The app ships one sentence-break default only when no layout data exists.
+patch("data/Store.kt",[
+    ('''        val defaultLayouts = listOf(
+            "moments" to LayoutItem("layout_moments", "01_朋友圈版", templates["moments"] ?: ""),
+            "duan" to LayoutItem("layout_duan", "02_断章序引版", templates["duan"] ?: ""),
+            "card" to LayoutItem("layout_card", "03_卡片版", templates["card"] ?: ""),
+            "sentence" to LayoutItem("layout_sentence", "04_文字断句版", templates["sentence"] ?: "")
+        )
+        defaultLayouts.forEach { (kind, item) ->
+            if (layout.none { layoutKindOf(it.name) == kind }) {
+                layout = if (kind == "moments") listOf(item) + layout else layout + item
+            }
+        }''',
+     '''        // UI 与数据分离：仅在完全没有导入版式数据时提供一个默认文字断句版。
+        // 一旦用户导入了 N 条版式数据，保留这 N 条，不额外补齐其他版式或重复默认项。
+        if (layout.isEmpty()) {
+            layout = listOf(LayoutItem(
+                id = "layout_sentence",
+                name = "文字断句版",
+                content = templates["sentence"] ?: ""
+            ))
+        }''')
+])
+
+patch("ui/AppViewModel.kt",[
+    ('''        val sentenceLayout = data.layout.firstOrNull { it.name.contains("文字断句") || it.name.contains("断句") }
+        if (sentenceLayout != null && ui.layoutId != sentenceLayout.id) ui = ui.copy(layoutId = sentenceLayout.id)''',
+     '''        val firstLayout = data.layout.firstOrNull()
+        if (firstLayout != null && data.layout.none { it.id == ui.layoutId }) {
+            ui = ui.copy(layoutId = firstLayout.id)
+            store.saveUi(ui)
+        }'''),
+    ('''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id } ?: return
+        if (!item.name.contains("文字断句") && !item.name.contains("断句")) return
+        updateUi { copy(layoutId = id) }
+    }''',
+     '''    fun selectLayout(id: String) {
+        if (data.layout.none { it.id == id }) return
+        updateUi { copy(layoutId = id) }
+    }''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('''    val list = vm.data.layout.filter { it.name.contains("文字断句") || it.name.contains("断句") }
+    if (list.isEmpty()) return EmptyTip("数据中暂无文字断句版式")''',
+     '''    // 所有卡片都属于同一种「文字断句版」软件版式；卡片数量严格跟随导入数据条数。
+    val list = vm.data.layout
+    if (list.isEmpty()) return EmptyTip("暂无版式数据，请导入数据")'''),
+    ('''                vm.js?.invoke("(function(){var root=document.body;if(!root)return false;root.style.webkitUserSelect='text';root.style.userSelect='text';var range=document.createRange();range.selectNodeContents(root);var selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);return true;})()")
+                vm.toast("已全选文章内容")''',
+     '''                showArticleSelectionActions(ctx, vm)''')
+])
+
+patch("ui/MyScreens.kt",[
+    ('''    val visibleLayouts = vm.data.layout.filter { it.name.contains("文字断句") || it.name.contains("断句") }
+    if (visibleLayouts.isEmpty()) Empty("数据中暂无文字断句版式")
+    visibleLayouts.chunked(2).forEach { row ->''',
+     '''    val visibleLayouts = vm.data.layout
+    if (visibleLayouts.isEmpty()) Empty("暂无版式数据，请导入数据")
+    visibleLayouts.chunked(2).forEach { row ->''')
+])
+
+# A native Android ActionMode is shown only after the live article WebView confirms
+# that its article content has been selected. Copy/cut/paste operate on that selection.
+patch("ui/LayoutScreen.kt",[
+    ('''@Composable
+private fun CopyPreviewButton(vm: AppViewModel) {''',
+     '''private fun showArticleSelectionActions(ctx: android.content.Context, vm: AppViewModel) {
+    val read = vm.jsResult
+    if (read == null) {
+        vm.toast("文章预览尚未就绪")
+        return
+    }
+    val selectScript = """
+        (function() {
+            var root = document.querySelector('#previewArea') ||
+                       document.querySelector('[data-preview-root]') ||
+                       document.querySelector('.preview-area') ||
+                       document.body;
+            if (!root) return '';
+            root.setAttribute('contenteditable', 'true');
+            root.style.webkitUserSelect = 'text';
+            root.style.userSelect = 'text';
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(root);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return selection.toString();
+        })()
+    """.trimIndent()
+    read(selectScript) { raw ->
+        val selectedText = runCatching {
+            org.json.JSONTokener(raw ?: "null").nextValue() as? String
+        }.getOrNull().orEmpty()
+        if (selectedText.isBlank()) {
+            vm.toast("没有可全选的文章文字")
+            return@read
+        }
+        var base: android.content.Context? = ctx
+        while (base is android.content.ContextWrapper && base !is android.app.Activity) {
+            base = base.baseContext
+        }
+        val activity = base as? android.app.Activity
+        if (activity == null) {
+            vm.toast("无法打开安卓文本操作菜单")
+            return@read
+        }
+        activity.runOnUiThread {
+            activity.startActionMode(object : android.view.ActionMode.Callback {
+                override fun onCreateActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean {
+                    mode.title = "文章已全选"
+                    menu.add(0, 1, 0, "复制")
+                    menu.add(0, 2, 1, "剪切")
+                    menu.add(0, 3, 2, "粘贴")
+                    return true
+                }
+                override fun onPrepareActionMode(mode: android.view.ActionMode, menu: android.view.Menu): Boolean = false
+                override fun onActionItemClicked(mode: android.view.ActionMode, item: android.view.MenuItem): Boolean {
+                    when (item.itemId) {
+                        1 -> {
+                            val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("文章", selectedText))
+                            vm.toast("已复制所选文章文字")
+                        }
+                        2 -> {
+                            val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("文章", selectedText))
+                            vm.js?.invoke("document.execCommand('delete')")
+                            vm.toast("已剪切所选文章文字")
+                        }
+                        3 -> {
+                            val clipboard = ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            val pasted = if (clipboard.hasPrimaryClip()) clipboard.primaryClip?.getItemAt(0)?.coerceToText(ctx)?.toString().orEmpty() else ""
+                            if (pasted.isNotEmpty()) {
+                                val quoted = org.json.JSONObject.quote(pasted)
+                                vm.js?.invoke("document.execCommand('insertText', false, $quoted)")
+                                vm.toast("已粘贴剪贴板文字")
+                            } else vm.toast("剪贴板中没有可粘贴的文字")
+                        }
+                    }
+                    mode.finish()
+                    return true
+                }
+                override fun onDestroyActionMode(mode: android.view.ActionMode) {}
+            }, android.view.ActionMode.TYPE_FLOATING)
+        }
+    }
+}
+
+@Composable
+private fun CopyPreviewButton(vm: AppViewModel) {''')
+])
+
+# Acceptance checks are data-driven, not name-filtered, and require the native text action mode.
+_layoutScreen = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+_myScreens = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+_store = (java / "data/Store.kt").read_text(encoding="utf-8")
+_vm = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+if 'val list = vm.data.layout\n' not in _layoutScreen:
+    raise SystemExit("Layout picker is not driven by the complete imported layout data")
+if 'val visibleLayouts = vm.data.layout\n' not in _myScreens:
+    raise SystemExit("Layout data manager is not driven by the complete imported layout data")
+if 'if (layout.isEmpty())' not in _store or 'layout_sentence' not in _store:
+    raise SystemExit("Single default sentence-break layout is missing")
+if 'if (data.layout.none { it.id == id }) return' not in _vm:
+    raise SystemExit("Imported layout selection is still restricted by display name")
+if 'showArticleSelectionActions(ctx, vm)' not in _layoutScreen or 'android.view.ActionMode.TYPE_FLOATING' not in _layoutScreen:
+    raise SystemExit("Native Android article selection action mode is missing")
+if 'menu.add(0, 1, 0, "复制")' not in _layoutScreen or 'menu.add(0, 2, 1, "剪切")' not in _layoutScreen or 'menu.add(0, 3, 2, "粘贴")' not in _layoutScreen:
+    raise SystemExit("Native copy/cut/paste actions are incomplete")
+print("Data-driven sentence-break layout count and native article action-mode checks passed.")
