@@ -2973,3 +2973,281 @@ if 'showArticleSelectionActions(ctx, vm)' not in _layoutScreen or 'android.view.
 if 'menu.add(0, 1, 0, "复制")' not in _layoutScreen or 'menu.add(0, 2, 1, "剪切")' not in _layoutScreen or 'menu.add(0, 3, 2, "粘贴")' not in _layoutScreen:
     raise SystemExit("Native copy/cut/paste actions are incomplete")
 print("Data-driven sentence-break layout count and native article action-mode checks passed.")
+
+
+# ----------------------------------------------------------------------
+# 2026-11-22: custom layout slots, per-layout media margins, and name-based replacement.
+patch("data/Models.kt",[
+    ('data class LayoutItem(val id: String = "", val name: String = "", val content: String = "")',
+'''data class LayoutItem(
+    val id: String = "",
+    val name: String = "",
+    val content: String = "",
+    // 原始 HTML 片段定位；留空时沿用既有自动识别。
+    val textPosition: String = "",
+    val imagePosition: String = "",
+    val emojiPosition: String = "",
+    // 动图 / 往期各自独立的默认左右边距。
+    val gifMarginLeft: Int? = null,
+    val gifMarginRight: Int? = null,
+    val historyMarginLeft: Int? = null,
+    val historyMarginRight: Int? = null
+)''')
+])
+patch("data/Store.kt",[
+    ('''        if (layoutVer != LAYOUT_VER) {
+            layout = layout.map { l -> templates[layoutKindOf(l.name)]?.let { l.copy(content = it) } ?: l }
+            layoutVer = LAYOUT_VER
+        }''',
+'''        // 版本升级只记录版本，不再按名称覆盖用户导入或编辑的模板代码。
+        // 同名版式的自定义片段与边距配置必须完整保留。
+        if (layoutVer != LAYOUT_VER) layoutVer = LAYOUT_VER''')
+])
+patch("ui/AppViewModel.kt",[
+    ('''    fun saveLayout(x: LayoutItem) = updateData { d ->
+        val i = d.layout.indexOfFirst { it.id == x.id }
+        d.copy(layout = if (i >= 0) d.layout.toMutableList().also { it[i] = x } else d.layout + x)
+    }''',
+'''    fun saveLayout(x: LayoutItem) = updateData { d ->
+        // ID 不同但名称相同，也按同一版式处理；整体替换模板与全部配置。
+        val byId = d.layout.indexOfFirst { it.id == x.id }
+        val byName = if (x.name.isNotBlank()) d.layout.indexOfFirst { it.name.trim() == x.name.trim() } else -1
+        val i = if (byId >= 0) byId else byName
+        if (i >= 0) {
+            val old = d.layout[i]
+            val replacement = x.copy(id = old.id)
+            d.copy(layout = d.layout.toMutableList().also { it[i] = replacement })
+        } else d.copy(layout = d.layout + x)
+    }''')
+])
+patch("engine/PreviewEngine.kt",[
+    ('''    fun margins(ui: UiState, kind: String): List<Int> =
+        ui.margins[kind.ifEmpty { "default" }]?.takeIf { it.size == 4 } ?: defaultMargins(kind)
+''',
+'''    fun margins(ui: UiState, kind: String): List<Int> =
+        ui.margins[kind.ifEmpty { "default" }]?.takeIf { it.size == 4 } ?: defaultMargins(kind)
+
+    /** 版式详情里的动图/往期默认左右边距分别保存；排版页已有设置优先级更高。 */
+    private fun blockMargins(ui: UiState, kind: String, layout: com.shiwanju.app.data.LayoutItem?, isGif: Boolean): List<Int> {
+        val key = kind.ifEmpty { "default" }
+        val override = ui.margins[key]?.takeIf { it.size == 4 }
+        val base = defaultMargins(kind)
+        if (override != null) return override
+        val left = if (isGif) layout?.gifMarginLeft else layout?.historyMarginLeft
+        val right = if (isGif) layout?.gifMarginRight else layout?.historyMarginRight
+        return listOf(base[0], right ?: base[1], base[2], left ?: base[3])
+    }
+
+    /** 按用户提供的原始代码片段标记插入位置，忽略空白差异，只处理首个匹配项。 */
+    private fun markPosition(template: String, snippet: String, marker: String): String {
+        val wanted = snippet.trim()
+        if (wanted.isEmpty()) return template
+        fun compactMap(value: String): Pair<String, List<Int>> {
+            val chars = StringBuilder()
+            val positions = ArrayList<Int>()
+            value.forEachIndexed { index, ch ->
+                if (!ch.isWhitespace()) { chars.append(ch); positions.add(index) }
+            }
+            return chars.toString() to positions
+        }
+        val (sourceCompact, sourcePositions) = compactMap(template)
+        val needle = wanted.filterNot { it.isWhitespace() }
+        if (needle.isEmpty()) return template
+        val compactIndex = sourceCompact.indexOf(needle)
+        if (compactIndex < 0) return template
+        val start = sourcePositions[compactIndex]
+        val end = sourcePositions[compactIndex + needle.lastIndex] + 1
+        val actual = template.substring(start, end)
+        val tag = Regex("^(\\\\s*<[A-Za-z][A-Za-z0-9:-]*)").find(actual)
+        val marked = if (tag != null) {
+            actual.replaceRange(tag.range, tag.value + " data-swju-$marker=\\\"true\\\"")
+        } else "<span data-swju-$marker=\\\"true\\\">$actual</span>"
+        return template.replaceRange(start, end, marked)
+    }
+
+    private fun markConfiguredPositions(layout: com.shiwanju.app.data.LayoutItem, template: String): String {
+        var result = template
+        result = markPosition(result, layout.textPosition, "text-slot")
+        result = markPosition(result, layout.imagePosition, "image-slot")
+        result = markPosition(result, layout.emojiPosition, "emoji-slot")
+        return result
+    }
+'''),
+    ('''        val blocks = LinkedHashMap<String, Element>()
+        val m = margins(ui, ctx.kind)
+
+        if (ctx.layoutIdx >= 0) body.appendChild(buildPreview(ctx, data.layout[ctx.layoutIdx].content))''',
+'''        val blocks = LinkedHashMap<String, Element>()
+        val activeLayout = data.layout.getOrNull(ctx.layoutIdx)
+        val gifMargins = blockMargins(ui, ctx.kind, activeLayout, true)
+        val historyMargins = blockMargins(ui, ctx.kind, activeLayout, false)
+
+        if (ctx.layoutIdx >= 0) body.appendChild(buildPreview(ctx, data.layout[ctx.layoutIdx].content))'''),
+    ('setMargin(h, m)','setMargin(h, historyMargins)'),
+    ('setMargin(g, m)','setMargin(g, gifMargins)'),
+    ('''            if (index < order.lastIndex) {
+                Css.set(block, "margin-bottom", maxOf(m[2], m[0]).toString() + "px", true)
+            }''',
+'''            if (index < order.lastIndex) {
+                val own = if (key == "gif") gifMargins else historyMargins
+                Css.set(block, "margin-bottom", maxOf(own[2], own[0]).toString() + "px", true)
+            }'''),
+    ('''    private fun buildPreview(ctx: Ctx, content: String?): Element {
+        if (ctx.kind == "douyin") return buildDouyin(ctx, content)
+        val frag = Jsoup.parseBodyFragment(content ?: "")''',
+'''    private fun buildPreview(ctx: Ctx, content: String?): Element {
+        val layout = ctx.data.layout.getOrNull(ctx.layoutIdx)
+        val prepared = if (layout != null) markConfiguredPositions(layout, content ?: "") else (content ?: "")
+        if (ctx.kind == "douyin") return buildDouyin(ctx, prepared)
+        val frag = Jsoup.parseBodyFragment(prepared)'''),
+    ('''            fillUnit(ctx, clones, i, if (hasCopy) ordered[i] else null, if (pool.isNotEmpty()) pool[i % pool.size] else null, extras)''',
+'''            fillUnit(ctx, clones, i, if (hasCopy) ordered[i] else null, if (pool.isNotEmpty()) pool[i % pool.size] else null, extras, ui.previewEmoji)'''),
+    ('''        if (ui.previewEmoji.isNotEmpty()) appendEmojiToNumbers(ctx, host, ui.previewEmoji)
+        return out''',
+'''        if (ui.previewEmoji.isNotEmpty() && host.select("[data-swju-emoji-slot]").isEmpty()) appendEmojiToNumbers(ctx, host, ui.previewEmoji)
+        return out'''),
+    ('''    private fun fillUnit(ctx: Ctx, nodes: List<Element>, i: Int, line: TextUtil.Parsed?, img: String?, extras: List<String>) {
+        val cands = ArrayList<TextNode>()''',
+'''    private fun fillUnit(ctx: Ctx, nodes: List<Element>, i: Int, line: TextUtil.Parsed?, img: String?, extras: List<String>, emoji: String) {
+        val textSlot = nodes.flatMap { root ->
+            (if (root.hasAttr("data-swju-text-slot")) listOf(root) else emptyList()) + root.select("[data-swju-text-slot]").toList()
+        }.firstOrNull()
+        if (textSlot != null && line != null) {
+            textSlot.empty()
+            line.body.split("\\\\n").forEachIndexed { index, part ->
+                if (index > 0) textSlot.appendElement("br")
+                textSlot.appendText(part)
+            }
+        }
+        val cands = ArrayList<TextNode>()'''),
+    ('''        if (line != null && cands.isNotEmpty()) {''','''        if (textSlot == null && line != null && cands.isNotEmpty()) {'''),
+    ('''        if (img != null) {
+            nodes.forEach { root ->
+                imgsOf(root).forEach { im ->''',
+'''        if (emoji.isNotBlank()) {
+            val emojiSlot = nodes.flatMap { root ->
+                (if (root.hasAttr("data-swju-emoji-slot")) listOf(root) else emptyList()) + root.select("[data-swju-emoji-slot]").toList()
+            }.firstOrNull()
+            if (emojiSlot != null) { emojiSlot.empty(); emojiSlot.appendChild(makeEmoji(emoji)) }
+        }
+        if (img != null) {
+            val imageSlot = nodes.flatMap { root ->
+                (if (root.hasAttr("data-swju-image-slot")) listOf(root) else emptyList()) + root.select("[data-swju-image-slot]").toList()
+            }.firstOrNull()
+            if (imageSlot != null) {
+                val target = if (imageSlot.tagName() == "img") imageSlot else imageSlot.selectFirst("img")
+                if (target != null) setPreviewImage(target, img)
+                else {
+                    imageSlot.empty()
+                    imageSlot.appendElement("img").attr("style", "display:block;width:100%;height:auto;").also { setPreviewImage(it, img) }
+                }
+            } else nodes.forEach { root ->
+                imgsOf(root).forEach { im ->''')
+])
+patch("ui/MyScreens.kt",[
+    ('''    edit?.let { l ->
+        var name by remember(l.id) { mutableStateOf(l.name) }; var content by remember(l.id) { mutableStateOf(l.content) }
+        var confirm by remember { mutableStateOf(false) }
+        EditDialog("详情与编辑", { edit = null },
+            { vm.saveLayout(l.copy(name = name.ifEmpty { "未命名配置" }, content = content)); edit = null },
+            if (isNew) null else ({ confirm = true })) {
+            Text("名称需含 朋友圈 / 文字断句 / 卡片 / 断章序引 之一，才会套用对应的出处、倍率、头像规则", color = AppColors.MyDim, fontSize = 12.sp)
+            Field("配置名称", name, { name = it })
+            Field("模板代码（HTML）", content, { content = it }, 10)
+            Text("当前版式渲染预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, l.copy(name = name, content = content),
+                Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
+        }
+        if (confirm) ConfirmDelete("版式", { vm.deleteLayout(l.id); confirm = false; edit = null }, { confirm = false })
+    }''',
+'''    edit?.let { l ->
+        var name by remember(l.id) { mutableStateOf(l.name) }
+        var content by remember(l.id) { mutableStateOf(l.content) }
+        var textPosition by remember(l.id) { mutableStateOf(l.textPosition) }
+        var imagePosition by remember(l.id) { mutableStateOf(l.imagePosition) }
+        var emojiPosition by remember(l.id) { mutableStateOf(l.emojiPosition) }
+        var gifLeft by remember(l.id) { mutableStateOf(l.gifMarginLeft?.toString().orEmpty()) }
+        var gifRight by remember(l.id) { mutableStateOf(l.gifMarginRight?.toString().orEmpty()) }
+        var historyLeft by remember(l.id) { mutableStateOf(l.historyMarginLeft?.toString().orEmpty()) }
+        var historyRight by remember(l.id) { mutableStateOf(l.historyMarginRight?.toString().orEmpty()) }
+        var showAdvanced by remember(l.id) { mutableStateOf(false) }
+        var confirm by remember { mutableStateOf(false) }
+        val updatedLayout = l.copy(
+            name = name.ifEmpty { "未命名配置" }, content = content,
+            textPosition = textPosition, imagePosition = imagePosition, emojiPosition = emojiPosition,
+            gifMarginLeft = gifLeft.toIntOrNull()?.coerceIn(0, 300),
+            gifMarginRight = gifRight.toIntOrNull()?.coerceIn(0, 300),
+            historyMarginLeft = historyLeft.toIntOrNull()?.coerceIn(0, 300),
+            historyMarginRight = historyRight.toIntOrNull()?.coerceIn(0, 300)
+        )
+        EditDialog("详情与编辑", { edit = null },
+            { vm.saveLayout(updatedLayout); edit = null },
+            if (isNew) null else ({ confirm = true })) {
+            Text("配置名称", color = AppColors.MyText, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Field("配置名称", name, { name = it })
+            Field("模板代码（HTML）", content, { content = it }, 10)
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F7)).clickable { showAdvanced = !showAdvanced }.padding(horizontal = 12.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("高级位置与间距配置", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text(if (showAdvanced) "收起 －" else "展开 ＋", color = AppColors.Theme, fontSize = 12.sp)
+            }
+            if (showAdvanced) {
+                Text("位置配置（输入模板代码中的原始片段；留空时沿用原有自动识别）", color = AppColors.MyDim, fontSize = 11.sp)
+                Field("文案位置片段", textPosition, { textPosition = it }, 3, "粘贴模板中要被文案替换的完整 HTML 片段")
+                if (textPosition.isNotBlank()) Text(if (content.contains(textPosition.trim())) "✓ 已在模板代码中找到片段" else "⚠ 当前片段未精确匹配；检查是否复制了完整代码", color = if (content.contains(textPosition.trim())) Color(0xFF16834A) else Color(0xFFCC7A00), fontSize = 11.sp)
+                Field("配图位置片段", imagePosition, { imagePosition = it }, 3, "粘贴模板中要被图片替换的完整 HTML 片段")
+                if (imagePosition.isNotBlank()) Text(if (content.contains(imagePosition.trim())) "✓ 已在模板代码中找到片段" else "⚠ 当前片段未精确匹配；检查是否复制了完整代码", color = if (content.contains(imagePosition.trim())) Color(0xFF16834A) else Color(0xFFCC7A00), fontSize = 11.sp)
+                Field("emoji 位置片段", emojiPosition, { emojiPosition = it }, 3, "粘贴模板中要插入 emoji 的完整 HTML 片段")
+                if (emojiPosition.isNotBlank()) Text(if (content.contains(emojiPosition.trim())) "✓ 已在模板代码中找到片段" else "⚠ 当前片段未精确匹配；检查是否复制了完整代码", color = if (content.contains(emojiPosition.trim())) Color(0xFF16834A) else Color(0xFFCC7A00), fontSize = 11.sp)
+                HorizontalDivider(color = Color(0xFFE5E7EB))
+                Text("动图左右边距（dp）", color = AppColors.MyText, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) { Field("左边距", gifLeft, { gifLeft = it }, hint = "留空沿用原设置") }
+                    Box(Modifier.weight(1f)) { Field("右边距", gifRight, { gifRight = it }, hint = "留空沿用原设置") }
+                }
+                Text("往期左右边距（dp）", color = AppColors.MyText, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) { Field("左边距", historyLeft, { historyLeft = it }, hint = "留空沿用原设置") }
+                    Box(Modifier.weight(1f)) { Field("右边距", historyRight, { historyRight = it }, hint = "留空沿用原设置") }
+                }
+                Text("以上默认值分别保存；排版页已有的边距调整仍然有效，并优先于这里的默认值。", color = AppColors.MyDim, fontSize = 11.sp)
+            }
+            Text("当前版式渲染预览", color = AppColors.MyText, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            RenderedLayoutPreview(vm, updatedLayout, Modifier.fillMaxWidth().aspectRatio(3f / 4f).clip(RoundedCornerShape(12.dp)))
+        }
+        if (confirm) ConfirmDelete("版式", { vm.deleteLayout(l.id); confirm = false; edit = null }, { confirm = false })
+    }''')
+])
+patch("ui/LayoutScreen.kt",[
+    ('''            Column(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (selected) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp)).clickable { vm.selectLayout(l.id) }) {
+                RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                Text("文字断句", Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (selected) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1, textAlign = TextAlign.Center)
+            }''',
+'''            Box(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (selected) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp))) {
+                Column(Modifier.fillMaxWidth()) {
+                    RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                    Text(shortName(l.name), Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (selected) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+                // WebView 会消费触摸事件，透明点击层覆盖预览图和名称，保证整张卡片可点。
+                Box(Modifier.matchParentSize().clickable { vm.selectLayout(l.id) })
+            }''')
+])
+
+# Verify all new capabilities are actually wired into persistence and preview rendering.
+_models = (java / "data/Models.kt").read_text(encoding="utf-8")
+_store = (java / "data/Store.kt").read_text(encoding="utf-8")
+_vm = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+_engine = (java / "engine/PreviewEngine.kt").read_text(encoding="utf-8")
+_my = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+_picker = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+for field in ["textPosition", "imagePosition", "emojiPosition", "gifMarginLeft", "historyMarginLeft"]:
+    if field not in _models or field not in _my:
+        raise SystemExit("Layout configuration field missing from model/editor: " + field)
+if "data-swju-text-slot" not in _engine or "data-swju-image-slot" not in _engine or "data-swju-emoji-slot" not in _engine:
+    raise SystemExit("Custom template slot markers are not wired to rendering")
+if "val byName" not in _vm or "replacement = x.copy(id = old.id)" not in _vm:
+    raise SystemExit("Same-name layout replacement is missing")
+if "templates[layoutKindOf(l.name)]?.let" in _store:
+    raise SystemExit("Legacy layout-version migration still overwrites imported template HTML")
+if 'Text(shortName(l.name)' not in _picker or "Modifier.matchParentSize().clickable" not in _picker:
+    raise SystemExit("Layout picker names or full-card click target missing")
+print("Custom layout slots, independent media margins, same-name replacement and picker acceptance passed.")
