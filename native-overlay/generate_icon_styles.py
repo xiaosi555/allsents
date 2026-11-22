@@ -112,8 +112,8 @@ for name in names:
     fitted = ImageOps.contain(mark_crop, (safe_size, safe_size), method=Image.Resampling.LANCZOS)
     fitted_mask = fitted.getchannel("A")
     if name=="8bit":
-        pix = fitted_mask.resize((max(1,safe_size//7), max(1,safe_size//7)),Image.Resampling.LANCZOS)
-        fitted_mask = pix.resize((safe_size,safe_size),Image.Resampling.NEAREST)
+        pix = fitted_mask.resize((max(1,fitted.width//7), max(1,fitted.height//7)),Image.Resampling.LANCZOS)
+        fitted_mask = pix.resize(fitted.size,Image.Resampling.NEAREST)
     mask = Image.new("L",(S,S),0)
     mask.paste(fitted_mask,((S-fitted.width)//2,(S-fitted.height)//2))
     logo=recolor(mask,color)
