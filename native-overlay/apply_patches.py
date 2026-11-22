@@ -3556,7 +3556,6 @@ patch("ui/AppViewModel.kt", [
         if (style !in allowed) return
         store.setIconStyle(style)
         iconStyle = store.iconStyle
-        toast("桌面图标已切换")
     }''')
 ]);
 
