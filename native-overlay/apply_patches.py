@@ -3516,3 +3516,85 @@ patch("data/Store.kt", [
 
     // ---- 界面状态 ----''')
 ]);
+
+
+patch("ui/AppViewModel.kt", [
+    ('''    var textViewMode by mutableStateOf(store.textViewMode); private set
+''',
+     '''    var textViewMode by mutableStateOf(store.textViewMode); private set
+    var themeColor by mutableStateOf(store.themeColor); private set
+    var iconStyle by mutableStateOf(store.iconStyle); private set
+'''),
+    ('''    init { validateSelections(); rebuild() }''',
+     '''    init {
+        AppColors.setThemeColor(themeColor)
+        store.applyLauncherIcon(iconStyle)
+        validateSelections()
+        rebuild()
+    }
+
+    fun selectThemeColor(hex: String) {
+        if (!Regex("^#[0-9A-Fa-f]{6}$").matches(hex)) return
+        store.themeColor = hex
+        themeColor = hex
+        AppColors.setThemeColor(hex)
+    }
+
+    fun selectIconStyle(style: String) {
+        val allowed = setOf("original", "cowboy", "code", "line", "plush", "sky", "space", "graffiti", "kids", "pixel", "sketch")
+        if (style !in allowed) return
+        store.setIconStyle(style)
+        iconStyle = store.iconStyle
+        toast("桌面图标已切换")
+    }''')
+]);
+
+patch("ui/MyScreens.kt", [
+    ('''val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式管理"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
+     '''val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式管理"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }'''),
+    ('''                "accounts" -> AccountsPage(vm)''',
+     '''                "settings" -> AppearancePage(vm)
+                "accounts" -> AccountsPage(vm)'''),
+    ('''private fun HomePage(vm: AppViewModel, go: (String) -> Unit) = Page {
+    val d = vm.data
+    ListRow("账号",''',
+     '''private fun HomePage(vm: AppViewModel, go: (String) -> Unit) = Page {
+    val d = vm.data
+    ListRow("设置", "主题颜色、图标风格") { go("settings") }
+    ListRow("账号",''')
+]);
+
+# Android launcher aliases are independent components targeting the same MainActivity.
+_manifest_path = base / "AndroidManifest.xml"
+_manifest = _manifest_path.read_text(encoding="utf-8")
+if "<!-- Dynamic launcher icon aliases -->" not in _manifest:
+    _activity = re.search(r'(<activity\s+android:name="\.MainActivity"[^>]*>)([\s\S]*?)(</activity>)', _manifest)
+    if not _activity:
+        raise SystemExit("MainActivity entry not found in AndroidManifest.xml")
+    _body = _activity.group(2)
+    _body2, _removed = re.subn(
+        r'\s*<intent-filter>\s*<action android:name="android.intent.action.MAIN"\s*/>\s*<category android:name="android.intent.category.LAUNCHER"\s*/>\s*</intent-filter>',
+        "", _body, count=1
+    )
+    if _removed != 1:
+        raise SystemExit("MainActivity launcher intent-filter not found or ambiguous")
+    _manifest = _manifest[:_activity.start(2)] + _body2 + _manifest[_activity.end(2):]
+    _styles = ["original", "cowboy", "code", "line", "plush", "sky", "space", "graffiti", "kids", "pixel", "sketch"]
+    _aliases = []
+    for _style in _styles:
+        _class = "Launcher" + _style.capitalize()
+        _enabled = "true" if _style == "original" else "false"
+        _aliases.append(f'''        <activity-alias
+            android:name=".{_class}"
+            android:targetActivity=".MainActivity"
+            android:enabled="{_enabled}"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_{_style}"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>''')
+    _manifest = _manifest.replace("    </application>", "<!-- Dynamic launcher icon aliases -->\n" + "\n".join(_aliases) + "\n    </application>", 1)
+    _manifest_path.write_text(_manifest, encoding="utf-8")
