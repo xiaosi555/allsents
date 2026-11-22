@@ -3114,7 +3114,7 @@ patch("engine/PreviewEngine.kt",[
         }.firstOrNull()
         if (textSlot != null && line != null) {
             textSlot.empty()
-            line.body.split("\\\\n").forEachIndexed { index, part ->
+            line.body.split("\\n").forEachIndexed { index, part ->
                 if (index > 0) textSlot.appendElement("br")
                 textSlot.appendText(part)
             }
