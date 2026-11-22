@@ -3561,18 +3561,18 @@ patch("ui/AppViewModel.kt", [
 ]);
 
 patch("ui/MyScreens.kt", [
-    ('''val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式管理"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
-     '''val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式管理"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }'''),
+    ('''val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }''',
+     '''val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }'''),
     ('''                "accounts" -> AccountsPage(vm)''',
      '''                "settings" -> AppearancePage(vm)
                 "accounts" -> AccountsPage(vm)'''),
     ('''private fun HomePage(vm: AppViewModel, go: (String) -> Unit) = Page {
     val d = vm.data
     val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
-    ListRow("设置", "主题颜色、图标风格") { go("settings") }
     ListRow("账号",''',
      '''private fun HomePage(vm: AppViewModel, go: (String) -> Unit) = Page {
     val d = vm.data
+    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
     ListRow("设置", "主题颜色、图标风格") { go("settings") }
     ListRow("账号",''')
 ]);
