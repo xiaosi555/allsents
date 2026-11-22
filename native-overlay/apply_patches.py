@@ -2813,10 +2813,10 @@ patch("ui/AppViewModel.kt",[
             ui = ui.copy(layoutId = firstLayout.id)
             store.saveUi(ui)
         }'''),
-    ('''    fun selectLayout(id: String) {
-        val item = data.layout.firstOrNull { it.id == id } ?: return
-        if (!item.name.contains("文字断句") && !item.name.contains("断句")) return
-        updateUi { copy(layoutId = id) }
+    ('''    private fun drawDouyinBg(): String = data.files.image.filter { it.name.contains("抖音背景") }.flatMap { TextUtil.imageUrls(it.content) }.randomOrNull().orEmpty()
+    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        updateUi { copy(layoutId = id, douyinBg = if (item?.name?.contains("抖音") == true) drawDouyinBg() else douyinBg) }
     }''',
      '''    fun selectLayout(id: String) {
         if (data.layout.none { it.id == id }) return
