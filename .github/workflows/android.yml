@@ -57,29 +57,40 @@ jobs:
           PROJECT="source/ShiWanJu-Android"
           test -f "$PROJECT/app/build.gradle.kts"
           mkdir -p "$PROJECT/app/src/main/res/drawable-nodpi"
-          cp IMG_20261017_090019.jpg "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
-          # Regenerate every legacy launcher density from the same complete square source image.
-          python3 -m pip install --quiet pillow
+          # The repository SVG is the single source of truth for the app logo.
+          python3 -m pip install --quiet pillow cairosvg
           python3 - <<'PY'
+          import cairosvg
+          from io import BytesIO
           from PIL import Image, ImageOps
           from pathlib import Path
-          src = Image.open("IMG_20261017_090019.jpg").convert("RGBA")
+          svg = Path("拾万句_简_淡黄色.svg")
+          if not svg.is_file():
+              raise SystemExit("Missing authoritative logo: 拾万句_简_淡黄色.svg")
+          # Rasterize the original SVG without recoloring or cropping its artwork.
+          png = cairosvg.svg2png(url=str(svg), output_width=1024, output_height=952)
+          artwork = Image.open(BytesIO(png)).convert("RGBA")
+          square = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
+          square.alpha_composite(artwork, ((1024-artwork.width)//2, (1024-artwork.height)//2))
+          drawable = Path("source/ShiWanJu-Android/app/src/main/res/drawable-nodpi")
+          drawable.mkdir(parents=True, exist_ok=True)
+          square.save(drawable / "app_logo.png", optimize=True)
           bg = (86, 210, 116, 255)
           for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
               folder = Path("source/ShiWanJu-Android/app/src/main/res") / f"mipmap-{density}"
               folder.mkdir(parents=True, exist_ok=True)
-              fitted = ImageOps.contain(src, (int(size * 0.78), int(size * 0.78)), method=Image.Resampling.LANCZOS)
+              fitted = ImageOps.contain(square, (int(size * 0.82), int(size * 0.82)), method=Image.Resampling.LANCZOS)
               canvas = Image.new("RGBA", (size, size), bg)
               canvas.alpha_composite(fitted, ((size-fitted.width)//2, (size-fitted.height)//2))
               canvas.save(folder / "ic_launcher.png", optimize=True)
               canvas.save(folder / "ic_launcher_round.png", optimize=True)
-          # Adaptive icons are masked by Android launchers. Keep the complete logo artwork
-          # inside the central safe circle instead of filling the 108dp foreground square.
-          safe = ImageOps.contain(src, (58, 58), method=Image.Resampling.LANCZOS)
-          drawable = Path("source/ShiWanJu-Android/app/src/main/res/drawable-nodpi")
-          drawable.mkdir(parents=True, exist_ok=True)
-          safe.save(drawable / "launcher_logo_foreground.png", optimize=True)
+          # Android adaptive icon foreground: preserve the complete logo inside its safe area.
+          safe = ImageOps.contain(square, (64, 64), method=Image.Resampling.LANCZOS)
+          safe_canvas = Image.new("RGBA", (108, 108), (0, 0, 0, 0))
+          safe_canvas.alpha_composite(safe, ((108-safe.width)//2, (108-safe.height)//2))
+          safe_canvas.save(drawable / "launcher_logo_foreground.png", optimize=True)
           PY
+          rm -f "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
           # Apply Kotlin/engine/data fixes onto the untouched original native project.
           # Do not overlay the previous HomeScreen/MainActivity experiment.
           python3 native-overlay/apply_patches.py
