@@ -3289,3 +3289,98 @@ patch("ui/LayoutScreen.kt",[
             else vm.data.copy(layout = vm.data.layout + layout)
         val body = PreviewEngine.render(previewData, previewState)''')
 ])
+
+
+patch("engine/PreviewEngine.kt",[
+    ('''    private fun blockMargins(ui: UiState, kind: String, layout: com.shiwanju.app.data.LayoutItem?, isGif: Boolean): List<Int> {
+        val key = kind.ifEmpty { "default" }
+        val override = ui.margins[key]?.takeIf { it.size == 4 }''',
+'''    fun blockMargins(ui: UiState, kind: String, layout: com.shiwanju.app.data.LayoutItem?, isGif: Boolean): List<Int> {
+        val key = kind.ifEmpty { "default" }
+        val targetKey = (if (isGif) "gif:" else "history:") + key
+        val override = ui.margins[targetKey]?.takeIf { it.size == 4 }
+            ?: ui.margins[key]?.takeIf { it.size == 4 }''')
+])
+# Replace the existing shared margin setter without embedding its Kotlin interpolation expression in this patch script.
+_vm_path = java / "ui/AppViewModel.kt"
+_vm_text = _vm_path.read_text(encoding="utf-8")
+_vm_start = _vm_text.find("    /** 往期 / 动图共用边距：index 0..3")
+_vm_end = _vm_text.find("\n    /** 全局空行", _vm_start)
+if _vm_start < 0 or _vm_end < 0:
+    raise SystemExit("Could not locate existing shared margin setter")
+_new_margin_methods = '''    /** 分别读取动图 / 往期边距；旧版共享边距仍作为兼容回退。 */
+    fun marginsFor(target: String): List<Int> =
+        PreviewEngine.blockMargins(ui, kind, data.layout.getOrNull(layoutIndex), target == "gif")
+
+    /** index 0..3 = 上右下左；动图与往期分别保存，不再互相覆盖。 */
+    fun setMargin(target: String, index: Int, value: Int) {
+        val arr = marginsFor(target).toMutableList()
+        arr[index] = value.coerceAtLeast(0)
+        val key = (if (target == "gif") "gif:" else "history:") + (kind.ifEmpty { "default" })
+        updateUiQuiet { copy(margins = margins + (key to arr)) }
+        js?.invoke("setMarginsFor('$target'," + arr.joinToString(",") + ")")
+    }
+
+    /** 兼容旧调用，默认修改动图边距。 */
+    fun setMargin(index: Int, value: Int) = setMargin("gif", index, value)
+'''
+_vm_path.write_text(_vm_text[:_vm_start] + _new_margin_methods + _vm_text[_vm_end:], encoding="utf-8")
+
+patch("ui/LayoutScreen.kt",[
+    ('''            Text("往期 / 动图边距（上 右 下 左，px）", color = AppColors.Theme, fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+            val m = vm.margins
+            listOf(listOf(0 to "上", 1 to "右"), listOf(2 to "下", 3 to "左")).forEach { rowItems ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    rowItems.forEach { (idx, label) ->
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Text(label, color = Color(0xFFBBBBBB), fontSize = 13.sp, modifier = Modifier.width(20.dp))
+                            Stepper(m[idx], { vm.setMargin(idx, it) })
+                        }
+                    }
+                }
+            }''',
+'''            Text("媒体边距（上 右 下 左，px）", color = AppColors.Theme, fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+            var marginTarget by remember { mutableStateOf("gif") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ThemeChip("动图", marginTarget == "gif") { marginTarget = "gif" }
+                ThemeChip("往期", marginTarget == "history") { marginTarget = "history" }
+            }
+            val m = vm.marginsFor(marginTarget)
+            listOf(listOf(0 to "上", 1 to "右"), listOf(2 to "下", 3 to "左")).forEach { rowItems ->
+                Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    rowItems.forEach { (idx, label) ->
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Text(label, color = Color(0xFFBBBBBB), fontSize = 13.sp, modifier = Modifier.width(20.dp))
+                            Stepper(m[idx], { vm.setMargin(marginTarget, idx, it) })
+                        }
+                    }
+                }
+            }''')
+])
+_asset = base / "assets/preview.html"
+_asset_text = _asset.read_text(encoding="utf-8")
+if "window.setMarginsFor = function" not in _asset_text:
+    anchor = '''  window.setMargins = function (t, r, b, l) {'''
+    if anchor not in _asset_text:
+        raise SystemExit("Preview margin function anchor not found")
+    helper = '''  window.setMarginsFor = function (type, t, r, b, l) {
+    var v = [t, r, b, l], names = ['top', 'right', 'bottom', 'left'];
+    var selector = type === 'gif' ? '[data-preview-gif]' : '[data-preview-history]';
+    Array.from(area.querySelectorAll(selector)).forEach(function (el) {
+      names.forEach(function (n, i) { el.style.setProperty('margin-' + n, v[i] + 'px', 'important'); });
+    });
+  };
+'''
+    _asset_text = _asset_text.replace(anchor, helper + anchor, 1)
+    _asset.write_text(_asset_text, encoding="utf-8")
+_picker = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+_vm = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+_engine = (java / "engine/PreviewEngine.kt").read_text(encoding="utf-8")
+_asset_text = (base / "assets/preview.html").read_text(encoding="utf-8")
+if "fun marginsFor(target: String)" not in _vm or 'vm.setMargin(marginTarget, idx, it)' not in _picker:
+    raise SystemExit("Separate GIF/history margin controls are not connected")
+if 'ui.margins[targetKey]' not in _engine or "window.setMarginsFor = function" not in _asset_text:
+    raise SystemExit("Separate media margin persistence/live preview is incomplete")
+print("Independent GIF/history margin controls passed.")
