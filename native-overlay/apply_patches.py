@@ -3613,7 +3613,7 @@ if "fun selectIconStyle(style: String)" not in _vm_file or "applyLauncherIcon(ic
     raise SystemExit("Icon style selection is not connected to app state")
 if 'ListRow("设置"' not in _my_file or '"settings" -> AppearancePage(vm)' not in _my_file:
     raise SystemExit("Settings entry or route is missing")
-if len(re.findall(r'ThemeChoice\\("', _settings_file)) != 9 or len(re.findall(r'IconChoice\\("', _settings_file)) != 11:
+if len(re.findall(r'ThemeChoice\("', _settings_file)) != 9 or len(re.findall(r'IconChoice\("', _settings_file)) != 11:
     raise SystemExit("Expected 9 theme colors and 11 icon styles")
 for _style in ["original"] + _icon_names:
     if not (_drawable / ("icon_style_" + _style + ".png")).is_file():
