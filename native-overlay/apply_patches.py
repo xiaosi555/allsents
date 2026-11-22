@@ -3389,11 +3389,11 @@ print("Independent GIF/history margin controls passed.")
 # Keep the layout schema version declaration when removing the legacy auto-added Douyin item.
 _store_path = java / "data/Store.kt"
 _store_text = _store_path.read_text(encoding="utf-8")
-_store_text = _store_text.replace(
-    "        val douyinAdded = true\n        if (layoutVer != LAYOUT_VER)",
-    "        val douyinAdded = true\n        var layoutVer = raw.layoutVer\n        if (layoutVer != LAYOUT_VER)",
-    1
-)
+if "var layoutVer = raw.layoutVer" not in _store_text:
+    anchor = "        val douyinAdded = true\n"
+    if anchor not in _store_text:
+        raise SystemExit("Could not find the normalized layout marker to restore layoutVer")
+    _store_text = _store_text.replace(anchor, anchor + "        var layoutVer = raw.layoutVer\n", 1)
 if "var layoutVer = raw.layoutVer" not in _store_text:
     raise SystemExit("Layout version declaration was not restored")
 _store_path.write_text(_store_text, encoding="utf-8")
