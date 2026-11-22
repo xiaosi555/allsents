@@ -2678,3 +2678,103 @@ private fun AccountEditDialog(
 
 // ---------------------------------------------------------------------- 文案（宫格 / 列表、排序）''')
 ])
+
+
+# ----------------------------------------------------------------------
+# 2026-11-22: show only the sentence-break layout in the app UI.
+# Keep every layout record in the external data store/backup untouched.
+patch("ui/AppViewModel.kt",[
+    ('''        validateSelections()
+        applyDefaultMediaOnce()
+        rebuild()
+    }''',
+     '''        validateSelections()
+        val sentenceLayout = data.layout.firstOrNull { it.name.contains("文字断句") || it.name.contains("断句") }
+        if (sentenceLayout != null && ui.layoutId != sentenceLayout.id) ui = ui.copy(layoutId = sentenceLayout.id)
+        applyDefaultMediaOnce()
+        rebuild()
+    }'''),
+    ('''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id }
+        updateUi {
+            if (item?.name?.contains("抖音") == true) copy(
+                layoutId = id, douyinBg = drawDouyinBg(), previewEmoji = "", gifId = null,
+                gifContent = "", historyIds = emptyList(), mediaOrder = emptyList(), mediaInit = true
+            ) else copy(layoutId = id)
+        }
+    }''',
+     '''    fun selectLayout(id: String) {
+        val item = data.layout.firstOrNull { it.id == id } ?: return
+        if (!item.name.contains("文字断句") && !item.name.contains("断句")) return
+        updateUi { copy(layoutId = id) }
+    }''')
+])
+
+patch("ui/LayoutScreen.kt",[
+    ('''private fun LayoutPanel(vm: AppViewModel) {
+    val list = vm.data.layout
+    if (list.isEmpty()) return EmptyTip("暂无版式，请到【我的】中添加")
+    val cur = vm.layoutIndex
+    LazyRow(Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        items(list.size) { i ->
+            val l = list[i]
+            Box(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (i == cur) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp))) {
+                Column(Modifier.fillMaxWidth()) {
+                    RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                    Text(shortName(l.name), Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (i == cur) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (i == cur) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+                Box(Modifier.matchParentSize().clickable { vm.selectLayout(l.id) })
+            }
+        }
+    }
+}''',
+     '''private fun LayoutPanel(vm: AppViewModel) {
+    val list = vm.data.layout.filter { it.name.contains("文字断句") || it.name.contains("断句") }
+    if (list.isEmpty()) return EmptyTip("数据中暂无文字断句版式")
+    val selectedId = vm.ui.layoutId
+    LazyRow(Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        items(list.size) { i ->
+            val l = list[i]
+            val selected = l.id == selectedId
+            Column(Modifier.width(82.dp).clip(RoundedCornerShape(9.dp)).border(2.dp, if (selected) AppColors.Theme else Color.Transparent, RoundedCornerShape(9.dp)).clickable { vm.selectLayout(l.id) }) {
+                RenderedLayoutPreview(vm, l, Modifier.fillMaxWidth().aspectRatio(3f / 4f))
+                Text("文字断句", Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 5.dp), color = if (selected) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium, maxLines = 1, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}'''),
+    ('''            ThemeChip("换一个", false) { vm.loadRandomTitle() }
+        }
+        Spacer(Modifier.height(10.dp))
+        CopyPreviewButton(vm)''',
+     '''            ThemeChip("换一个", false) { vm.loadRandomTitle() }
+            ThemeChip("文章全选", false) {
+                vm.js?.invoke("(function(){var root=document.body;if(!root)return false;root.style.webkitUserSelect='text';root.style.userSelect='text';var range=document.createRange();range.selectNodeContents(root);var selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);return true;})()")
+                vm.toast("已全选文章内容")
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        CopyPreviewButton(vm)''')
+])
+
+patch("ui/MyScreens.kt",[
+    ('''    if (vm.data.layout.isEmpty()) Empty("暂无版式，请点击右上角新增")
+    vm.data.layout.chunked(2).forEach { row ->''',
+     '''    val visibleLayouts = vm.data.layout.filter { it.name.contains("文字断句") || it.name.contains("断句") }
+    if (visibleLayouts.isEmpty()) Empty("数据中暂无文字断句版式")
+    visibleLayouts.chunked(2).forEach { row ->''')
+])
+
+# Hard acceptance: app UI must filter, preserve the full data collection, and expose the select-all action.
+_layoutScreen = (java / "ui/LayoutScreen.kt").read_text(encoding="utf-8")
+_myScreens = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+_viewModel = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+if 'vm.data.layout.filter { it.name.contains("文字断句") || it.name.contains("断句") }' not in _layoutScreen:
+    raise SystemExit("Layout picker is not restricted to the sentence-break layout")
+if 'visibleLayouts = vm.data.layout.filter' not in _myScreens:
+    raise SystemExit("Layout manager is not restricted to the sentence-break layout")
+if 'selection.selectAll' in _layoutScreen or 'selection.addRange(range)' not in _layoutScreen or '文章全选' not in _layoutScreen:
+    raise SystemExit("Article select-all button or WebView selection implementation missing")
+if 'data.layout.firstOrNull { it.name.contains("文字断句") || it.name.contains("断句") }' not in _viewModel:
+    raise SystemExit("Default sentence-break layout selection missing")
+print("Sentence-break-only UI and article select-all acceptance checks passed.")
