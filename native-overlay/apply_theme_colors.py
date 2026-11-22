@@ -74,35 +74,26 @@ if "var themeColor by mutableStateOf(store.themeColor)" not in vm:
     if vm_anchor not in vm:
         raise SystemExit("Required theme patch anchor missing (ViewModel preference state): AppViewModel.kt")
     vm = vm.replace(vm_anchor, vm_anchor + vm_insert, 1)
-init_old = """    init {
-        if (ui.tab == "image") {
-            ui = ui.copy(tab = "more", moreCat = "image")
-            store.saveUi(ui)
-        }
-        validateSelections()
-        rebuild()
-    }"""
-init_new = """    init {
-        if (ui.tab == "image") {
-            ui = ui.copy(tab = "more", moreCat = "image")
-            store.saveUi(ui)
-        }
-        AppColors.setThemeColor(themeColor)
-        validateSelections()
-        rebuild()
-    }
-
-    fun selectThemeColor(hex: String) {
+if "AppColors.setThemeColor(themeColor)" not in vm:
+    init_match = re.search(r"(?m)^    init \{\s*$", vm)
+    if not init_match:
+        raise SystemExit("Required theme patch anchor missing (ViewModel init declaration): AppViewModel.kt")
+    insert_at = init_match.end()
+    vm = vm[:insert_at] + "\n        AppColors.setThemeColor(themeColor)" + vm[insert_at:]
+if "fun selectThemeColor(hex: String)" not in vm:
+    base_anchor = "    // ------------------------------------------------------------------ 基础\n"
+    if base_anchor not in vm:
+        raise SystemExit("Required theme patch anchor missing (ViewModel base section): AppViewModel.kt")
+    select_method = """    fun selectThemeColor(hex: String) {
         if (!Regex("^#[0-9A-Fa-f]{6}$").matches(hex)) return
         val normalized = hex.uppercase()
         store.themeColor = normalized
         themeColor = normalized
         AppColors.setThemeColor(normalized)
-    }"""
-if "fun selectThemeColor(hex: String)" not in vm:
-    if init_old not in vm:
-        raise SystemExit("Required theme patch anchor missing (ViewModel init): AppViewModel.kt")
-    vm = vm.replace(init_old, init_new, 1)
+    }
+
+"""
+    vm = vm.replace(base_anchor, select_method + base_anchor, 1)
 vm_path.write_text(vm, encoding="utf-8")
 
 # Add Settings above Accounts and route to a theme-only page.
