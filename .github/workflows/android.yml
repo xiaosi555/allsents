@@ -94,6 +94,7 @@ jobs:
           # Apply Kotlin/engine/data fixes onto the untouched original native project.
           # Do not overlay the previous HomeScreen/MainActivity experiment.
           python3 native-overlay/apply_patches.py
+          python3 native-overlay/apply_theme_colors.py
           cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml" <<'XML'
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"

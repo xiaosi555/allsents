@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from io import BytesIO
 import re
 import shutil
-import cairosvg
-from PIL import Image, ImageOps
 root=Path(__file__).resolve().parents[1]
 base=root/"source/ShiWanJu-Android/app/src/main"
 java=base/"java/com/shiwanju/app"
@@ -19,32 +16,6 @@ def patch(rel,pairs):
   s=s.replace(a,b,1)
  p.write_text(s,encoding="utf-8")
 shutil.copy2(root/"native-overlay/app/src/main/assets/douyin_template.txt",base/"assets/douyin_template.html")
-
-# Appearance artwork: retain the original logo geometry and create independent icon assets.
-_icon_names = ["cowboy", "code", "line", "plush", "sky", "space", "graffiti", "kids", "pixel", "sketch"]
-_res = base / "res"
-_drawable = _res / "drawable-nodpi"
-_drawable.mkdir(parents=True, exist_ok=True)
-_density_sizes = [("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)]
-_logo = Image.open(_drawable / "app_logo.png").convert("RGBA")
-_original = Image.new("RGBA", (512, 512), (86, 210, 116, 255))
-_logo_fit = ImageOps.contain(_logo, (420, 420), method=Image.Resampling.LANCZOS)
-_original.alpha_composite(_logo_fit, ((512 - _logo_fit.width) // 2, (512 - _logo_fit.height) // 2))
-_icon_images = {"original": _original}
-for _style in _icon_names:
-    _svg = root / "icon-styles" / (_style + ".svg")
-    if not _svg.is_file():
-        raise SystemExit("Missing icon style artwork: " + str(_svg))
-    _png = cairosvg.svg2png(url=str(_svg), output_width=512, output_height=512)
-    _icon_images[_style] = Image.open(BytesIO(_png)).convert("RGBA")
-for _style, _image in _icon_images.items():
-    _image.save(_drawable / ("icon_style_" + _style + ".png"), optimize=True)
-    for _density, _size in _density_sizes:
-        _folder = _res / ("mipmap-" + _density)
-        _folder.mkdir(parents=True, exist_ok=True)
-        _scaled = _image.resize((_size, _size), Image.Resampling.LANCZOS)
-        _scaled.save(_folder / ("ic_launcher_" + _style + ".png"), optimize=True)
-        _scaled.save(_folder / ("ic_launcher_round_" + _style + ".png"), optimize=True)
 
 patch("engine/TextUtil.kt",[(
 '    /** 按单个换行符分割并剔除空行（随机标题的读取规则） */',
