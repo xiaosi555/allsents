@@ -2813,10 +2813,28 @@ patch("ui/AppViewModel.kt",[
             ui = ui.copy(layoutId = firstLayout.id)
             store.saveUi(ui)
         }'''),
-    ('''    private fun drawDouyinBg(): String = data.files.image.filter { it.name.contains("抖音背景") }.flatMap { TextUtil.imageUrls(it.content) }.randomOrNull().orEmpty()
-    fun selectLayout(id: String) {
+    ('''    fun selectLayout(id: String) {
         val item = data.layout.firstOrNull { it.id == id }
-        updateUi { copy(layoutId = id, douyinBg = if (item?.name?.contains("抖音") == true) drawDouyinBg() else douyinBg) }
+        val wasDouyin = kind == "douyin"
+        val isDouyin = item?.name?.contains("抖音") == true
+        updateUi {
+            when {
+                isDouyin -> copy(
+                    layoutId = id, douyinBg = drawDouyinBg(), previewEmoji = "", gifId = null,
+                    gifContent = "", historyIds = emptyList(), historyHtml = "",
+                    mediaOrder = emptyList(), mediaInit = true
+                )
+                wasDouyin -> copy(
+                    layoutId = id, previewEmoji = "", gifId = null, gifContent = "",
+                    historyIds = emptyList(), historyHtml = "", mediaOrder = emptyList(), mediaInit = false
+                )
+                else -> copy(layoutId = id)
+            }
+        }
+        if (wasDouyin && !isDouyin) {
+            applyDefaultMediaOnce()
+            rebuild()
+        }
     }''',
      '''    fun selectLayout(id: String) {
         if (data.layout.none { it.id == id }) return
