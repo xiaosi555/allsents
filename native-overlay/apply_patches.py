@@ -3598,3 +3598,30 @@ if "<!-- Dynamic launcher icon aliases -->" not in _manifest:
         </activity-alias>''')
     _manifest = _manifest.replace("    </application>", "<!-- Dynamic launcher icon aliases -->\n" + "\n".join(_aliases) + "\n    </application>", 1)
     _manifest_path.write_text(_manifest, encoding="utf-8")
+
+
+# Final fail-fast checks: do not publish an APK with a preview-only or partial selector.
+_theme_file = (java / "ui/Theme.kt").read_text(encoding="utf-8")
+_store_file = (java / "data/Store.kt").read_text(encoding="utf-8")
+_vm_file = (java / "ui/AppViewModel.kt").read_text(encoding="utf-8")
+_my_file = (java / "ui/MyScreens.kt").read_text(encoding="utf-8")
+_settings_file = (java / "ui/AppearanceSettings.kt").read_text(encoding="utf-8")
+_manifest_file = (base / "AndroidManifest.xml").read_text(encoding="utf-8")
+if "fun setThemeColor(hex: String)" not in _theme_file or "theme_color" not in _store_file:
+    raise SystemExit("Theme color preference persistence is missing")
+if "fun selectIconStyle(style: String)" not in _vm_file or "applyLauncherIcon(iconStyle)" not in _vm_file:
+    raise SystemExit("Icon style selection is not connected to app state")
+if 'ListRow("设置"' not in _my_file or '"settings" -> AppearancePage(vm)' not in _my_file:
+    raise SystemExit("Settings entry or route is missing")
+if len(re.findall(r'ThemeChoice\\("', _settings_file)) != 9 or len(re.findall(r'IconChoice\\("', _settings_file)) != 11:
+    raise SystemExit("Expected 9 theme colors and 11 icon styles")
+for _style in ["original"] + _icon_names:
+    if not (_drawable / ("icon_style_" + _style + ".png")).is_file():
+        raise SystemExit("Missing icon preview resource: " + _style)
+    if not (_res / "mipmap-xxxhdpi" / ("ic_launcher_" + _style + ".png")).is_file():
+        raise SystemExit("Missing launcher icon resource: " + _style)
+if _manifest_file.count("<activity-alias") != 11:
+    raise SystemExit("Expected 11 launcher aliases")
+import xml.etree.ElementTree as _ET
+_ET.parse(str(base / "AndroidManifest.xml"))
+print("Appearance settings, 9 theme colors, 11 icon styles and launcher aliases verified.")
