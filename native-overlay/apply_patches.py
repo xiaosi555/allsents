@@ -3251,3 +3251,21 @@ if "templates[layoutKindOf(l.name)]?.let" in _store:
 if 'Text(shortName(l.name)' not in _picker or "Modifier.matchParentSize().clickable" not in _picker:
     raise SystemExit("Layout picker names or full-card click target missing")
 print("Custom layout slots, independent media margins, same-name replacement and picker acceptance passed.")
+
+
+# Do not synthesize extra software layouts during import/normalization.
+# The imported list must remain exactly the user's imported list; only an empty list gets one default.
+_store_path = java / "data/Store.kt"
+_store_text = _store_path.read_text(encoding="utf-8")
+_dy_start = _store_text.find("        var douyinAdded = raw.douyinAdded")
+if _dy_start >= 0:
+    _dy_end = _store_text.find("\n        return AppData(", _dy_start)
+    if _dy_end < 0:
+        raise SystemExit("Could not isolate legacy automatic Douyin layout insertion")
+    _store_text = _store_text[:_dy_start] + "        val douyinAdded = true\n" + _store_text[_dy_end:]
+    _store_path.write_text(_store_text, encoding="utf-8")
+else:
+    print("Automatic Douyin layout insertion already absent.")
+if "val douyinAdded = true" not in _store_path.read_text(encoding="utf-8"):
+    raise SystemExit("Imported layout list may still receive an automatic extra layout")
+print("Layout import count remains exact; only empty data receives the single default.")
