@@ -3404,13 +3404,34 @@ print("Layout version declaration restored after removing automatic Douyin inser
 
 
 # ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Official account feed: link import, local article cache and WeChat deep links.
-patch("ui/MyScreens.kt",[
-    ('    Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {', '    if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {'),
-    ('val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }',
-     'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; else -> "我的" }'),
-    ('                "backup" -> BackupPage(vm)\n                else -> HomePage(vm) { route = it }',
-     '                "backup" -> BackupPage(vm)\n                "official" -> OfficialAccountPage { route = "home" }\n                else -> HomePage(vm) { route = it }'),
-    ('    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }',
-     '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }\n    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }')
-])
+_my_path = java / "ui/MyScreens.kt"
+_my = _my_path.read_text(encoding="utf-8")
+_root = '    Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {'
+if 'if (route == "official")' not in _my:
+    if _root not in _my:
+        raise SystemExit("Official account integration: MyScreen root column anchor missing")
+    _my = _my.replace(_root, '    if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {', 1)
+_title_line = next((line for line in _my.splitlines() if "val title = when (route)" in line), None)
+if _title_line and '"official" -> "公众号"' not in _title_line:
+    _my = _my.replace(_title_line, _title_line.replace('; else -> "我的" }', '; "official" -> "公众号"; else -> "我的" }'), 1)
+_route_anchor = '                else -> HomePage(vm) { route = it }'
+if '"official" -> OfficialAccountPage' not in _my:
+    if _route_anchor not in _my:
+        raise SystemExit("Official account integration: MyScreen route anchor missing")
+    _my = _my.replace(_route_anchor, '                "official" -> OfficialAccountPage { route = "home" }\\n' + _route_anchor, 1)
+_home_start = _my.find("private fun HomePage")
+_home_end = _my.find("// ---------------------------------------------------------------------- 账号", _home_start)
+if _home_start < 0 or _home_end < 0:
+    raise SystemExit("Official account integration: HomePage section missing")
+_home = _my[_home_start:_home_end]
+if 'ListRow("公众号"' not in _home:
+    lines = _home.splitlines()
+    index = next((n for n, line in enumerate(lines) if 'ListRow("备份"' in line), -1)
+    if index < 0:
+        raise SystemExit("Official account integration: HomePage backup row missing")
+    lines.insert(index, '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }')
+    _my = _my[:_home_start] + "\\n".join(lines) + "\\n" + _my[_home_end:]
+_my_path.write_text(_my, encoding="utf-8")
+print("Official account feed route and My-page entry connected.")
