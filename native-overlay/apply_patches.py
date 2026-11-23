@@ -6,7 +6,6 @@ root=Path(__file__).resolve().parents[1]
 base=root/"source/ShiWanJu-Android/app/src/main"
 java=base/"java/com/shiwanju/app"
 shutil.copy2(root/"native-overlay/app/src/main/java/com/shiwanju/app/ui/OfficialAccountPage.kt", java/"ui/OfficialAccountPage.kt")
-shutil.copy2(root/"native-overlay/app/src/main/java/com/shiwanju/app/ui/HistoryArticlesPage.kt", java/"ui/HistoryArticlesPage.kt")
 def patch(rel,pairs):
  p=java/rel;s=p.read_text(encoding="utf-8")
  for a,b in pairs:
@@ -3413,7 +3412,7 @@ _root = '    Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBars
 if 'if (route == "official")' not in _my:
     if _root not in _my:
         raise SystemExit("Official account integration: MyScreen root column anchor missing")
-    _my = _my.replace(_root, '    if (route == "history") { HistoryArticlesPage { route = "home" } } else if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {', 1)
+    _my = _my.replace(_root, '    if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {', 1)
 _title_line = next((line for line in _my.splitlines() if "val title = when (route)" in line), None)
 if _title_line and '"official" -> "公众号"' not in _title_line:
     _my = _my.replace(_title_line, _title_line.replace('; else -> "我的" }', '; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'), 1)
