@@ -75,8 +75,8 @@ def build_logo(color, pixelated=False, width_ratio=0.66):
     source_center_x = 432.66
     source_center_y = (90.0 + 777.86) / 2.0
     reference_width = 108.0 * width_ratio
-    # Optical correction: move the logo slightly upward from the geometric center.
-    reference_center_y = 51.5
+    # Use the exact canvas midpoint so launcher and in-app previews align identically.
+    reference_center_y = 54.0
     scale = reference_width / source_width
     tx = 54.0 - source_center_x * scale
     ty = reference_center_y - source_center_y * scale
