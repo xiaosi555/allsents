@@ -38,10 +38,10 @@ private val iconStyles = listOf(
 )
 
 @Composable
-fun IconSettingsPage(vm: AppViewModel) {
+fun IconSettingsSection(vm: AppViewModel) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("图标风格", color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Text("选择后会切换手机桌面图标；原版图形轮廓保持一致。", color = Color(0xFF8A8A8A), fontSize = 12.sp)
