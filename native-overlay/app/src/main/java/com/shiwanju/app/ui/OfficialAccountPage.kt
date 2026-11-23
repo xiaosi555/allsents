@@ -159,7 +159,7 @@ fun OfficialAccountPage(onBack: () -> Unit) {
                     if (!opened) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url))) }
                 }) {
                     Text(article.publishedAt.ifBlank { "文章" }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), color = Color.LightGray, fontSize = 14.sp)
-                    val coverUrl = article.cover.ifBlank { article.images.firstOrNull().orEmpty() }
+                    val coverUrl = article.cover
                     if (coverUrl.isBlank()) {
                         Box(Modifier.fillMaxWidth().height(180.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) {
                             Text("封面暂不可用", color = Color(0xFF8AAB98), fontSize = 14.sp)
