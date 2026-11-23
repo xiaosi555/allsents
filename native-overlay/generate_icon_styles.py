@@ -75,7 +75,7 @@ def build_logo(color, pixelated=False, width_ratio=0.66):
     source_center_x = 432.66
     source_center_y = (90.0 + 777.86) / 2.0
     reference_width = 108.0 * width_ratio
-    # Center the logo on the 108x108 canvas; the previous sprite-derived\n    # center (59.92px) placed every preview and launcher logo visibly too low.\n    reference_center_y = 54.0
+    # Center the logo on the 108x108 canvas; the previous sprite-derived\n    # center (59.92px) placed every preview and launcher logo visibly too low.\n    reference_center_y = 51.5
     scale = reference_width / source_width
     tx = 54.0 - source_center_x * scale
     ty = reference_center_y - source_center_y * scale
