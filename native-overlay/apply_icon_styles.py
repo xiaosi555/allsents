@@ -60,9 +60,7 @@ vm_path.write_text(s,encoding="utf-8")
 my_path=java/"ui/MyScreens.kt"
 s=my_path.read_text(encoding="utf-8")
 s=s.replace('"settings" -> "设置"; "accounts"','"settings" -> "设置"; "icons" -> "图标风格"; "accounts"',1)
-if '"icons" -> IconSettingsPage(vm)' not in s:
-    s=s.replace('                "settings" -> ThemeSettingsPage(vm)','                "settings" -> ThemeSettingsPage(vm)\n                "icons" -> IconSettingsPage(vm)',1)
-s=s.replace('ListRow("设置", "主题颜色") { go("settings") }','ListRow("设置", "主题颜色") { go("settings") }\n    ListRow("图标风格", "11 种桌面图标") { go("icons") }',1)
+
 my_path.write_text(s,encoding="utf-8")
 
 # The activity itself is no longer the launcher; one alias per style allows live icon switching.
