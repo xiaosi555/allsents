@@ -1,137 +1,81 @@
 #!/usr/bin/env python3
-"""Generate eleven launcher icon variants from the authoritative repository SVG.
-The SVG paths are never redrawn: only background material, color and surface treatment vary.
+"""Render the approved 11 icon compositions and Android adaptive/legacy assets.
+The three original logo paths are copied verbatim from 拾万句_简_淡黄色.svg.
+Only the background treatment and logo fill color vary between styles.
 """
 from pathlib import Path
-import math, random
+from io import BytesIO
+import xml.etree.ElementTree as ET
 import cairosvg
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageOps
 
 ROOT = Path(".")
-SVG = ROOT / "拾万句_简_淡黄色.svg"
-OUT = ROOT / "source/ShiWanJu-Android/app/src/main/res"
-if not SVG.is_file():
+SOURCE = ROOT / "拾万句_简_淡黄色.svg"
+RES = ROOT / "source/ShiWanJu-Android/app/src/main/res"
+if not SOURCE.is_file():
     raise SystemExit("Missing authoritative logo SVG")
-S = 512
-raw = cairosvg.svg2png(url=str(SVG), output_width=430, output_height=400)
-from io import BytesIO
-mark = Image.open(BytesIO(raw)).convert("RGBA")
-mark_canvas = Image.new("RGBA", (S, S), (0,0,0,0))
-mark_canvas.alpha_composite(mark, ((S-mark.width)//2, (S-mark.height)//2))
-alpha = mark_canvas.getchannel("A")
-# Crop only transparent SVG margins, then fit the complete original path to the
-# Android 66/108 safe-area ratio. This keeps the icon visually consistent.
-bbox = alpha.getbbox()
-if not bbox:
-    raise SystemExit("Original SVG contains no visible artwork")
-mark_crop = mark_canvas.crop(bbox)
 
-names = ["original","cowboy","code","line","plush","sky","space","graffiti","playful","8bit","sketch"]
-random.seed(23)
+# Approved visual language from the 11-style design preview.
+STYLES = {
+ "original": ("#FFF1D2", """<rect width="108" height="108" fill="#4D4638"/><rect x="4" y="4" width="100" height="100" rx="23" fill="#63563F"/><path d="M8 25H100M8 83H100" stroke="#8D7956" stroke-width=".6" opacity=".65"/>"""),
+ "cowboy": ("#F8E7C8", """<rect width="108" height="108" fill="#315B78"/><path d="M0 12L108 0V108H0Z" fill="#3E7190"/><path d="M8 0V108M100 0V108" stroke="#A9C7D6" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/><path d="M0 17H108M0 91H108" stroke="#23475F" stroke-width="2" opacity=".55"/><circle cx="12" cy="12" r="2" fill="#D7B78C"/><circle cx="96" cy="96" r="2" fill="#D7B78C"/>"""),
+ "code": ("#C6FFE8", """<rect width="108" height="108" fill="#101B20"/><path d="M0 12H108M0 24H108M0 36H108M0 48H108M0 60H108M0 72H108M0 84H108M0 96H108M12 0V108M24 0V108M36 0V108M48 0V108M60 0V108M72 0V108M84 0V108M96 0V108" stroke="#1C3940" stroke-width=".45"/><rect x="6" y="6" width="96" height="96" rx="17" fill="none" stroke="#2C6B62" stroke-width="1.2"/><circle cx="13" cy="13" r="1.5" fill="#61E6B2"/><circle cx="19" cy="13" r="1.5" fill="#61E6B2" opacity=".6"/>"""),
+ "line": ("#34383A", """<rect width="108" height="108" fill="#F8F7F2"/><rect x="7" y="7" width="94" height="94" rx="21" fill="#FFFDF8" stroke="#D7D5CD" stroke-width="1"/><path d="M16 23Q54 13 92 23M16 86Q54 96 92 86" fill="none" stroke="#E6E2D8" stroke-width="1"/>"""),
+ "plush": ("#FFF0E5", """<rect width="108" height="108" fill="#C98D83"/><rect x="4" y="4" width="100" height="100" rx="24" fill="#E7B4A7"/><path d="M9 17l4 -3m3 8l4 -3m68 63l4 -3m-3 10l4 -3M16 92l4 -3m67 -69l4 -3" stroke="#F8D8C9" stroke-width="2" stroke-linecap="round"/><rect x="10" y="10" width="88" height="88" rx="20" fill="none" stroke="#F5D0C2" stroke-width="1.5" opacity=".8"/>"""),
+ "sky": ("#F8FFFF", """<rect width="108" height="108" fill="#80C8E8"/><path d="M0 78Q26 68 54 78T108 78V108H0Z" fill="#A8DDF0"/><g fill="#EAF8FF" opacity=".95"><ellipse cx="21" cy="24" rx="13" ry="6"/><ellipse cx="31" cy="21" rx="10" ry="8"/><ellipse cx="41" cy="25" rx="12" ry="5"/><ellipse cx="77" cy="83" rx="12" ry="5"/><ellipse cx="86" cy="80" rx="9" ry="7"/><ellipse cx="95" cy="84" rx="10" ry="4"/></g><circle cx="86" cy="24" r="7" fill="#FFE8A8"/>"""),
+ "space": ("#FFF1D2", """<rect width="108" height="108" fill="#15172F"/><circle cx="54" cy="54" r="48" fill="#20264B"/><circle cx="54" cy="54" r="42" fill="#252D59"/><g fill="#D9D9FF"><circle cx="17" cy="25" r="1"/><circle cx="88" cy="19" r="1.2"/><circle cx="91" cy="73" r=".9"/><circle cx="23" cy="83" r="1.1"/><circle cx="75" cy="94" r=".8"/><circle cx="11" cy="60" r=".7"/></g><path d="M16 45L18 40L20 45L25 47L20 49L18 54L16 49L11 47Z" fill="#8EA9FF"/><path d="M87 42L89 38L91 42L95 44L91 46L89 50L87 46L83 44Z" fill="#8EA9FF"/>"""),
+ "graffiti": ("#FFF9E9", """<rect width="108" height="108" fill="#F5D94E"/><path d="M-5 23L28 0L42 8L12 39ZM70 108L108 70V91L91 108Z" fill="#F16A5B"/><path d="M0 76L24 58L36 69L12 91Z" fill="#4B9BCB"/><path d="M76 0H108V26L91 36Z" fill="#6E58B5"/><path d="M6 50Q17 38 28 49T50 49" fill="none" stroke="#232323" stroke-width="2.2" stroke-linecap="round"/><path d="M68 82l5 -8 5 8 8 2 -8 4 -5 8 -5 -8 -8 -4Z" fill="#232323"/>"""),
+ "playful": ("#8C5960", """<rect width="108" height="108" fill="#F8DCE7"/><rect x="5" y="5" width="98" height="98" rx="25" fill="#FFF0D9"/><circle cx="18" cy="22" r="7" fill="#A9DCCB"/><circle cx="91" cy="25" r="6" fill="#F6B8A6"/><path d="M13 82Q25 69 37 82T61 82" fill="none" stroke="#A8C8E9" stroke-width="3" stroke-linecap="round"/><path d="M79 75l4 -7 4 7 7 3 -7 3 -4 7 -4 -7 -7 -3Z" fill="#E8B85C"/>"""),
+ "8bit": ("#E2FFF1", """<rect width="108" height="108" fill="#1E2940"/><path d="M0 0H18V6H30V0H48V6H60V0H78V6H90V0H108V18H102V30H108V48H102V60H108V78H102V90H108V108H90V102H78V108H60V102H48V108H30V102H18V108H0V90H6V78H0V60H6V48H0V30H6V18H0Z" fill="#2D4561"/><path d="M8 8H100V100H8Z" fill="none" stroke="#6DE0B1" stroke-width="2" stroke-dasharray="5 3"/>"""),
+ "sketch": ("#5B4931", """<rect width="108" height="108" fill="#D8C49D"/><rect x="5" y="5" width="98" height="98" rx="7" fill="#F1E4C7"/><path d="M12 18H96M12 90H96" stroke="#C8B58E" stroke-width=".8"/><path d="M13 12V96M95 12V96" stroke="#D5C39D" stroke-width=".6" stroke-dasharray="1 2"/><circle cx="14" cy="14" r="1.5" fill="#B59A6C"/><circle cx="94" cy="94" r="1.5" fill="#B59A6C"/>""")
+}
 
-def gradient(top, bottom):
-    im=Image.new("RGB",(S,S)); p=im.load()
-    for y in range(S):
-        t=y/(S-1)
-        c=tuple(round(top[i]*(1-t)+bottom[i]*t) for i in range(3))
-        for x in range(S): p[x,y]=c
-    return im.convert("RGBA")
+# Read the exact authoritative paths; do not redraw or approximate the logo.
+tree = ET.parse(SOURCE)
+ns = {"s": "http://www.w3.org/2000/svg"}
+paths = [node.attrib["d"] for node in tree.findall(".//s:path", ns)]
+if len(paths) != 3:
+    raise SystemExit(f"Expected exactly 3 original logo paths, found {len(paths)}")
+logo_d = "".join(f'<path fill="{{color}}" d="{{d}}"/>' for d in paths)
 
-def texture(kind):
-    palettes={
-      "original":((86,210,116),(86,210,116)),
-      "cowboy":((19,55,91),(39,91,132)),
-      "code":((2,18,19),(0,48,36)),
-      "line":((250,246,230),(238,229,204)),
-      "plush":((246,139,177),(222,91,143)),
-      "sky":((58,168,245),(126,211,255)),
-      "space":((5,10,43),(32,24,89)),
-      "graffiti":((255,142,39),(24,181,180)),
-      "playful":((255,220,87),(255,125,174)),
-      "8bit":((10,28,75),(40,39,112)),
-      "sketch":((245,238,217),(228,217,190))
-    }
-    im=gradient(*palettes[kind]); d=ImageDraw.Draw(im,"RGBA")
-    if kind=="cowboy":
-      for x in range(-S,S,9): d.line((x,0,x+S,S),fill=(130,190,220,28),width=2)
-      for y in range(0,S,12): d.line((0,y,S,y),fill=(5,20,40,24),width=1)
-      d.rounded_rectangle((15,15,497,497),radius=28,outline=(210,160,100,210),width=7)
-    elif kind=="code":
-      for y in range(20,S,28):
-        d.rounded_rectangle((18,y,random.randint(100,470),y+5),radius=2,fill=(20,255,125,55))
-      for x in range(28,S,48): d.line((x,0,x,S),fill=(20,255,125,18),width=1)
-    elif kind in ("line","sketch"):
-      for i in range(1000):
-        x=random.randrange(S); y=random.randrange(S)
-        d.point((x,y),fill=(90,70,45,random.randrange(8,28)))
-      if kind=="sketch":
-        for i in range(80):
-          x=random.randrange(S); y=random.randrange(S)
-          d.line((x,y,x+random.randrange(15,70),y+random.randrange(-10,10)),fill=(90,75,55,25),width=1)
-    elif kind=="plush":
-      for i in range(14000):
-        x=random.randrange(S); y=random.randrange(S)
-        d.ellipse((x,y,x+2,y+2),fill=(255,255,255,random.randrange(8,36)))
-    elif kind=="sky":
-      for x,y,r in [(60,80,48),(430,140,62),(110,440,55),(400,430,45)]:
-        for dx,dy,rr in [(-r//2,0,r//2),(0,-r//3,r),(r//2,0,r//2)]:
-          d.ellipse((x+dx-rr,y+dy-rr/2,x+dx+rr,y+dy+rr/2),fill=(255,255,255,105))
-    elif kind=="space":
-      for i in range(650):
-        x=random.randrange(S); y=random.randrange(S); r=random.choice([1,1,2,3])
-        d.ellipse((x-r,y-r,x+r,y+r),fill=(210,210,255,random.randrange(90,240)))
-    elif kind=="graffiti":
-      cols=[(255,50,120,95),(255,210,20,100),(0,220,200,95),(40,80,255,95)]
-      for i in range(80):
-        x=random.randrange(S); y=random.randrange(S); r=random.randrange(12,65)
-        d.ellipse((x-r,y-r,x+r,y+r),fill=random.choice(cols))
-    elif kind=="playful":
-      for box,col in [((-80,-40,210,180),(255,239,91,255)),((320,-40,590,190),(103,198,255,255)),((-80,350,200,590),(100,205,255,255)),((320,340,600,590),(255,111,174,255))]:
-        d.ellipse(box,fill=col)
-    elif kind=="8bit":
-      for y in range(0,S,24):
-        for x in range(0,S,24):
-          if random.random()<.48:
-            col=random.choice([(24,190,230,100),(150,60,230,100),(20,100,190,110)])
-            d.rectangle((x,y,x+22,y+22),fill=col)
-    return im
+def logo_svg(color):
+    # Exact common safe-area placement: same scale, same center, no crop or stretch.
+    return f'<g transform="translate(21 20.75) scale(0.07625)">{logo_d.format(color=color)}</g>'
 
-def recolor(mask, color):
-    layer=Image.new("RGBA",(S,S),color)
-    layer.putalpha(mask)
-    return layer
+def render(svg, size):
+    return Image.open(BytesIO(cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=size, output_height=size))).convert("RGBA")
 
-for name in names:
-    bg=texture(name)
-    if name=="original": color=(255,241,210,255)
-    elif name in ("code","space"): color=(120,255,210,255) if name=="code" else (220,210,255,255)
-    elif name in ("line","sketch"): color=(63,57,49,255)
-    elif name=="plush": color=(255,250,245,255)
-    else: color=(255,248,232,255)
-    safe_size = round(S * 66 / 108)
-    fitted = ImageOps.contain(mark_crop, (safe_size, safe_size), method=Image.Resampling.LANCZOS)
-    fitted_mask = fitted.getchannel("A")
-    if name=="8bit":
-        pix = fitted_mask.resize((max(1,fitted.width//7), max(1,fitted.height//7)),Image.Resampling.LANCZOS)
-        fitted_mask = pix.resize(fitted.size,Image.Resampling.NEAREST)
-    mask = Image.new("L",(S,S),0)
-    mask.paste(fitted_mask,((S-fitted.width)//2,(S-fitted.height)//2))
-    logo=recolor(mask,color)
-    if name=="plush":
-        shadow=Image.new("RGBA",(S,S),(0,0,0,0)); shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(7)))
-        bg.alpha_composite(shadow,(0,4))
-    bg.alpha_composite(logo)
-    # Rounded-square launcher previews; actual launcher adaptive resources retain transparent safe margins.
-    bg=bg.convert("RGBA")
-    d=ImageDraw.Draw(bg)
-    d.rounded_rectangle((2,2,S-3,S-3),radius=86,outline=(255,255,255,30),width=2)
-    folder=OUT/"drawable-nodpi"; folder.mkdir(parents=True,exist_ok=True)
-    bg.save(folder/f"icon_style_{name}.png",optimize=True)
-    # 108x108 transparent foreground for adaptive launcher icon.
-    fg=Image.new("RGBA",(108,108),(0,0,0,0))
-    fgmark=Image.new("RGBA",fitted_mask.size,color)
-    fgmark.putalpha(fitted_mask)
-    iconmark=ImageOps.contain(fgmark,(66,66),method=Image.Resampling.LANCZOS)
-    fg.alpha_composite(iconmark,((108-iconmark.width)//2,(108-iconmark.height)//2))
-    fg.save(folder/f"launcher_{name}_foreground.png",optimize=True)
-print("Generated 11 icon styles from the original SVG silhouette.")
+def save_png(image, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path, optimize=True)
+
+for name, (logo_color, background) in STYLES.items():
+    full_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}{logo_svg(logo_color)}</svg>'
+    bg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}</svg>'
+    fg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>'
+    full = render(full_svg, 512)
+    bg = render(bg_svg, 512)
+    fg = render(fg_svg, 108)
+
+    # Compose preview and resources from the same SVG definition.
+    drawable = RES / "drawable-nodpi"
+    save_png(full, drawable / f"icon_style_{name}.png")
+    save_png(bg, drawable / f"icon_style_{name}_background.png")
+    save_png(fg, drawable / f"icon_style_{name}_foreground.png")
+
+    # Legacy launcher icons at every density use the same 66/108 artwork footprint.
+    for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
+        folder = RES / f"mipmap-{density}"
+        save_png(ImageOps.fit(full, (size,size), method=Image.Resampling.LANCZOS), folder / f"ic_launcher_style_{name}.png")
+
+    # Adaptive icons use full-bleed background and the identical centered 66dp foreground.
+    adaptive = RES / "mipmap-anydpi-v26"
+    adaptive.mkdir(parents=True, exist_ok=True)
+    xml = f'''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/icon_style_{name}_background"/>
+    <foreground android:drawable="@drawable/icon_style_{name}_foreground"/>
+</adaptive-icon>
+'''
+    (adaptive / f"ic_launcher_style_{name}.xml").write_text(xml, encoding="utf-8")
+
+print(f"Generated {len(STYLES)} approved icon compositions from the exact 3-path source logo.")
