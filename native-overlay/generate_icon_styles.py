@@ -39,8 +39,16 @@ if len(paths) != 3:
 logo_d = "".join('<path fill="__COLOR__" d="' + d + '"/>' for d in paths)
 
 def logo_svg(color):
-    # Exact common safe-area placement: same scale, same center, no crop or stretch.
-    return '<g transform="translate(21 20.75) scale(0.07625)">' + logo_d.replace("__COLOR__", color) + '</g>'
+    # Use a single finished icon bitmap for both launcher and folder contexts.
+    # Artwork occupies 52% of the full canvas; no adaptive foreground layer
+    # is allowed to enlarge it independently at runtime.
+    logo_width = 108 * 0.52
+    scale = logo_width / 865.26
+    translate_x = (108 - logo_width) / 2
+    # Center the original path geometry (y=0.29..804.62) on the canvas.
+    translate_y = 54 - ((0.29 + 804.62) / 2) * scale
+    transform = f"translate({translate_x:.5f} {translate_y:.5f}) scale({scale:.8f})"
+    return f'<g transform="{transform}">' + logo_d.replace("__COLOR__", color) + '</g>'
 
 def render(svg, size):
     return Image.open(BytesIO(cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=size, output_height=size))).convert("RGBA")
@@ -55,27 +63,27 @@ for name, (logo_color, background) in STYLES.items():
     fg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>'
     full = render(full_svg, 512)
     bg = render(bg_svg, 512)
-    fg = render(fg_svg, 108)
+    # No separately-scaled adaptive foreground: the launcher receives the
+    # exact same complete square composition shown in the in-app selector.
 
     # Compose preview and resources from the same SVG definition.
     drawable = RES / "drawable-nodpi"
     save_png(full, drawable / f"icon_style_{name}.png")
-    save_png(bg, drawable / f"icon_style_{name}_background.png")
-    save_png(fg, drawable / f"icon_style_{name}_foreground.png")
+    # Remove stale two-layer adaptive assets from earlier builds.
+    for stale in [drawable / f"icon_style_{name}_background.png", drawable / f"icon_style_{name}_foreground.png"]:
+        if stale.exists():
+            stale.unlink()
 
-    # Legacy launcher icons at every density use the same 66/108 artwork footprint.
+    # Desktop, folder, and selector all use this same finished composition.
     for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
         folder = RES / f"mipmap-{density}"
         save_png(ImageOps.fit(full, (size,size), method=Image.Resampling.LANCZOS), folder / f"ic_launcher_style_{name}.png")
 
-    # Adaptive icons use full-bleed background and the identical centered 66dp foreground.
-    adaptive = RES / "mipmap-anydpi-v26"
-    adaptive.mkdir(parents=True, exist_ok=True)
-    xml = f'''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/icon_style_{name}_background"/>
-    <foreground android:drawable="@drawable/icon_style_{name}_foreground"/>
-</adaptive-icon>
-'''
-    (adaptive / f"ic_launcher_style_{name}.xml").write_text(xml, encoding="utf-8")
+    # Remove the adaptive-icon XML override. Android launchers can independently
+    # scale a foreground layer, and folder previews may apply a different zoom.
+    # A density-specific complete PNG is intentional for consistent rendering.
+    adaptive_xml = RES / "mipmap-anydpi-v26" / f"ic_launcher_style_{name}.xml"
+    if adaptive_xml.exists():
+        adaptive_xml.unlink()
 
 print(f"Generated {len(STYLES)} approved icon compositions from the exact 3-path source logo.")
