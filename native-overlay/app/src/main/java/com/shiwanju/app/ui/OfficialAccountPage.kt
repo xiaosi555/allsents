@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +41,7 @@ import java.util.Date
 import java.util.Locale
 
 private const val FIRST_ARTICLE = "https://mp.weixin.qq.com/s/eGh-S6J1YY48vsKNenReFg"
+private const val OFFICIAL_AVATAR = "https://mmbiz.qpic.cn/sz_mmbiz_png/rpicN7OehSy7qNDoI9pnJMUbM2c9d38f0TpRibQ2icA6nOePn4buH2buUId7xfRLVGibkFtib7oIib7LCBcyXqHjOOMQ/640?wx_fmt=png&from=appmsg"
 private val FeedGreen = Color(0xFF07C160)
 private data class OfficialArticle(val url: String, val title: String = "", val summary: String = "", val cover: String = "", val images: List<String> = emptyList(), val publishedAt: String = "")
 private class OfficialArticleStore(context: android.content.Context) {
@@ -109,7 +111,7 @@ fun OfficialAccountPage(onBack: () -> Unit) {
     LaunchedEffect(Unit) { if (articles.isEmpty()) importUrl(FIRST_ARTICLE) }
     BackHandler { onBack() }
 
-    Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0))) {
+    Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0)).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFF222222)) }
             Text("公众号", Modifier.weight(1f), fontSize = 19.sp, color = Color(0xFF191919), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -125,13 +127,16 @@ fun OfficialAccountPage(onBack: () -> Unit) {
         }
         if (searching) OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().background(Color.White).padding(12.dp), singleLine = true, placeholder = { Text("搜索文章标题") })
         Row(Modifier.fillMaxWidth().background(Color.White).padding(start = 20.dp, end = 16.dp, top = 18.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(76.dp).clip(CircleShape).background(Color(0xFF08C875)), contentAlignment = Alignment.Center) {
-                Text("拾万句", color = Color(0xFF073D2A), fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            }
+            AsyncImage(
+                model = OFFICIAL_AVATAR,
+                contentDescription = "拾万句公众号头像",
+                modifier = Modifier.size(76.dp).clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
             Column(Modifier.weight(1f).padding(start = 14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("拾万句", color = Color(0xFF171717), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                    Text(" ★", color = Color(0xFFFFB800), fontSize = 20.sp)
+                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(19.dp))
                     Text(" ›", color = Color.LightGray, fontSize = 25.sp)
                 }
                 Text("上海", color = Color.Gray, fontSize = 15.sp)
