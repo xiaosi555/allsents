@@ -27,7 +27,8 @@ private val themeOptions = listOf(
     ThemeOption("湖水青", "#16B8B0", Color.White),
     ThemeOption("玫瑰粉", "#F06292", Color.White),
     ThemeOption("柠檬黄", "#F4D21F", Color.Black),
-    ThemeOption("靛蓝", "#4656C9", Color.White)
+    ThemeOption("靛蓝", "#4656C9", Color.White),
+    ThemeOption("原版绿", "#01CC7A", Color.White)
 )
 
 /** 第一阶段仅提供主题颜色选择。 */
