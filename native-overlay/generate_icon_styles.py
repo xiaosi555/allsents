@@ -42,7 +42,7 @@ def logo_svg(color):
     # Use a single finished icon bitmap for both launcher and folder contexts.
     # Artwork occupies 52% of the full canvas; no adaptive foreground layer
     # is allowed to enlarge it independently at runtime.
-    logo_width = 108 * 0.52
+    logo_width = 108 * 0.66
     scale = logo_width / 865.26
     translate_x = (108 - logo_width) / 2
     # Center the original path geometry (y=0.29..804.62) on the canvas.
