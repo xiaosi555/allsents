@@ -19,9 +19,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -126,12 +126,12 @@ fun OfficialAccountPage(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0)).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFFB8B8B8), modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "返回", tint = Color(0xFFB8B8B8), modifier = Modifier.size(19.dp)) }
             Text("公众号", Modifier.weight(1f), fontSize = 19.sp, color = Color(0xFF191919), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            IconButton(onClick = { searching = !searching; query = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFFB8B8B8), modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = { searching = !searching; query = "" }) { Icon(Icons.Outlined.Search, "搜索", tint = Color(0xFFB8B8B8), modifier = Modifier.size(19.dp)) }
             Box {
                 var menu by remember { mutableStateOf(false) }
-                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreHoriz, "更多", tint = Color(0xFFB8B8B8), modifier = Modifier.size(21.dp)) }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreHoriz, "更多", tint = Color(0xFFB8B8B8), modifier = Modifier.size(19.dp)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("添加文章链接") }, onClick = { menu = false; adding = true })
                     DropdownMenuItem(text = { Text("刷新文章列表") }, onClick = { menu = false; scope.launch { refresh() } })
@@ -218,40 +218,7 @@ fun OfficialAccountPage(onBack: () -> Unit) {
                 }
             }
             }
-            AnimatedVisibility(
-                visible = showCompactProfile,
-                modifier = Modifier.align(Alignment.TopCenter),
-                enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)) +
-                    slideInVertically(
-                        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
-                        initialOffsetY = { -it / 3 }
-                    ),
-                exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) +
-                    slideOutVertically(
-                        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-                        targetOffsetY = { -it / 3 }
-                    )
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = OFFICIAL_AVATAR,
-                        contentDescription = "拾万句公众号头像",
-                        modifier = Modifier.size(40.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                    Text(
-                        "拾万句",
-                        Modifier.padding(start = 30.dp),
-                        color = Color(0xFF171717),
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(16.dp))
-                }
-            }
+            CompactProfileVisibility(showCompactProfile, Modifier.align(Alignment.TopCenter))
         }
     }
     if (adding) AlertDialog(
@@ -261,4 +228,43 @@ fun OfficialAccountPage(onBack: () -> Unit) {
         confirmButton = { TextButton(onClick = { val url = input.trim(); input = ""; adding = false; scope.launch { importUrl(url) } }) { Text("导入", color = FeedGreen) } },
         dismissButton = { TextButton(onClick = { adding = false }) { Text("取消") } }
     )
+}
+
+
+@Composable
+private fun CompactProfileVisibility(visible: Boolean, modifier: Modifier = Modifier) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = fadeIn(animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)) +
+            slideInVertically(
+                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+                initialOffsetY = { -it / 3 }
+            ),
+        exit = fadeOut(animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)) +
+            slideOutVertically(
+                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                targetOffsetY = { -it / 3 }
+            )
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = OFFICIAL_AVATAR,
+                contentDescription = "拾万句公众号头像",
+                modifier = Modifier.size(40.dp).clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            Text(
+                "拾万句",
+                Modifier.padding(start = 30.dp),
+                color = Color(0xFF171717),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(16.dp))
+        }
+    }
 }
