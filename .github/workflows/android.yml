@@ -75,7 +75,7 @@ jobs:
           drawable = Path("source/ShiWanJu-Android/app/src/main/res/drawable-nodpi")
           drawable.mkdir(parents=True, exist_ok=True)
           square.save(drawable / "app_logo.png", optimize=True)
-          bg = (86, 210, 116, 255)
+          bg = (1, 204, 122, 255)
           for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
               folder = Path("source/ShiWanJu-Android/app/src/main/res") / f"mipmap-{density}"
               folder.mkdir(parents=True, exist_ok=True)
@@ -107,7 +107,7 @@ jobs:
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
               android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#56D274" android:pathData="M0,0h108v108h-108z" />
+              <path android:fillColor="#01CC7A" android:pathData="M0,0h108v108h-108z" />
           </vector>
           XML
           # Use the 108x108 PNG directly. Do not wrap it in another sized layer-list:
