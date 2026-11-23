@@ -3406,6 +3406,7 @@ print("Layout version declaration restored after removing automatic Douyin inser
 # ----------------------------------------------------------------------
 # Official account feed: link import, local article cache and WeChat deep links.
 patch("ui/MyScreens.kt",[
+    ('    Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {', '    if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {'),
     ('val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }',
      'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; else -> "我的" }'),
     ('                "backup" -> BackupPage(vm)\n                else -> HomePage(vm) { route = it }',
