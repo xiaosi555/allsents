@@ -16,18 +16,20 @@ if not SOURCE.is_file():
     raise SystemExit("Missing authoritative logo SVG")
 
 # Approved visual language from the 11-style design preview.
+# Reference backgrounds are adapted from shengyu-offline-tts/app/src/main/assets/launcher-icons.
+# Mapping keeps each 拾万句 style aligned with the closest material language.
 STYLES = {
- "original": ("#FFFFFF", """<rect width="108" height="108" fill="#01CC7A"/><rect x="4" y="4" width="100" height="100" rx="23" fill="#01CC7A"/>"""),
- "cowboy": ("#F8E7C8", """<rect width="108" height="108" fill="#315B78"/><path d="M0 12L108 0V108H0Z" fill="#3E7190"/><path d="M8 0V108M100 0V108" stroke="#A9C7D6" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/><path d="M0 17H108M0 91H108" stroke="#23475F" stroke-width="2" opacity=".55"/><circle cx="12" cy="12" r="2" fill="#D7B78C"/><circle cx="96" cy="96" r="2" fill="#D7B78C"/>"""),
- "code": ("#C6FFE8", """<rect width="108" height="108" fill="#101B20"/><path d="M0 12H108M0 24H108M0 36H108M0 48H108M0 60H108M0 72H108M0 84H108M0 96H108M12 0V108M24 0V108M36 0V108M48 0V108M60 0V108M72 0V108M84 0V108M96 0V108" stroke="#1C3940" stroke-width=".45"/><rect x="6" y="6" width="96" height="96" rx="17" fill="none" stroke="#2C6B62" stroke-width="1.2"/><circle cx="13" cy="13" r="1.5" fill="#61E6B2"/><circle cx="19" cy="13" r="1.5" fill="#61E6B2" opacity=".6"/>"""),
- "line": ("#34383A", """<rect width="108" height="108" fill="#F8F7F2"/><rect x="7" y="7" width="94" height="94" rx="21" fill="#FFFDF8" stroke="#D7D5CD" stroke-width="1"/><path d="M16 23Q54 13 92 23M16 86Q54 96 92 86" fill="none" stroke="#E6E2D8" stroke-width="1"/>"""),
- "plush": ("#FFF0E5", """<rect width="108" height="108" fill="#C98D83"/><rect x="4" y="4" width="100" height="100" rx="24" fill="#E7B4A7"/><path d="M9 17l4 -3m3 8l4 -3m68 63l4 -3m-3 10l4 -3M16 92l4 -3m67 -69l4 -3" stroke="#F8D8C9" stroke-width="2" stroke-linecap="round"/><rect x="10" y="10" width="88" height="88" rx="20" fill="none" stroke="#F5D0C2" stroke-width="1.5" opacity=".8"/>"""),
- "sky": ("#F8FFFF", """<rect width="108" height="108" fill="#80C8E8"/><path d="M0 78Q26 68 54 78T108 78V108H0Z" fill="#A8DDF0"/><g fill="#EAF8FF" opacity=".95"><ellipse cx="21" cy="24" rx="13" ry="6"/><ellipse cx="31" cy="21" rx="10" ry="8"/><ellipse cx="41" cy="25" rx="12" ry="5"/><ellipse cx="77" cy="83" rx="12" ry="5"/><ellipse cx="86" cy="80" rx="9" ry="7"/><ellipse cx="95" cy="84" rx="10" ry="4"/></g><circle cx="86" cy="24" r="7" fill="#FFE8A8"/>"""),
- "space": ("#FFF1D2", """<rect width="108" height="108" fill="#15172F"/><circle cx="54" cy="54" r="48" fill="#20264B"/><circle cx="54" cy="54" r="42" fill="#252D59"/><g fill="#D9D9FF"><circle cx="17" cy="25" r="1"/><circle cx="88" cy="19" r="1.2"/><circle cx="91" cy="73" r=".9"/><circle cx="23" cy="83" r="1.1"/><circle cx="75" cy="94" r=".8"/><circle cx="11" cy="60" r=".7"/></g><path d="M16 45L18 40L20 45L25 47L20 49L18 54L16 49L11 47Z" fill="#8EA9FF"/><path d="M87 42L89 38L91 42L95 44L91 46L89 50L87 46L83 44Z" fill="#8EA9FF"/>"""),
- "graffiti": ("#FFF9E9", """<rect width="108" height="108" fill="#F5D94E"/><path d="M-5 23L28 0L42 8L12 39ZM70 108L108 70V91L91 108Z" fill="#F16A5B"/><path d="M0 76L24 58L36 69L12 91Z" fill="#4B9BCB"/><path d="M76 0H108V26L91 36Z" fill="#6E58B5"/><path d="M6 50Q17 38 28 49T50 49" fill="none" stroke="#232323" stroke-width="2.2" stroke-linecap="round"/><path d="M68 82l5 -8 5 8 8 2 -8 4 -5 8 -5 -8 -8 -4Z" fill="#232323"/>"""),
- "playful": ("#8C5960", """<rect width="108" height="108" fill="#F8DCE7"/><rect x="5" y="5" width="98" height="98" rx="25" fill="#FFF0D9"/><circle cx="18" cy="22" r="7" fill="#A9DCCB"/><circle cx="91" cy="25" r="6" fill="#F6B8A6"/><path d="M13 82Q25 69 37 82T61 82" fill="none" stroke="#A8C8E9" stroke-width="3" stroke-linecap="round"/><path d="M79 75l4 -7 4 7 7 3 -7 3 -4 7 -4 -7 -7 -3Z" fill="#E8B85C"/>"""),
- "8bit": ("#E2FFF1", """<rect width="108" height="108" fill="#1E2940"/><path d="M0 0H18V6H30V0H48V6H60V0H78V6H90V0H108V18H102V30H108V48H102V60H108V78H102V90H108V108H90V102H78V108H60V102H48V108H30V102H18V108H0V90H6V78H0V60H6V48H0V30H6V18H0Z" fill="#2D4561"/><path d="M8 8H100V100H8Z" fill="none" stroke="#6DE0B1" stroke-width="2" stroke-dasharray="5 3"/>"""),
- "sketch": ("#5B4931", """<rect width="108" height="108" fill="#D8C49D"/><rect x="5" y="5" width="98" height="98" rx="7" fill="#F1E4C7"/><path d="M12 18H96M12 90H96" stroke="#C8B58E" stroke-width=".8"/><path d="M13 12V96M95 12V96" stroke="#D5C39D" stroke-width=".6" stroke-dasharray="1 2"/><circle cx="14" cy="14" r="1.5" fill="#B59A6C"/><circle cx="94" cy="94" r="1.5" fill="#B59A6C"/>""")
+ "original": ("#FFFFFF", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1769C2"/><stop offset="1" stop-color="#62D9F5"/></linearGradient></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/>"""),
+ "cowboy": ("#E8D7B6", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#173B58"/><stop offset="1" stop-color="#7896A8"/></linearGradient><pattern id="p" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 0L7 7M-2 2L2 -2M5 9L9 5" stroke="#B8C9D5" stroke-opacity=".28"/></pattern></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><rect width="108" height="108" fill="url(#p)"/>"""),
+ "code": ("#61FF91", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#06140E"/><stop offset="1" stop-color="#B4FFC9"/></linearGradient><pattern id="p" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M0 0H12M0 0V12" stroke="#39FF79" stroke-opacity=".18"/><text x="2" y="9" font-size="7" fill="#5CFF8F" opacity=".55">01</text></pattern></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><rect width="108" height="108" fill="url(#p)"/>"""),
+ "line": ("#263B42", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8F7F1"/><stop offset="1" stop-color="#73949A"/></linearGradient></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><path d="M8 14L18 8M88 8L100 17M8 92L18 100M92 96L101 88" stroke="#263B42" stroke-opacity=".2" stroke-width="1.4"/>"""),
+ "plush": ("#FFF0D9", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#C77D91"/><stop offset="1" stop-color="#F3B5C8"/></linearGradient><pattern id="p" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="#fff" opacity=".2"/><circle cx="7" cy="6" r="2" fill="#7B3D59" opacity=".12"/></pattern></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><rect width="108" height="108" fill="url(#p)"/>"""),
+ "sky": ("#FFFFFF", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#79C7EF"/><stop offset="1" stop-color="#B4E6F8"/></linearGradient></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><g fill="#fff" opacity=".55"><path d="M10 26c-1-7 6-11 13-8 4-10 20-8 23 2 9-1 12 11 3 14H18c-5 0-8-3-8-8Z"/></g>"""),
+ "space": ("#D8E7FF", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050812"/><stop offset="1" stop-color="#8D75FF"/></linearGradient></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><g fill="#D8E7FF" opacity=".8"><circle cx="18" cy="18" r="1.2"/><circle cx="83" cy="19" r="1"/><circle cx="92" cy="49" r="1.5"/><circle cx="21" cy="82" r="1"/><circle cx="74" cy="91" r="1.3"/></g>"""),
+ "graffiti": ("#165CC5", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#DCEEFF"/><stop offset="1" stop-color="#FF6B8A"/></linearGradient></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><path d="M0 22L26 0H55L28 32ZM73 108L108 78V108Z" fill="#fff" opacity=".75"/><path d="M11 11l7 5m-9 4 9 5M89 15l8 7m-8 2 8 7" stroke="#FF6B8A" stroke-width="2" stroke-linecap="round"/>"""),
+ "playful": ("#2364C7", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFD95D"/><stop offset="1" stop-color="#FF7B75"/></linearGradient></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><g fill="#FF7B75"><circle cx="29" cy="28" r="4"/><circle cx="79" cy="28" r="4"/></g>"""),
+ "8bit": ("#F7E8C8", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#77718D"/><stop offset="1" stop-color="#E2A9D0"/></linearGradient><pattern id="p" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#fff" opacity=".1"/><rect x="4" y="4" width="4" height="4" fill="#15152B" opacity=".12"/></pattern></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><rect width="108" height="108" fill="url(#p)"/>"""),
+ "sketch": ("#E7E0BE", """<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#123B2D"/><stop offset="1" stop-color="#91B78C"/></linearGradient><pattern id="p" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="#D8E4C4" stroke-opacity=".25" stroke-width=".65"/></pattern></defs><rect width="108" height="108" rx="22" fill="url(#bg)"/><rect width="108" height="108" fill="url(#p)"/>""")
 }
 
 # Read the exact authoritative paths; do not redraw or approximate the logo.
@@ -40,7 +42,7 @@ logo_d = "".join('<path fill="__COLOR__" d="' + d + '"/>' for d in paths)
 
 def logo_svg(color):
     # Use a single finished icon bitmap for both launcher and folder contexts.
-    # Artwork occupies 52% of the full canvas; no adaptive foreground layer
+    # Artwork occupies 66% of the full canvas; no adaptive foreground layer
     # is allowed to enlarge it independently at runtime.
     logo_width = 108 * 0.66
     scale = logo_width / 865.26
@@ -58,58 +60,8 @@ def save_png(image, path):
     image.save(path, optimize=True)
 
 def material_background(name, bg):
-    import random
-    from PIL import ImageDraw
-    rng = random.Random(20261123 + list(STYLES).index(name))
-    d = ImageDraw.Draw(bg, 'RGBA')
-    if name == 'cowboy':
-        # Denim: crossed twill weave, seam stitching and metal rivets.
-        for k in range(-512, 1024, 8):
-            d.line((k, 0, k + 512, 512), fill=(14, 39, 57, 48), width=2)
-            d.line((k + 3, 0, k + 515, 512), fill=(218, 236, 242, 38), width=1)
-        for y in range(0, 512, 8): d.line((0, y, 512, y), fill=(12, 38, 54, 24), width=1)
-        d.rounded_rectangle((22,22,490,490), radius=46, outline=(235,218,184,210), width=5)
-        for x,y in ((44,44),(468,44),(44,468),(468,468)):
-            d.ellipse((x-6,y-6,x+6,y+6), fill=(177,133,77,255), outline=(246,221,176,255), width=2)
-    elif name == 'plush':
-        # Short directional pile: visible soft fibers, not a flat pink fill.
-        for _ in range(42000):
-            x=rng.randrange(512); y=rng.randrange(512); h=rng.randrange(2,7)
-            c=(255,238,231,rng.randrange(28,74)) if rng.random() > .43 else (116,64,69,rng.randrange(16,42))
-            d.line((x,y,x+rng.randrange(-2,3),y+h), fill=c, width=1)
-        d.rounded_rectangle((18,18,494,494), radius=76, outline=(255,230,221,200), width=7)
-        for x,y in ((40,40),(472,40),(40,472),(472,472)): d.arc((x-9,y-9,x+9,y+9),0,300,fill=(255,245,239,220),width=3)
-    elif name == '8bit':
-        # Hard pixel grid and a deliberately restricted palette.
-        reduced=bg.resize((64,64), Image.Resampling.NEAREST).convert('P', palette=Image.Palette.ADAPTIVE, colors=10)
-        bg=reduced.convert('RGBA').resize((512,512), Image.Resampling.NEAREST)
-    elif name == 'code':
-        for y in range(28,500,24): d.line((28,y,484,y), fill=(91,225,179,26), width=1)
-        for x in range(28,500,24): d.line((x,28,x,484), fill=(91,225,179,20), width=1)
-        d.rounded_rectangle((22,22,490,490), radius=38, outline=(82,219,173,110), width=2)
-    elif name == 'sky':
-        for _ in range(100):
-            x=rng.randrange(512); y=rng.randrange(512); w=rng.randrange(14,62); h=rng.randrange(4,17)
-            d.ellipse((x,y,x+w,y+h), fill=(255,255,255,rng.randrange(10,35)))
-    elif name == 'space':
-        for _ in range(210):
-            x=rng.randrange(512); y=rng.randrange(512); r=rng.choice((1,1,2,2,3))
-            d.ellipse((x-r,y-r,x+r,y+r), fill=(221,230,255,rng.randrange(90,230)))
-        d.arc((42,42,470,470),205,340,fill=(142,165,231,100),width=2)
-        d.arc((5,5,507,507),25,160,fill=(142,165,231,60),width=1)
-    elif name == 'graffiti':
-        for _ in range(2200):
-            x=rng.randrange(512); y=rng.randrange(512); r=rng.choice((1,1,2,3))
-            d.ellipse((x-r,y-r,x+r,y+r), fill=(24,22,20,rng.randrange(18,75)))
-        d.line((28,410,168,354,300,392,482,312), fill=(24,22,20,145), width=8)
-    elif name == 'line':
-        for y in range(32,512,40): d.line((26,y,486,y), fill=(93,88,78,18), width=1)
-        d.line((26,26,486,26), fill=(93,88,78,35), width=1)
-    elif name == 'playful':
-        d.rounded_rectangle((22,22,490,490), radius=72, outline=(255,255,255,110), width=6)
-    elif name == 'sketch':
-        for y in range(0,512,5):
-            if rng.random() > .55: d.line((0,y,512,y+rng.randrange(-2,3)), fill=(76,59,39,18), width=1)
+    # Reference SVG backgrounds already contain their gradients, patterns and decorative details.
+    # Do not layer the former custom textures on top of them.
     return bg
 
 for name, (logo_color, background) in STYLES.items():
