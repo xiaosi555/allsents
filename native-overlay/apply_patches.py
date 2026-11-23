@@ -3420,7 +3420,7 @@ _route_anchor = '                else -> HomePage(vm) { route = it }'
 if '"official" -> OfficialAccountPage' not in _my:
     if _route_anchor not in _my:
         raise SystemExit("Official account integration: MyScreen route anchor missing")
-    _my = _my.replace(_route_anchor, '                "official" -> OfficialAccountPage { route = "home" }\\n' + _route_anchor, 1)
+    _my = _my.replace(_route_anchor, '                "official" -> OfficialAccountPage { route = "home" }\n' + _route_anchor, 1)
 _home_start = _my.find("private fun HomePage")
 _home_end = _my.find("// ---------------------------------------------------------------------- 账号", _home_start)
 if _home_start < 0 or _home_end < 0:
@@ -3432,6 +3432,6 @@ if 'ListRow("公众号"' not in _home:
     if index < 0:
         raise SystemExit("Official account integration: HomePage backup row missing")
     lines.insert(index, '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }')
-    _my = _my[:_home_start] + "\\n".join(lines) + "\\n" + _my[_home_end:]
+    _my = _my[:_home_start] + "\n".join(lines) + "\n" + _my[_home_end:]
 _my_path.write_text(_my, encoding="utf-8")
 print("Official account feed route and My-page entry connected.")
