@@ -35,7 +35,7 @@ private val themeOptions = listOf(
 fun ThemeSettingsPage(vm: AppViewModel) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(26.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text("主题颜色", color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
@@ -74,5 +74,6 @@ fun ThemeSettingsPage(vm: AppViewModel) {
                 }
             }
         }
+        IconSettingsSection(vm)
     }
 }
