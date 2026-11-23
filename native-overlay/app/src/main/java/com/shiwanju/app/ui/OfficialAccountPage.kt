@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -127,12 +126,12 @@ fun OfficialAccountPage(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0)).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFFAAAAAA)) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFFB8B8B8), modifier = Modifier.size(20.dp)) }
             Text("公众号", Modifier.weight(1f), fontSize = 19.sp, color = Color(0xFF191919), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            IconButton(onClick = { searching = !searching; query = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFFAAAAAA)) }
+            IconButton(onClick = { searching = !searching; query = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFFB8B8B8), modifier = Modifier.size(20.dp)) }
             Box {
                 var menu by remember { mutableStateOf(false) }
-                IconButton(onClick = { menu = true }) { Icon(Icons.Default.Settings, "设置", tint = Color(0xFFAAAAAA)) }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreHoriz, "更多", tint = Color(0xFFB8B8B8), modifier = Modifier.size(21.dp)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("添加文章链接") }, onClick = { menu = false; adding = true })
                     DropdownMenuItem(text = { Text("刷新文章列表") }, onClick = { menu = false; scope.launch { refresh() } })
