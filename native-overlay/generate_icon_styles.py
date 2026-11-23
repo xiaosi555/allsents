@@ -36,11 +36,11 @@ ns = {"s": "http://www.w3.org/2000/svg"}
 paths = [node.attrib["d"] for node in tree.findall(".//s:path", ns)]
 if len(paths) != 3:
     raise SystemExit(f"Expected exactly 3 original logo paths, found {len(paths)}")
-logo_d = "".join(f'<path fill="{{color}}" d="{{d}}"/>' for d in paths)
+logo_d = "".join('<path fill="__COLOR__" d="' + d + '"/>' for d in paths)
 
 def logo_svg(color):
     # Exact common safe-area placement: same scale, same center, no crop or stretch.
-    return f'<g transform="translate(21 20.75) scale(0.07625)">{logo_d.format(color=color)}</g>'
+    return '<g transform="translate(21 20.75) scale(0.07625)">' + logo_d.replace("__COLOR__", color) + '</g>'
 
 def render(svg, size):
     return Image.open(BytesIO(cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=size, output_height=size))).convert("RGBA")
