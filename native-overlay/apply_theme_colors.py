@@ -126,8 +126,8 @@ if '"settings" -> ThemeSettingsPage(vm)' not in my:
 settings = (java / "ui/ThemeSettings.kt").read_text(encoding="utf-8")
 my = my_path.read_text(encoding="utf-8")
 vm = vm_path.read_text(encoding="utf-8")
-if settings.count('ThemeOption("') != 9:
-    raise SystemExit("Theme settings must contain exactly 9 options")
+if settings.count('ThemeOption("') != 10:
+    raise SystemExit("Theme settings must contain exactly 10 options")
 if "IconChoice" in settings or "APPEARANCE_ICONS" in settings:
     raise SystemExit("Icon selection must remain in phase 2")
 for token in ["fun setThemeColor(hex: String)", "val Theme: Color get()", "val OnTheme: Color get()"]:
