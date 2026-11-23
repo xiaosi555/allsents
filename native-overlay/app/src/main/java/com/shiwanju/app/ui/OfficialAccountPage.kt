@@ -57,9 +57,11 @@ private object OfficialArticleImporter {
         fun meta(selector: String): String = doc.selectFirst(selector)?.attr("content")?.trim().orEmpty()
         val title = meta("meta[property=og:title]").ifBlank { doc.selectFirst("#activity-name")?.text()?.trim().orEmpty() }
         val summary = meta("meta[property=og:description]").ifBlank { meta("meta[name=description]") }
-        val cover = meta("meta[property=og:image]")
-        val body = doc.select("#js_content img").mapNotNull { it.attr("data-src").ifBlank { it.attr("src") }.takeIf { s -> s.startsWith("http") } }
-        val images = (listOf(cover) + body).filter { it.isNotBlank() }.distinct().take(2)
+        // The feed card must use the article cover, not the first images inside the article body.
+        val cover = doc.selectFirst("#js_cover")?.let { it.attr("data-src").ifBlank { it.attr("src") } }
+            ?.takeIf { it.startsWith("http") }
+            ?: meta("meta[property=og:image]").ifBlank { meta("meta[name=twitter:image]") }
+        val images = listOf(cover).filter { it.isNotBlank() }
         val date = doc.selectFirst("#publish_time")?.text()?.trim().orEmpty()
         return OfficialArticle(url, title, summary, cover, images, date)
     }
@@ -157,14 +159,15 @@ fun OfficialAccountPage(onBack: () -> Unit) {
                     if (!opened) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url))) }
                 }) {
                     Text(article.publishedAt.ifBlank { "文章" }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), color = Color.LightGray, fontSize = 14.sp)
-                    val images = article.images.ifEmpty { listOf(article.cover).filter { it.isNotBlank() } }
-                    if (images.isEmpty()) Box(Modifier.fillMaxWidth().height(110.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) { Text("拾万句 · 文章", color = FeedGreen, fontSize = 18.sp) }
-                    else Row(Modifier.fillMaxWidth().height(164.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        images.take(2).forEach { AsyncImage(it, "文章配图", Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop) }
+                    val coverUrl = article.cover.ifBlank { article.images.firstOrNull().orEmpty() }
+                    if (coverUrl.isBlank()) {
+                        Box(Modifier.fillMaxWidth().height(180.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) {
+                            Text("封面暂不可用", color = Color(0xFF8AAB98), fontSize = 14.sp)
+                        }
+                    } else {
+                        AsyncImage(model = coverUrl, contentDescription = "文章封面", modifier = Modifier.fillMaxWidth().height(180.dp), contentScale = ContentScale.Crop)
                     }
-                    Text(article.title.ifBlank { "微信文章（信息待获取）" }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    if (article.summary.isNotBlank()) Text(article.summary, Modifier.padding(horizontal = 16.dp, vertical = 6.dp), color = Color.Gray, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text("点击阅读原文", Modifier.padding(start = 16.dp, top = 7.dp, bottom = 16.dp), color = Color.LightGray, fontSize = 12.sp)
+                    Text(article.title.ifBlank { "微信文章（信息待获取）" }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
