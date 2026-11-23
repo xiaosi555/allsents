@@ -99,8 +99,8 @@ vm_path.write_text(vm, encoding="utf-8")
 # Add Settings above Accounts and route to a theme-only page.
 my_path = java / "ui/MyScreens.kt"
 my = my_path.read_text(encoding="utf-8")
-old_title = 'val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; else -> "我的" }'
-new_title = 'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; else -> "我的" }'
+old_title = 'val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
+new_title = 'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
 if '"settings" -> ThemeSettingsPage(vm)' not in my:
     if old_title not in my:
         raise SystemExit("Required theme patch anchor missing (My page title): MyScreens.kt")
