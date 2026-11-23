@@ -67,14 +67,14 @@ def build_background(style, symbol_id, decoration_count, background_color=None):
         + '</svg>'
     )
 
-def build_logo(color, pixelated=False):
+def build_logo(color, pixelated=False, width_ratio=0.66):
     # Reference sprite's complete logo+sound-wave bounds after its transform:
     # x=17.74..90.26, y=32.54..87.30 (center x=54, y=59.92).
     # Fit 拾万句's original aspect ratio to the same reference width and center.
     source_width = 865.26
     source_center_x = 432.66
     source_center_y = (90.0 + 777.86) / 2.0
-    reference_width = 108.0 * 0.66
+    reference_width = 108.0 * width_ratio
     reference_center_y = 14.04 + ((25.0 + 99.0) / 2.0) * 0.74
     scale = reference_width / source_width
     tx = 54.0 - source_center_x * scale
@@ -107,17 +107,20 @@ for style, style_data in STYLES.items():
     symbol_id, logo_color, decoration_count = style_data[:3]
     background_color = style_data[3] if len(style_data) > 3 else None
     background = render(build_background(style, symbol_id, decoration_count, background_color))
-    logo = render(build_logo(logo_color, pixelated=(style == "8bit")))
+    # Keep two logo scales: legacy/in-app artwork is 66% of the canvas;
+    # adaptive foreground is 44%, compensating for the launcher's ~1.5x
+    # adaptive-icon foreground presentation scale (44% x 1.5 ~= 66%).
+    logo = render(build_logo(logo_color, pixelated=(style == "8bit"), width_ratio=0.66))
+    adaptive_logo = render(build_logo(logo_color, pixelated=(style == "8bit"), width_ratio=0.44))
 
-    # Pixelate only the logo layer for 8bit; keep background details crisp and visible.
+    # Pixelate only the logo layers for 8bit; keep background details crisp.
     if style == "8bit":
         logo = logo.resize((64, 64), Image.Resampling.NEAREST).resize((512, 512), Image.Resampling.NEAREST)
+        adaptive_logo = adaptive_logo.resize((64, 64), Image.Resampling.NEAREST).resize((512, 512), Image.Resampling.NEAREST)
 
-    # Keep adaptive-icon layers separate. Android scales/masks the background
-    # independently; baking the logo into it makes the logo appear oversized.
     drawable = RES / "drawable-nodpi"
     save(background, drawable / f"icon_style_{style}_background.png")
-    save(logo, drawable / f"icon_style_{style}_foreground.png")
+    save(adaptive_logo, drawable / f"icon_style_{style}_foreground.png")
     composed = Image.alpha_composite(background, logo)
     save(composed, drawable / f"icon_style_{style}.png")
 
@@ -157,4 +160,4 @@ for style, style_data in STYLES.items():
         (adaptive / "ic_launcher.xml").write_text(base_xml, encoding="utf-8")
         (adaptive / "ic_launcher_round.xml").write_text(base_xml, encoding="utf-8")
 
-print(f"Generated all {len(STYLES)} icon styles with independent background/foreground layers and 66% logo width.")
+print(f"Generated {len(STYLES)} icon styles: 66% legacy/in-app logo and 44% adaptive foreground (launcher-scale compensated).")
