@@ -79,7 +79,7 @@ if 'android:name=".LauncherOriginal"' not in m:
             android:targetActivity=".MainActivity"
             android:enabled="{'true' if id=='original' else 'false'}"
             android:exported="true"
-            android:icon="@drawable/icon_style_{id}"
+            android:icon="@mipmap/ic_launcher_style_{id}"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
