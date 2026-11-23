@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -125,6 +126,7 @@ private object WechatSpiderApi {
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun HistoryArticlesPage(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -143,6 +145,26 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
     var profilePickerOpen by remember { mutableStateOf(false) }
     var searching by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
+
+    suspend fun loadPosts(pageNumber: Int) {
+        if (server.isBlank() || biz.isBlank()) {
+            notice = "请先在设置中填写采集服务地址和公众号 msgBiz。"
+            return
+        }
+        busy = true
+        try {
+            val result = withContext(Dispatchers.IO) { WechatSpiderApi.posts(server, biz, pageNumber) }
+            articles = result.items
+            page = result.page
+            totalPages = result.totalPages
+            total = result.total
+            notice = if (result.items.isEmpty()) "服务连接正常，但当前公众号还没有采集到文章。请在微信中打开历史页并向下滚动触发采集。" else "已从 wechat_spider 读取第 " + result.page + " 页数据。"
+        } catch (e: Exception) {
+            notice = "读取失败：" + (e.message ?: "请检查服务地址、msgBiz 和网络")
+        } finally {
+            busy = false
+        }
+    }
 
     BackHandler { onBack() }
 
@@ -200,16 +222,6 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
         persist()
         profilePickerOpen = false
         scope.launch { loadPosts(1) }
-    }
-
-    // Defined as a local suspend function to share pagination and refresh behavior.
-    suspend fun unusedMarker() = Unit
-
-    // The API call updates the list only after the request succeeds.
-    // This function is invoked by the controls below and from profile selection.
-    // Kotlin local functions are available throughout the enclosing composable.
-    if (settingsOpen) {
-        // Settings dialog is rendered below the main page.
     }
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF6F6F6)).statusBarsPadding()) {
@@ -335,10 +347,6 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
             confirmButton = { TextButton(onClick = { profilePickerOpen = false }) { Text("关闭") } }
         )
     }
-}
-
-private fun loadPosts(pageNumber: Int) {
-    // Placeholder to keep this symbol out of Java interop; requests are dispatched by the composable callback below.
 }
 
 private fun openArticle(context: android.content.Context, link: String) {
