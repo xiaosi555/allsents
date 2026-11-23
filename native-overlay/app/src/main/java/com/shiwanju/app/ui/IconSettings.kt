@@ -24,7 +24,6 @@ import com.shiwanju.app.R
 private data class IconStyleOption(val id: String, val name: String, val image: Int)
 
 private val iconStyles = listOf(
-    IconStyleOption("original","原版",R.drawable.icon_style_original),
     IconStyleOption("cowboy","牛仔",R.drawable.icon_style_cowboy),
     IconStyleOption("code","代码",R.drawable.icon_style_code),
     IconStyleOption("line","简笔画",R.drawable.icon_style_line),
@@ -34,7 +33,8 @@ private val iconStyles = listOf(
     IconStyleOption("graffiti","涂鸦",R.drawable.icon_style_graffiti),
     IconStyleOption("playful","童趣",R.drawable.icon_style_playful),
     IconStyleOption("8bit","8-Bit",R.drawable.icon_style_8bit),
-    IconStyleOption("sketch","手稿",R.drawable.icon_style_sketch)
+    IconStyleOption("sketch","手稿",R.drawable.icon_style_sketch),
+    IconStyleOption("original","原版",R.drawable.icon_style_original)
 )
 
 @Composable
