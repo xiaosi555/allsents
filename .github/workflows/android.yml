@@ -67,8 +67,9 @@ jobs:
           svg = Path("拾万句_简_淡黄色.svg")
           if not svg.is_file():
               raise SystemExit("Missing authoritative logo: 拾万句_简_淡黄色.svg")
-          # Rasterize the original SVG without recoloring or cropping its artwork.
-          png = cairosvg.svg2png(url=str(svg), output_width=1024, output_height=952)
+          # Preserve the original vector paths while standardizing the logo to pure white.
+          svg_text = svg.read_text(encoding="utf-8").replace("#fff1d2", "#ffffff").replace("#FFF1D2", "#FFFFFF")
+          png = cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), output_width=1024, output_height=952)
           artwork = Image.open(BytesIO(png)).convert("RGBA")
           square = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
           square.alpha_composite(artwork, ((1024-artwork.width)//2, (1024-artwork.height)//2))
