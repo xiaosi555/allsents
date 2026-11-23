@@ -22,10 +22,10 @@ if "import androidx.compose.runtime.getValue" not in theme:
         "import androidx.compose.runtime.Composable\nimport androidx.compose.runtime.getValue\nimport androidx.compose.runtime.mutableStateOf\nimport androidx.compose.runtime.setValue",
         1
     )
-old_colors = """    val Theme = Color(0xFF01CC7A)
-    val OnTheme = Color(0xFFFFFFFF)"""
+old_colors = """    val Theme = Color(0xFFCCFF00)
+    val OnTheme = Color(0xFF000000)"""
 new_colors = """    private var themeState by mutableStateOf(Color(0xFF01CC7A))
-    private var onThemeState by mutableStateOf(Color(0xFF000000))
+    private var onThemeState by mutableStateOf(Color(0xFFFFFFFF))
     val Theme: Color get() = themeState
     val OnTheme: Color get() = onThemeState
 
