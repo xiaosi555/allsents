@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -285,26 +284,6 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                }
-            }
-            stickyHeader("profile-collapsed") {
-                Row(Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
-                        model = selectedProfile?.headimg?.takeIf { it.isNotBlank() } ?: HISTORY_AVATAR,
-                        contentDescription = "公众号头像",
-                        modifier = Modifier.size(40.dp).clip(CircleShape)
-                    )
-                    Text(
-                        selectedProfile?.title ?: "历史文章采集",
-                        Modifier.padding(start = 30.dp),
-                        color = Color(0xFF191919),
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Icon(Icons.Rounded.Star, contentDescription = "历史文章", tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
                 }
             }
             item("article-heading") {
