@@ -93,6 +93,12 @@ def save(image, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path, optimize=True)
 
+# Adaptive icon XMLs reference a transparent foreground layer because the
+# composed artwork (background + logo) is intentionally kept in one drawable.
+# Always generate this resource so AAPT can resolve every launcher alias.
+transparent_foreground = RES / "drawable-nodpi" / "launcher_transparent_foreground.png"
+save(Image.new("RGBA", (512, 512), (0, 0, 0, 0)), transparent_foreground)
+
 for style, (symbol_id, logo_color, decoration_count) in STYLES.items():
     background = render(build_background(style, symbol_id, decoration_count))
     logo = render(build_logo(logo_color, pixelated=(style == "8bit")))
