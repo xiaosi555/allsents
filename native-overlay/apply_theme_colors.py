@@ -22,9 +22,9 @@ if "import androidx.compose.runtime.getValue" not in theme:
         "import androidx.compose.runtime.Composable\nimport androidx.compose.runtime.getValue\nimport androidx.compose.runtime.mutableStateOf\nimport androidx.compose.runtime.setValue",
         1
     )
-old_colors = """    val Theme = Color(0xFFCCFF00)
-    val OnTheme = Color(0xFF000000)"""
-new_colors = """    private var themeState by mutableStateOf(Color(0xFFCCFF00))
+old_colors = """    val Theme = Color(0xFF01CC7A)
+    val OnTheme = Color(0xFFFFFFFF)"""
+new_colors = """    private var themeState by mutableStateOf(Color(0xFF01CC7A))
     private var onThemeState by mutableStateOf(Color(0xFF000000))
     val Theme: Color get() = themeState
     val OnTheme: Color get() = onThemeState
@@ -51,7 +51,7 @@ store = store_path.read_text(encoding="utf-8")
 store_anchor = "    // ---- 界面状态 ----"
 store_insert = """    // ---- 外观偏好：主题颜色（不写入业务数据文件） ----
     var themeColor: String
-        get() = prefs.getString("theme_color", "#CCFF00") ?: "#CCFF00"
+        get() = prefs.getString("theme_color", "#01CC7A") ?: "#01CC7A"
         set(value) {
             if (Regex("^#[0-9A-Fa-f]{6}$").matches(value)) {
                 prefs.edit().putString("theme_color", value.uppercase()).apply()
@@ -79,7 +79,7 @@ if "AppColors.setThemeColor(themeColor)" not in vm:
     if not init_match:
         raise SystemExit("Required theme patch anchor missing (ViewModel init declaration): AppViewModel.kt")
     insert_at = init_match.end()
-    vm = vm[:insert_at] + "\n        AppColors.setThemeColor(themeColor)" + vm[insert_at:]
+    vm = vm[:insert_at] + "\n        if (themeColor.equals(\"#CCFF00\", ignoreCase = true)) {\n            store.themeColor = \"#01CC7A\"\n            themeColor = \"#01CC7A\"\n        }\n        AppColors.setThemeColor(themeColor)" + vm[insert_at:]
 if "fun selectThemeColor(hex: String)" not in vm:
     base_anchor = "    // ------------------------------------------------------------------ 基础\n"
     if base_anchor not in vm:
