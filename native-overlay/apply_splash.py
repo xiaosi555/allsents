@@ -11,10 +11,10 @@ if "IconSplashScreen(vm.iconStyle)" not in source:
     start=source.index("        setContent {")
     end=source.index("\n        }\n    }\n}",start)+len("\n        }")
     replacement="""        setContent {
-            var showSplash by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+            val showSplash = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
             ShiWanJuTheme(dark = vm.screen == "layout") {
-                if (showSplash) {
-                    com.shiwanju.app.ui.IconSplashScreen(vm.iconStyle) { showSplash = false }
+                if (showSplash.value) {
+                    com.shiwanju.app.ui.IconSplashScreen(vm.iconStyle) { showSplash.value = false }
                 } else {
                     LaunchedEffect(vm.message) { vm.message?.let { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show(); vm.message = null } }
                     if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)
