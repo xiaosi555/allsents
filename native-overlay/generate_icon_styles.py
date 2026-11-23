@@ -40,17 +40,22 @@ if len(paths) != 3:
     raise SystemExit(f"Expected exactly 3 original logo paths, found {len(paths)}")
 logo_d = "".join('<path fill="__COLOR__" d="' + d + '"/>' for d in paths)
 
-def logo_svg(color):
-    # Use a single finished icon bitmap for both launcher and folder contexts.
-    # Artwork occupies 66% of the full canvas; no adaptive foreground layer
-    # is allowed to enlarge it independently at runtime.
+def logo_svg(color, style=None):
+    # Fixed approved geometry and scale: the original logo always occupies 66% of the canvas width.
+    # Only the visual treatment changes to match the selected reference material.
     logo_width = 108 * 0.66
     scale = logo_width / 865.26
     translate_x = (108 - logo_width) / 2
-    # Center the original path geometry (y=0.29..804.62) on the canvas.
     translate_y = 54 - ((0.29 + 804.62) / 2) * scale
     transform = f"translate({translate_x:.5f} {translate_y:.5f}) scale({scale:.8f})"
-    return f'<g transform="{transform}">' + logo_d.replace("__COLOR__", color) + '</g>'
+    if style in ("line", "sketch"):
+        paths_markup = "".join(
+            '<path fill="none" stroke="' + color + '" stroke-width="28" stroke-linejoin="round" stroke-linecap="round" d="' + d + '"/>'
+            for d in paths
+        )
+    else:
+        paths_markup = logo_d.replace("__COLOR__", color)
+    return f'<g transform="{transform}">' + paths_markup + '</g>'
 
 def render(svg, size):
     return Image.open(BytesIO(cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=size, output_height=size))).convert("RGBA")
@@ -65,9 +70,9 @@ def material_background(name, bg):
     return bg
 
 for name, (logo_color, background) in STYLES.items():
-    full_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}{logo_svg(logo_color)}</svg>'
+    full_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}{logo_svg(logo_color, name)}</svg>'
     bg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}</svg>'
-    fg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>'
+    fg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color, name)}</svg>'
     bg = material_background(name, render(bg_svg, 512))
     logo = render(f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>', 512)
     full = Image.alpha_composite(bg, logo)
