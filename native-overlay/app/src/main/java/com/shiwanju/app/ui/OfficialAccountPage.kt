@@ -11,6 +11,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
@@ -117,7 +119,11 @@ fun OfficialAccountPage(onBack: () -> Unit) {
     LaunchedEffect(Unit) { if (articles.isEmpty()) importUrl(FIRST_ARTICLE) }
     BackHandler { onBack() }
     val listState = rememberLazyListState()
-    val showCompactProfile by remember { derivedStateOf { listState.firstVisibleItemIndex >= 1 } }
+    // 只有完整资料区滚出可视区域后才显示紧凑吸顶栏；回到资料区即隐藏。
+    // 通过 AnimatedVisibility 进行淡入和轻微上滑，避免页面初始状态提前显示。
+    val showCompactProfile by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > 0 }
+    }
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0)).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -216,8 +222,16 @@ fun OfficialAccountPage(onBack: () -> Unit) {
             AnimatedVisibility(
                 visible = showCompactProfile,
                 modifier = Modifier.align(Alignment.TopCenter),
-                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+                enter = fadeIn(animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)) +
+                    slideInVertically(
+                        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+                        initialOffsetY = { -it / 3 }
+                    ),
+                exit = fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) +
+                    slideOutVertically(
+                        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+                        targetOffsetY = { -it / 3 }
+                    )
             ) {
                 Row(
                     Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp),
