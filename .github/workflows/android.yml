@@ -128,6 +128,26 @@ jobs:
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
           sed -i 's/vm.setTextViewMode(/vm.updateTextViewMode(/g' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/MyScreens.kt"
 
+      - name: Enable local LAN HTTP for self-hosted spider API
+        if: steps.source.outputs.present == 'true'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          manifest = Path("source/ShiWanJu-Android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text(encoding="utf-8")
+          match = re.search(r"<application\\b[^>]*>", text, re.S)
+          if not match:
+              raise SystemExit("AndroidManifest.xml has no application element")
+          tag = match.group(0)
+          if "android:usesCleartextTraffic" not in tag:
+              tag = tag[:-1] + ' android:usesCleartextTraffic="true">'
+              text = text[:match.start()] + tag + text[match.end():]
+              manifest.write_text(text, encoding="utf-8")
+          print("Local HTTP API access enabled for trusted LAN spider endpoint")
+          PY
+
       - name: Build debug APK
         if: steps.source.outputs.present == 'true'
         run: gradle --no-daemon -p source/ShiWanJu-Android :app:assembleDebug
