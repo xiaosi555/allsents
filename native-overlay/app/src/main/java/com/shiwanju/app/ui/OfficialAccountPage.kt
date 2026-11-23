@@ -3,11 +3,16 @@ package com.shiwanju.app.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,7 +76,6 @@ private object OfficialArticleImporter {
 }
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 fun OfficialAccountPage(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -112,6 +116,8 @@ fun OfficialAccountPage(onBack: () -> Unit) {
     }
     LaunchedEffect(Unit) { if (articles.isEmpty()) importUrl(FIRST_ARTICLE) }
     BackHandler { onBack() }
+    val listState = rememberLazyListState()
+    val showCompactProfile by remember { derivedStateOf { listState.firstVisibleItemIndex >= 1 } }
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0)).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -129,56 +135,37 @@ fun OfficialAccountPage(onBack: () -> Unit) {
         }
         if (searching) OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().background(Color.White).padding(12.dp), singleLine = true, placeholder = { Text("搜索文章标题") })
         val shown = articles.filter { !searching || query.isBlank() || it.title.contains(query, true) }
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            item(key = "profile-expanded") {
-                Row(Modifier.fillMaxWidth().background(Color.White).padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
-                        model = OFFICIAL_AVATAR,
-                        contentDescription = "拾万句公众号头像",
-                        modifier = Modifier.size(76.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                    Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("拾万句", color = Color(0xFF171717), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                            Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(19.dp))
-                            Text(" ›", color = Color.LightGray, fontSize = 25.sp)
+        Box(Modifier.fillMaxSize()) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                item(key = "profile") {
+                    Column(Modifier.fillMaxWidth().background(Color.White)) {
+                        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = OFFICIAL_AVATAR,
+                                contentDescription = "拾万句公众号头像",
+                                modifier = Modifier.size(76.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("拾万句", color = Color(0xFF171717), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(19.dp))
+                                    Text(" ›", color = Color.LightGray, fontSize = 25.sp)
+                                }
+                                Text("上海", color = Color.Gray, fontSize = 15.sp)
+                            }
                         }
-                        Text("上海", color = Color.Gray, fontSize = 15.sp)
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)) {
+                            Text("一句两句拾万句", color = Color(0xFF292929), fontSize = 16.sp)
+                            Spacer(Modifier.height(12.dp))
+                        }
                     }
                 }
-            }
-            item(key = "profile-description") {
-                Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 4.dp)) {
-                    Text("一句两句拾万句", color = Color(0xFF292929), fontSize = 16.sp)
-                    Spacer(Modifier.height(12.dp))
-                }
-            }
-            stickyHeader(key = "profile-collapsed") {
-                Row(
-                    Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = OFFICIAL_AVATAR,
-                        contentDescription = "拾万句公众号头像",
-                        modifier = Modifier.size(40.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                    Text(
-                        "拾万句",
-                        Modifier.padding(start = 30.dp),
-                        color = Color(0xFF171717),
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(16.dp))
-                }
-            }
             item(key = "article-section-title") {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("全部文章", color = Color.Gray, fontSize = 14.sp)
@@ -223,6 +210,33 @@ fun OfficialAccountPage(onBack: () -> Unit) {
                         }
                         Text(article.title.ifBlank { "微信文章（信息待获取）" }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
+                }
+            }
+            }
+            AnimatedVisibility(
+                visible = showCompactProfile,
+                modifier = Modifier.align(Alignment.TopCenter),
+                enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = OFFICIAL_AVATAR,
+                        contentDescription = "拾万句公众号头像",
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Text(
+                        "拾万句",
+                        Modifier.padding(start = 30.dp),
+                        color = Color(0xFF171717),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(16.dp))
                 }
             }
         }
