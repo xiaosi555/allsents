@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render the approved 11 icon compositions and Android adaptive/legacy assets.
 The three original logo paths are copied verbatim from 拾万句_简_淡黄色.svg.
-Only the background treatment and logo fill color vary between styles.
+Backgrounds and logo treatments follow the matching reference icon styles.
 """
 from pathlib import Path
 from io import BytesIO
@@ -74,7 +74,7 @@ for name, (logo_color, background) in STYLES.items():
     bg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}</svg>'
     fg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color, name)}</svg>'
     bg = material_background(name, render(bg_svg, 512))
-    logo = render(f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>', 512)
+    logo = render(f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color, name)}</svg>', 512)
     full = Image.alpha_composite(bg, logo)
     if name == "8bit":
         full = full.resize((64,64), Image.Resampling.NEAREST).resize((512,512), Image.Resampling.NEAREST)
