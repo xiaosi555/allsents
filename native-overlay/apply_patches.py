@@ -3437,3 +3437,54 @@ if 'ListRow("公众号"' not in _home:
     _my = _my[:_home_start] + "\n".join(lines) + "\n" + _my[_home_end:]
 _my_path.write_text(_my, encoding="utf-8")
 print("Official account feed route and My-page entry connected.")
+
+
+# ----------------------------------------------------------------------
+# wechat_spider history article test page.
+history_page = root/"native-overlay/app/src/main/java/com/shiwanju/app/ui/HistoryArticlesPage.kt"
+shutil.copy2(history_page, java/"ui/HistoryArticlesPage.kt")
+_my_path = java/"ui/MyScreens.kt"
+_my = _my_path.read_text(encoding="utf-8")
+_root = '    Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {'
+if 'if (route == "history_articles")' not in _my:
+    old = '    if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {'
+    new = '    if (route == "official") { OfficialAccountPage { route = "home" } } else if (route == "history_articles") { HistoryArticlesPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {'
+    if old not in _my:
+        raise SystemExit("History articles integration: special page route anchor missing")
+    _my = _my.replace(old, new, 1)
+
+_title_line = next((line for line in _my.splitlines() if "val title = when (route)" in line), None)
+if _title_line and '"history_articles" -> "历史文章"' not in _title_line:
+    _my = _my.replace(_title_line, _title_line.replace('; "official" -> "公众号";', '; "official" -> "公众号"; "history_articles" -> "历史文章";'), 1)
+
+_route_anchor = '                "official" -> OfficialAccountPage { route = "home" }'
+if '"history_articles" -> HistoryArticlesPage' not in _my:
+    if _route_anchor not in _my:
+        raise SystemExit("History articles integration: route switch anchor missing")
+    _my = _my.replace(_route_anchor, _route_anchor + '\n                "history_articles" -> HistoryArticlesPage { route = "home" }', 1)
+
+_home_start = _my.find("private fun HomePage")
+_home_end = _my.find("// ---------------------------------------------------------------------- 账号", _home_start)
+if _home_start < 0 or _home_end < 0:
+    raise SystemExit("History articles integration: HomePage section missing")
+_home = _my[_home_start:_home_end]
+if 'ListRow("历史文章"' not in _home:
+    anchor = '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }'
+    if anchor not in _home:
+        raise SystemExit("History articles integration: official account entry missing")
+    _home = _home.replace(anchor, anchor + '\n    ListRow("历史文章", "使用 wechat_spider 测试历史文章采集") { go("history_articles") }', 1)
+    _my = _my[:_home_start] + _home + _my[_home_end:]
+_my_path.write_text(_my, encoding="utf-8")
+
+# The spider dashboard/API defaults to HTTP on a local network address.
+# Allow the user-configured LAN endpoint; HTTPS remains supported as well.
+_manifest = base/"AndroidManifest.xml"
+if _manifest.exists():
+    _manifest_text = _manifest.read_text(encoding="utf-8")
+    if "android.permission.INTERNET" not in _manifest_text:
+        _manifest_text = _manifest_text.replace("<application", '<uses-permission android:name="android.permission.INTERNET" />\n    <application', 1)
+    if "android:usesCleartextTraffic=" not in _manifest_text:
+        _manifest_text = _manifest_text.replace("<application", '<application android:usesCleartextTraffic="true"', 1)
+    _manifest.write_text(_manifest_text, encoding="utf-8")
+
+print("wechat_spider history article page and My-page route connected.")
