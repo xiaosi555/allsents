@@ -250,7 +250,7 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
             item("profile") {
                 Row(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(model = selectedProfile?.headimg?.takeIf { it.isNotBlank() } ?: HISTORY_AVATAR, contentDescription = "公众号头像", modifier = Modifier.size(68.dp).clip(CircleShape))
+                    AsyncImage(model = selectedProfile?.headimg?.takeIf { it.isNotBlank() } ?: HISTORY_AVATAR, contentDescription = "公众号头像", modifier = Modifier.size(76.dp).clip(CircleShape))
                     Column(Modifier.weight(1f).padding(start = 16.dp)) {
                         Text(selectedProfile?.title ?: "历史文章采集", color = Color(0xFF191919), fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
                         Text(if (biz.isBlank()) "尚未选择公众号" else "已绑定公众号 · ${biz.take(12)}", color = Color.Gray, fontSize = 13.sp)
@@ -262,6 +262,23 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
                 Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 4.dp)) {
                     Text("通过 wechat_spider 采集并展示公众号历史文章", color = Color(0xFF333333), fontSize = 15.sp)
                     Spacer(Modifier.height(12.dp))
+                }
+            }
+            stickyHeader("profile-collapsed") {
+                Row(Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = selectedProfile?.headimg?.takeIf { it.isNotBlank() } ?: HISTORY_AVATAR,
+                        contentDescription = "公众号头像",
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Text(
+                        selectedProfile?.title ?: "拾万句",
+                        Modifier.padding(start = 30.dp),
+                        color = Color(0xFF171717),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
             stickyHeader("sticky") {
