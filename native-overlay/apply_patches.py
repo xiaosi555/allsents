@@ -5,6 +5,7 @@ import shutil
 root=Path(__file__).resolve().parents[1]
 base=root/"source/ShiWanJu-Android/app/src/main"
 java=base/"java/com/shiwanju/app"
+shutil.copy2(root/"native-overlay/app/src/main/java/com/shiwanju/app/ui/OfficialAccountPage.kt", java/"ui/OfficialAccountPage.kt")
 def patch(rel,pairs):
  p=java/rel;s=p.read_text(encoding="utf-8")
  for a,b in pairs:
@@ -3400,3 +3401,15 @@ if "var layoutVer = raw.layoutVer" not in _store_text:
     raise SystemExit("Layout version declaration was not restored")
 _store_path.write_text(_store_text, encoding="utf-8")
 print("Layout version declaration restored after removing automatic Douyin insertion.")
+
+
+# ----------------------------------------------------------------------
+# Official account feed: link import, local article cache and WeChat deep links.
+patch("ui/MyScreens.kt",[
+    ('val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }',
+     'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; else -> "我的" }'),
+    ('                "backup" -> BackupPage(vm)\\n                else -> HomePage(vm) { route = it }',
+     '                "backup" -> BackupPage(vm)\\n                "official" -> OfficialAccountPage { route = "home" }\\n                else -> HomePage(vm) { route = it }'),
+    ('    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }',
+     '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }\\n    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }')
+])
