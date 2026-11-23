@@ -17,7 +17,7 @@ if not SOURCE.is_file():
 
 # Approved visual language from the 11-style design preview.
 STYLES = {
- "original": ("#FFF1D2", """<rect width="108" height="108" fill="#4D4638"/><rect x="4" y="4" width="100" height="100" rx="23" fill="#63563F"/><path d="M8 25H100M8 83H100" stroke="#8D7956" stroke-width=".6" opacity=".65"/>"""),
+ "original": ("#FFFFFF", """<rect width="108" height="108" fill="#01CC7A"/><rect x="4" y="4" width="100" height="100" rx="23" fill="#01CC7A"/>"""),
  "cowboy": ("#F8E7C8", """<rect width="108" height="108" fill="#315B78"/><path d="M0 12L108 0V108H0Z" fill="#3E7190"/><path d="M8 0V108M100 0V108" stroke="#A9C7D6" stroke-width=".8" stroke-dasharray="2 2" opacity=".7"/><path d="M0 17H108M0 91H108" stroke="#23475F" stroke-width="2" opacity=".55"/><circle cx="12" cy="12" r="2" fill="#D7B78C"/><circle cx="96" cy="96" r="2" fill="#D7B78C"/>"""),
  "code": ("#C6FFE8", """<rect width="108" height="108" fill="#101B20"/><path d="M0 12H108M0 24H108M0 36H108M0 48H108M0 60H108M0 72H108M0 84H108M0 96H108M12 0V108M24 0V108M36 0V108M48 0V108M60 0V108M72 0V108M84 0V108M96 0V108" stroke="#1C3940" stroke-width=".45"/><rect x="6" y="6" width="96" height="96" rx="17" fill="none" stroke="#2C6B62" stroke-width="1.2"/><circle cx="13" cy="13" r="1.5" fill="#61E6B2"/><circle cx="19" cy="13" r="1.5" fill="#61E6B2" opacity=".6"/>"""),
  "line": ("#34383A", """<rect width="108" height="108" fill="#F8F7F2"/><rect x="7" y="7" width="94" height="94" rx="21" fill="#FFFDF8" stroke="#D7D5CD" stroke-width="1"/><path d="M16 23Q54 13 92 23M16 86Q54 96 92 86" fill="none" stroke="#E6E2D8" stroke-width="1"/>"""),
@@ -57,14 +57,71 @@ def save_png(image, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path, optimize=True)
 
+def material_background(name, bg):
+    import random
+    from PIL import ImageDraw
+    rng = random.Random(20261123 + list(STYLES).index(name))
+    d = ImageDraw.Draw(bg, 'RGBA')
+    if name == 'cowboy':
+        # Denim: crossed twill weave, seam stitching and metal rivets.
+        for k in range(-512, 1024, 8):
+            d.line((k, 0, k + 512, 512), fill=(14, 39, 57, 48), width=2)
+            d.line((k + 3, 0, k + 515, 512), fill=(218, 236, 242, 38), width=1)
+        for y in range(0, 512, 8): d.line((0, y, 512, y), fill=(12, 38, 54, 24), width=1)
+        d.rounded_rectangle((22,22,490,490), radius=46, outline=(235,218,184,210), width=5)
+        for x,y in ((44,44),(468,44),(44,468),(468,468)):
+            d.ellipse((x-6,y-6,x+6,y+6), fill=(177,133,77,255), outline=(246,221,176,255), width=2)
+    elif name == 'plush':
+        # Short directional pile: visible soft fibers, not a flat pink fill.
+        for _ in range(42000):
+            x=rng.randrange(512); y=rng.randrange(512); h=rng.randrange(2,7)
+            c=(255,238,231,rng.randrange(28,74)) if rng.random() > .43 else (116,64,69,rng.randrange(16,42))
+            d.line((x,y,x+rng.randrange(-2,3),y+h), fill=c, width=1)
+        d.rounded_rectangle((18,18,494,494), radius=76, outline=(255,230,221,200), width=7)
+        for x,y in ((40,40),(472,40),(40,472),(472,472)): d.arc((x-9,y-9,x+9,y+9),0,300,fill=(255,245,239,220),width=3)
+    elif name == '8bit':
+        # Hard pixel grid and a deliberately restricted palette.
+        reduced=bg.resize((64,64), Image.Resampling.NEAREST).convert('P', palette=Image.Palette.ADAPTIVE, colors=10)
+        bg=reduced.convert('RGBA').resize((512,512), Image.Resampling.NEAREST)
+    elif name == 'code':
+        for y in range(28,500,24): d.line((28,y,484,y), fill=(91,225,179,26), width=1)
+        for x in range(28,500,24): d.line((x,28,x,484), fill=(91,225,179,20), width=1)
+        d.rounded_rectangle((22,22,490,490), radius=38, outline=(82,219,173,110), width=2)
+    elif name == 'sky':
+        for _ in range(100):
+            x=rng.randrange(512); y=rng.randrange(512); w=rng.randrange(14,62); h=rng.randrange(4,17)
+            d.ellipse((x,y,x+w,y+h), fill=(255,255,255,rng.randrange(10,35)))
+    elif name == 'space':
+        for _ in range(210):
+            x=rng.randrange(512); y=rng.randrange(512); r=rng.choice((1,1,2,2,3))
+            d.ellipse((x-r,y-r,x+r,y+r), fill=(221,230,255,rng.randrange(90,230)))
+        d.arc((42,42,470,470),205,340,fill=(142,165,231,100),width=2)
+        d.arc((5,5,507,507),25,160,fill=(142,165,231,60),width=1)
+    elif name == 'graffiti':
+        for _ in range(2200):
+            x=rng.randrange(512); y=rng.randrange(512); r=rng.choice((1,1,2,3))
+            d.ellipse((x-r,y-r,x+r,y+r), fill=(24,22,20,rng.randrange(18,75)))
+        d.line((28,410,168,354,300,392,482,312), fill=(24,22,20,145), width=8)
+    elif name == 'line':
+        for y in range(32,512,40): d.line((26,y,486,y), fill=(93,88,78,18), width=1)
+        d.line((26,26,486,26), fill=(93,88,78,35), width=1)
+    elif name == 'playful':
+        d.rounded_rectangle((22,22,490,490), radius=72, outline=(255,255,255,110), width=6)
+    elif name == 'sketch':
+        for y in range(0,512,5):
+            if rng.random() > .55: d.line((0,y,512,y+rng.randrange(-2,3)), fill=(76,59,39,18), width=1)
+    return bg
+
 for name, (logo_color, background) in STYLES.items():
     full_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}{logo_svg(logo_color)}</svg>'
     bg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{background}</svg>'
     fg_svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>'
-    full = render(full_svg, 512)
-    bg = render(bg_svg, 512)
-    # No separately-scaled adaptive foreground: the launcher receives the
-    # exact same complete square composition shown in the in-app selector.
+    bg = material_background(name, render(bg_svg, 512))
+    logo = render(f'<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">{logo_svg(logo_color)}</svg>', 512)
+    full = Image.alpha_composite(bg, logo)
+    if name == "8bit":
+        full = full.resize((64,64), Image.Resampling.NEAREST).resize((512,512), Image.Resampling.NEAREST)
+    # One finished bitmap is shared by the selector, launcher and app drawer.
 
     # Compose preview and resources from the same SVG definition.
     drawable = RES / "drawable-nodpi"
