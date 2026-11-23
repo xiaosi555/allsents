@@ -64,11 +64,11 @@ fun IconSplashScreen(style: String, onFinished: () -> Unit) {
             Text("拾万句", color = spec.foreground, fontSize = 28.sp,
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.08.sp)
             Spacer(Modifier.height(10.dp))
-            Text("收集灵感 · 排版表达", color = spec.foreground.copy(alpha = 0.78f),
+            Text("一句两句拾万句", color = spec.foreground.copy(alpha = 0.78f),
                 fontSize = 12.sp, letterSpacing = 0.12.sp, textAlign = TextAlign.Center)
         }
         Text(
-            "跳过 \${seconds}s", color = spec.foreground.copy(alpha = 0.72f), fontSize = 11.sp,
+            "跳过 ${seconds}s", color = spec.foreground.copy(alpha = 0.72f), fontSize = 11.sp,
             modifier = Modifier.align(Alignment.BottomEnd).padding(end = 18.dp, bottom = 22.dp)
                 .clickable { if (!finished) { finished = true; onFinished() } }
                 .padding(4.dp)
