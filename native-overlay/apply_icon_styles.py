@@ -21,7 +21,7 @@ if "var iconStyle: String" not in s:
         }
 
 '''+anchor,1)
-    s=s.replace('class Store(private val ctx: Context) {','class Store(private val ctx: Context) {\n    companion object { val ICON_STYLE_IDS = setOf("original","cowboy","code","line","plush","sky","space","graffiti","playful","8bit","sketch") }',1)
+    s=s.replace('class Store(private val ctx: Context) {','class Store(private val ctx: Context) {\n    companion object { val ICON_STYLE_IDS = setOf("original","cowboy","code","line","plush","sky","space","graffiti","playful","8bit","sketch","classic") }',1)
 store_path.write_text(s,encoding="utf-8")
 
 vm_path=java/"ui/AppViewModel.kt"
@@ -69,7 +69,7 @@ m=manifest.read_text(encoding="utf-8")
 m=re.sub(r'\s*<intent-filter>\s*<action android:name="android.intent.action.MAIN"\s*/>\s*<category android:name="android.intent.category.LAUNCHER"\s*/>\s*</intent-filter>','',m,count=1)
 if 'android:name=".LauncherOriginal"' not in m:
     aliases=[]
-    ids=["original","cowboy","code","line","plush","sky","space","graffiti","playful","8bit","sketch"]
+    ids=["original","cowboy","code","line","plush","sky","space","graffiti","playful","8bit","sketch","classic"]
     for id in ids:
         cap=id[0].upper()+id[1:]
         aliases.append(f'''        <activity-alias
