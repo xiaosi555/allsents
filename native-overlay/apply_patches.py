@@ -3416,12 +3416,12 @@ if 'if (route == "official")' not in _my:
     _my = _my.replace(_root, '    if (route == "history") { HistoryArticlesPage { route = "home" } } else if (route == "official") { OfficialAccountPage { route = "home" } } else Column(Modifier.fillMaxSize().background(AppColors.MyBg).systemBarsPadding()) {', 1)
 _title_line = next((line for line in _my.splitlines() if "val title = when (route)" in line), None)
 if _title_line and '"official" -> "公众号"' not in _title_line:
-    _my = _my.replace(_title_line, _title_line.replace('; else -> "我的" }', '; "official" -> "公众号"; "history" -> "历史文章"; else -> "我的" }'), 1)
+    _my = _my.replace(_title_line, _title_line.replace('; else -> "我的" }', '; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'), 1)
 _route_anchor = '                else -> HomePage(vm) { route = it }'
 if '"official" -> OfficialAccountPage' not in _my:
     if _route_anchor not in _my:
         raise SystemExit("Official account integration: MyScreen route anchor missing")
-    _my = _my.replace(_route_anchor, '                "history" -> HistoryArticlesPage { route = "home" }\n                "official" -> OfficialAccountPage { route = "home" }\n' + _route_anchor, 1)
+    _my = _my.replace(_route_anchor, '                "history_articles" -> HistoryArticlesPage { route = "home" }\n                "official" -> OfficialAccountPage { route = "home" }\n' + _route_anchor, 1)
 _home_start = _my.find("private fun HomePage")
 _home_end = _my.find("// ---------------------------------------------------------------------- 账号", _home_start)
 if _home_start < 0 or _home_end < 0:
@@ -3433,7 +3433,7 @@ if 'ListRow("公众号"' not in _home:
     if index < 0:
         raise SystemExit("Official account integration: HomePage backup row missing")
     lines.insert(index, '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }')
-    lines.insert(index + 1, '    ListRow("历史文章", "通过 wechat_spider 读取公众号历史文章") { go("history") }')
+    lines.insert(index + 1, '    ListRow("历史文章", "通过 wechat_spider 读取公众号历史文章") { go("history_articles") }')
     _my = _my[:_home_start] + "\n".join(lines) + "\n" + _my[_home_end:]
 _my_path.write_text(_my, encoding="utf-8")
 print("Official account feed route and My-page entry connected.")
