@@ -104,23 +104,9 @@ jobs:
           python3 native-overlay/apply_theme_colors.py
           python3 native-overlay/generate_icon_styles.py
           python3 native-overlay/apply_icon_styles.py
-          cat > "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml" <<'XML'
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#01CC7A" android:pathData="M0,0h108v108h-108z" />
-          </vector>
-          XML
-          # Use the 108x108 PNG directly. Do not wrap it in another sized layer-list:
-          # that previously applied a second 58dp shrink to adaptive/splash icons.
+          # Icon generator supplies base adaptive and legacy resources from one full-bleed composition.
+          rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml"
           rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml"
-          cat > "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" <<'XML'
-          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@drawable/ic_launcher_background" />
-              <foreground android:drawable="@drawable/launcher_logo_foreground" />
-          </adaptive-icon>
-          XML
-          cp "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" "$PROJECT/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
           # Keep every APK build installable as an update: APP_VERSION is bumped in the repository per release.
           python3 - <<'PY'
           from pathlib import Path
