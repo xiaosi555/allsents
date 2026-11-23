@@ -3,6 +3,7 @@ package com.shiwanju.app.ui
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,8 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -70,6 +71,7 @@ private object OfficialArticleImporter {
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 fun OfficialAccountPage(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -113,12 +115,12 @@ fun OfficialAccountPage(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF0F0F0)).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFF222222)) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFFAAAAAA)) }
             Text("公众号", Modifier.weight(1f), fontSize = 19.sp, color = Color(0xFF191919), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            IconButton(onClick = { searching = !searching; query = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFF222222)) }
+            IconButton(onClick = { searching = !searching; query = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFFAAAAAA)) }
             Box {
                 var menu by remember { mutableStateOf(false) }
-                IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreHoriz, "更多", tint = Color(0xFF222222)) }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Default.Settings, "设置", tint = Color(0xFFAAAAAA)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("添加文章链接") }, onClick = { menu = false; adding = true })
                     DropdownMenuItem(text = { Text("刷新文章列表") }, onClick = { menu = false; scope.launch { refresh() } })
@@ -126,53 +128,101 @@ fun OfficialAccountPage(onBack: () -> Unit) {
             }
         }
         if (searching) OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().background(Color.White).padding(12.dp), singleLine = true, placeholder = { Text("搜索文章标题") })
-        Row(Modifier.fillMaxWidth().background(Color.White).padding(start = 20.dp, end = 16.dp, top = 18.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = OFFICIAL_AVATAR,
-                contentDescription = "拾万句公众号头像",
-                modifier = Modifier.size(76.dp).clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("拾万句", color = Color(0xFF171717), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(19.dp))
-                    Text(" ›", color = Color.LightGray, fontSize = 25.sp)
-                }
-                Text("上海", color = Color.Gray, fontSize = 15.sp)
-            }
-            IconButton(onClick = { scope.launch { refresh() } }, enabled = !busy) {
-                if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = FeedGreen, strokeWidth = 2.dp) else Icon(Icons.Default.Refresh, "刷新", tint = Color.Gray)
-            }
-        }
-        Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 4.dp)) {
-            Text("一句两句拾万句", color = Color(0xFF292929), fontSize = 16.sp)
-            Spacer(Modifier.height(12.dp))
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("全部文章", color = Color.Gray, fontSize = 14.sp)
-            Spacer(Modifier.weight(1f))
-            Text(if (busy) "正在同步…" else if (syncedAt.isNotBlank()) "更新于 " + syncedAt else "本地缓存 " + articles.size + " 篇", color = Color.LightGray, fontSize = 12.sp)
-        }
-        if (notice.isNotBlank()) Text(notice, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), color = Color(0xFF9A6A28), fontSize = 12.sp)
         val shown = articles.filter { !searching || query.isBlank() || it.title.contains(query, true) }
-        if (shown.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("暂无文章，点击右上角添加文章链接", color = Color.Gray) }
-        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(shown, key = { it.url }) { article ->
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White).clickable {
-                    val opened = runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url)).setPackage("com.tencent.mm")) }.isSuccess
-                    if (!opened) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url))) }
-                }) {
-                    Text(article.publishedAt.ifBlank { "文章" }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), color = Color.LightGray, fontSize = 14.sp)
-                    val coverUrl = article.cover
-                    if (coverUrl.isBlank()) {
-                        Box(Modifier.fillMaxWidth().height(180.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) {
-                            Text("封面暂不可用", color = Color(0xFF8AAB98), fontSize = 14.sp)
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            item(key = "profile-expanded") {
+                Row(Modifier.fillMaxWidth().background(Color.White).padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = OFFICIAL_AVATAR,
+                        contentDescription = "拾万句公众号头像",
+                        modifier = Modifier.size(76.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("拾万句", color = Color(0xFF171717), fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                            Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(19.dp))
+                            Text(" ›", color = Color.LightGray, fontSize = 25.sp)
                         }
-                    } else {
-                        AsyncImage(model = coverUrl, contentDescription = "文章封面", modifier = Modifier.fillMaxWidth().height(180.dp), contentScale = ContentScale.Crop)
+                        Text("上海", color = Color.Gray, fontSize = 15.sp)
                     }
-                    Text(article.title.ifBlank { "微信文章（信息待获取）" }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            item(key = "profile-description") {
+                Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 4.dp)) {
+                    Text("一句两句拾万句", color = Color(0xFF292929), fontSize = 16.sp)
+                    Spacer(Modifier.height(12.dp))
+                }
+            }
+            stickyHeader(key = "profile-collapsed") {
+                Row(
+                    Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = OFFICIAL_AVATAR,
+                        contentDescription = "拾万句公众号头像",
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Text(
+                        "拾万句",
+                        Modifier.padding(start = 30.dp),
+                        color = Color(0xFF171717),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Icon(Icons.Rounded.Star, contentDescription = "公众号标识", tint = Color(0xFFFFB800), modifier = Modifier.padding(start = 3.dp).size(16.dp))
+                }
+            }
+            item(key = "article-section-title") {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("全部文章", color = Color.Gray, fontSize = 14.sp)
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        if (busy) "正在同步…" else if (syncedAt.isNotBlank()) "更新于 " + syncedAt else "本地缓存 " + articles.size + " 篇",
+                        color = Color.LightGray,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            if (notice.isNotBlank()) {
+                item(key = "notice") {
+                    Text(notice, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), color = Color(0xFF9A6A28), fontSize = 12.sp)
+                }
+            }
+            if (shown.isEmpty()) {
+                item(key = "empty") {
+                    Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+                        Text("暂无文章，点击右上角添加文章链接", color = Color.Gray)
+                    }
+                }
+            } else {
+                items(shown, key = { it.url }) { article ->
+                    Column(
+                        Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            .fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White).clickable {
+                                val opened = runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url)).setPackage("com.tencent.mm"))
+                                }.isSuccess
+                                if (!opened) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(article.url))) }
+                            }
+                    ) {
+                        Text(article.publishedAt.ifBlank { "文章" }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), color = Color.LightGray, fontSize = 14.sp)
+                        val coverUrl = article.cover
+                        if (coverUrl.isBlank()) {
+                            Box(Modifier.fillMaxWidth().height(180.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) {
+                                Text("封面暂不可用", color = Color(0xFF8AAB98), fontSize = 14.sp)
+                            }
+                        } else {
+                            AsyncImage(model = coverUrl, contentDescription = "文章封面", modifier = Modifier.fillMaxWidth().height(180.dp), contentScale = ContentScale.Crop)
+                        }
+                        Text(article.title.ifBlank { "微信文章（信息待获取）" }, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }
