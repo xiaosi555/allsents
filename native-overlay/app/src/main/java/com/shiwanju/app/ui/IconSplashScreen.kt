@@ -34,6 +34,7 @@ fun IconSplashScreen(style: String, onFinished: () -> Unit) {
         "playful" -> SplashStyle(Color(0xFFFFD95D), Color(0xFF654A12), R.drawable.icon_style_playful)
         "8bit" -> SplashStyle(Color(0xFF77718D), Color(0xFFF7E8C8), R.drawable.icon_style_8bit)
         "sketch" -> SplashStyle(Color(0xFF123B2D), Color(0xFFE7E0BE), R.drawable.icon_style_sketch)
+        "classic" -> SplashStyle(Color(0xFF1769C2), Color.White, R.drawable.icon_style_classic)
         else -> SplashStyle(Color(0xFF01CC7A), Color.White, R.drawable.icon_style_original)
     }
     var seconds by remember(style) { mutableIntStateOf(3) }
