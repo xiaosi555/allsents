@@ -34,7 +34,8 @@ private val iconStyles = listOf(
     IconStyleOption("playful","童趣",R.drawable.icon_style_playful),
     IconStyleOption("8bit","8-Bit",R.drawable.icon_style_8bit),
     IconStyleOption("sketch","手稿",R.drawable.icon_style_sketch),
-    IconStyleOption("original","原版",R.drawable.icon_style_original)
+    IconStyleOption("original","原版",R.drawable.icon_style_original),
+    IconStyleOption("classic","深蓝原版",R.drawable.icon_style_classic)
 )
 
 @Composable
