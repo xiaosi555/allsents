@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +59,9 @@ private data class SpiderArticle(
     val publishAt: String = "",
     val readNum: Int = 0,
     val likeNum: Int = 0,
-    val likeNum2: Int = 0
+    val likeNum2: Int = 0,
+    val cover: String = "",
+    val digest: String = ""
 )
 
 private data class SpiderPage(
@@ -111,14 +114,21 @@ private object WechatSpiderApi {
         val data = json.optJSONArray("data")
         val items = if (data == null) emptyList() else (0 until data.length()).mapNotNull { i ->
             val p = data.optJSONObject(i) ?: return@mapNotNull null
+            val id = p.optString("id")
+            // Upstream list results omit cover and digest; the detail endpoint includes both.
+            val detail = if (id.isBlank()) null else runCatching {
+                request(base, "/api/posts/" + URLEncoder.encode(id, "UTF-8")).optJSONObject("data")
+            }.getOrNull()
             SpiderArticle(
-                id = p.optString("id"),
+                id = id,
                 title = p.optString("title", "未命名文章"),
                 link = p.optString("link"),
                 publishAt = p.optString("publishAt"),
                 readNum = p.optInt("readNum"),
                 likeNum = p.optInt("likeNum"),
-                likeNum2 = p.optInt("likeNum2")
+                likeNum2 = p.optInt("likeNum2"),
+                cover = detail?.optString("cover").orEmpty(),
+                digest = detail?.optString("digest").orEmpty()
             )
         }
         return SpiderPage(items, metadata.optInt("currentPage", page), metadata.optInt("totalPages"), metadata.optInt("count"))
@@ -288,7 +298,13 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
                             .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
                         Text(formatSpiderDate(article.publishAt), color = Color.LightGray, fontSize = 12.sp)
-                        Text(article.title.ifBlank { "未命名文章" }, Modifier.padding(top = 8.dp), color = Color(0xFF202020), fontSize = 17.sp, lineHeight = 24.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        if (article.cover.isNotBlank()) {
+                            AsyncImage(model = article.cover, contentDescription = "文章封面", modifier = Modifier.fillMaxWidth().height(180.dp), contentScale = ContentScale.Crop)
+                        } else {
+                            Box(Modifier.fillMaxWidth().height(150.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) { Text("封面暂不可用", color = Color(0xFF8AAB98), fontSize = 13.sp) }
+                        }
+                        Text(article.title.ifBlank { "未命名文章" }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        if (article.digest.isNotBlank()) Text(article.digest, Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 10.dp), color = Color.Gray, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                             Text("阅读 ${article.readNum}", color = Color(0xFFAAAAAA), fontSize = 11.sp)
                             Text("点赞 ${article.likeNum}", color = Color(0xFFAAAAAA), fontSize = 11.sp)
