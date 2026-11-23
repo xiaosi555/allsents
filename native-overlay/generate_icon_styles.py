@@ -136,11 +136,28 @@ for name, (logo_color, background) in STYLES.items():
         folder = RES / f"mipmap-{density}"
         save_png(ImageOps.fit(full, (size,size), method=Image.Resampling.LANCZOS), folder / f"ic_launcher_style_{name}.png")
 
-    # Remove the adaptive-icon XML override. Android launchers can independently
-    # scale a foreground layer, and folder previews may apply a different zoom.
-    # A density-specific complete PNG is intentional for consistent rendering.
-    adaptive_xml = RES / "mipmap-anydpi-v26" / f"ic_launcher_style_{name}.xml"
-    if adaptive_xml.exists():
-        adaptive_xml.unlink()
+    # Android 8+ uses the exact same finished composition as a full-bleed
+    # adaptive-icon background layer. A transparent foreground avoids a second
+    # inset/safe-area shrink and prevents white/transparent padding.
+    adaptive_dir = RES / "mipmap-anydpi-v26"
+    adaptive_dir.mkdir(parents=True, exist_ok=True)
+    transparent = Image.new("RGBA", (108, 108), (0, 0, 0, 0))
+    save_png(transparent, drawable / "launcher_transparent_foreground.png")
+    xml = f'''<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/icon_style_{name}" />
+    <foreground android:drawable="@drawable/launcher_transparent_foreground" />
+    </adaptive-icon>'''
+    (adaptive_dir / f"ic_launcher_style_{name}.xml").write_text(xml, encoding="utf-8")
+
+    # The package/install identity uses the original icon and therefore matches
+    # the default launcher alias, folder preview and in-app selector.
+    if name == "original":
+        for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
+            folder = RES / f"mipmap-{density}"
+            save_png(ImageOps.fit(full, (size,size), method=Image.Resampling.LANCZOS), folder / "ic_launcher.png")
+            save_png(ImageOps.fit(full, (size,size), method=Image.Resampling.LANCZOS), folder / "ic_launcher_round.png")
+        base_xml = '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/icon_style_original" /><foreground android:drawable="@drawable/launcher_transparent_foreground" /></adaptive-icon>'
+        (adaptive_dir / "ic_launcher.xml").write_text(base_xml, encoding="utf-8")
+        (adaptive_dir / "ic_launcher_round.xml").write_text(base_xml, encoding="utf-8")
 
 print(f"Generated {len(STYLES)} approved icon compositions from the exact 3-path source logo.")
