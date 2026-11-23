@@ -3408,8 +3408,8 @@ print("Layout version declaration restored after removing automatic Douyin inser
 patch("ui/MyScreens.kt",[
     ('val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; else -> "我的" }',
      'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; else -> "我的" }'),
-    ('                "backup" -> BackupPage(vm)\\n                else -> HomePage(vm) { route = it }',
-     '                "backup" -> BackupPage(vm)\\n                "official" -> OfficialAccountPage { route = "home" }\\n                else -> HomePage(vm) { route = it }'),
+    ('                "backup" -> BackupPage(vm)\n                else -> HomePage(vm) { route = it }',
+     '                "backup" -> BackupPage(vm)\n                "official" -> OfficialAccountPage { route = "home" }\n                else -> HomePage(vm) { route = it }'),
     ('    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }',
-     '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }\\n    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }')
+     '    ListRow("公众号", "拾万句公众号文章与链接") { go("official") }\n    ListRow("备份", "完整数据导出与恢复导入") { go("backup") }')
 ])
