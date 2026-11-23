@@ -219,6 +219,7 @@ fun OfficialAccountPage(onBack: () -> Unit) {
                 }
             }
             }
+        }
             AnimatedVisibility(
                 visible = showCompactProfile,
                 modifier = Modifier.align(Alignment.TopCenter),
