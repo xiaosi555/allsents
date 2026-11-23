@@ -191,10 +191,15 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
                 val result = withContext(Dispatchers.IO) { WechatSpiderApi.profiles(server) }
                 profiles = result
                 notice = if (result.isEmpty()) "服务已连接，但尚无公众号记录。请先在微信中打开公众号历史页并通过代理采集。" else "已连接，识别到 ${result.size} 个公众号。"
-                if (biz.isBlank() && result.size == 1) {
-                    biz = result.first().msgBiz
-                    selectedProfile = result.first()
-                    persist()
+                if (biz.isBlank()) {
+                    val target = result.firstOrNull { it.title.contains("拾万句", true) } ?: result.singleOrNull()
+                    if (target != null) {
+                        biz = target.msgBiz
+                        selectedProfile = target
+                        persist()
+                    }
+                } else {
+                    selectedProfile = result.firstOrNull { it.msgBiz == biz } ?: selectedProfile
                 }
                 if (biz.isNotBlank()) loadPosts(1)
             } catch (e: Exception) {
@@ -206,8 +211,7 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
     fun openHistoryInWechat() {
         val targetBiz = biz.trim()
         if (targetBiz.isBlank()) {
-            notice = "请先选择公众号或填写 msgBiz。"
-            profilePickerOpen = profiles.isNotEmpty()
+            notice = "首次采集请先在微信中搜索「拾万句」，进入公众号主页并打开「全部消息/历史消息」页面；请确认微信已设置代理并安装 HTTPS 证书。采集成功后点击“连接并读取”。"
             return
         }
         val url = "https://mp.weixin.qq.com/mp/profile_ext?action=home&__biz=${targetBiz}&scene=124#wechat_redirect"
@@ -261,6 +265,7 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
             item("description") {
                 Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 4.dp)) {
                     Text("通过 wechat_spider 采集并展示公众号历史文章", color = Color(0xFF333333), fontSize = 15.sp)
+                    Text("首次采集：先在微信搜索「拾万句」并打开历史消息页，再返回此处读取。", color = Color.Gray, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 5.dp))
                     Spacer(Modifier.height(12.dp))
                 }
             }
