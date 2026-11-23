@@ -70,7 +70,7 @@ def build_logo(color, pixelated=False):
     source_width = 865.26
     source_center_x = 432.66
     source_center_y = (90.0 + 777.86) / 2.0
-    reference_width = (103.0 - 5.0) * 0.74
+    reference_width = 108.0 * 0.66
     reference_center_y = 14.04 + ((25.0 + 99.0) / 2.0) * 0.74
     scale = reference_width / source_width
     tx = 54.0 - source_center_x * scale
@@ -107,17 +107,13 @@ for style, (symbol_id, logo_color, decoration_count) in STYLES.items():
     if style == "8bit":
         logo = logo.resize((64, 64), Image.Resampling.NEAREST).resize((512, 512), Image.Resampling.NEAREST)
 
-    composed = Image.alpha_composite(background, logo)
+    # Keep adaptive-icon layers separate. Android scales/masks the background
+    # independently; baking the logo into it makes the logo appear oversized.
     drawable = RES / "drawable-nodpi"
+    save(background, drawable / f"icon_style_{style}_background.png")
+    save(logo, drawable / f"icon_style_{style}_foreground.png")
+    composed = Image.alpha_composite(background, logo)
     save(composed, drawable / f"icon_style_{style}.png")
-
-    # Remove stale split-layer assets from the earlier incorrect generator.
-    for stale in (
-        drawable / f"icon_style_{style}_background.png",
-        drawable / f"icon_style_{style}_foreground.png",
-    ):
-        if stale.exists():
-            stale.unlink()
 
     for density, size in [
         ("mdpi", 48), ("hdpi", 72), ("xhdpi", 96),
@@ -131,8 +127,8 @@ for style, (symbol_id, logo_color, decoration_count) in STYLES.items():
     adaptive.mkdir(parents=True, exist_ok=True)
     (adaptive / f"ic_launcher_style_{style}.xml").write_text(
         f'<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">'
-        f'<background android:drawable="@drawable/icon_style_{style}" />'
-        f'<foreground android:drawable="@drawable/launcher_transparent_foreground" />'
+        f'<background android:drawable="@drawable/icon_style_{style}_background" />'
+        f'<foreground android:drawable="@drawable/icon_style_{style}_foreground" />'
         f'</adaptive-icon>',
         encoding="utf-8",
     )
@@ -148,11 +144,11 @@ for style, (symbol_id, logo_color, decoration_count) in STYLES.items():
             save(legacy, folder / "ic_launcher_round.png")
         base_xml = (
             '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">'
-            '<background android:drawable="@drawable/icon_style_original" />'
-            '<foreground android:drawable="@drawable/launcher_transparent_foreground" />'
+            '<background android:drawable="@drawable/icon_style_original_background" />'
+            '<foreground android:drawable="@drawable/icon_style_original_foreground" />'
             '</adaptive-icon>'
         )
         (adaptive / "ic_launcher.xml").write_text(base_xml, encoding="utf-8")
         (adaptive / "ic_launcher_round.xml").write_text(base_xml, encoding="utf-8")
 
-print("Generated all 11 icon styles: solid non-hollow original logo, reference-matched scale/position, background accents retained.")
+print("Generated all 11 icon styles with independent background/foreground layers and 66% logo width.")
