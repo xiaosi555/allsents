@@ -104,6 +104,7 @@ jobs:
           python3 native-overlay/apply_theme_colors.py
           python3 native-overlay/generate_icon_styles.py
           python3 native-overlay/apply_icon_styles.py
+          python3 native-overlay/apply_splash.py
           # Icon generator supplies base adaptive and legacy resources from one full-bleed composition.
           rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml"
           rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml"
