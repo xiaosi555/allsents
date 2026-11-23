@@ -15,7 +15,8 @@ NS = "{http://www.w3.org/2000/svg}"
 # 拾万句 theme -> (reference symbol, solid logo color, number of background-only decorations)
 # Logo is always rendered as three SOLID filled paths. No hollow/outline conversion.
 STYLES = {
-    "original": ("original", "#FFFFFF", 0),
+    "original": ("original", "#FFFFFF", 0, "#01CC7A"),
+    "classic": ("original", "#FFFFFF", 0, "#1769C2"),
     "cowboy": ("ceramic", "#E8D7B6", 1),
     "code": ("graphite", "#61FF91", 1),
     "line": ("minimal", "#263B42", 1),
@@ -44,7 +45,7 @@ if len(symbols) != 11:
 def serialize(node):
     return ET.tostring(node, encoding="unicode")
 
-def build_background(style, symbol_id, decoration_count):
+def build_background(style, symbol_id, decoration_count, background_color=None):
     symbol = symbols[symbol_id]
     rect = next((node for node in list(symbol) if node.tag == NS + "rect"), None)
     group = next((node for node in list(symbol) if node.tag == NS + "g"), None)
@@ -54,6 +55,9 @@ def build_background(style, symbol_id, decoration_count):
     # Retain every background accent in its original location and transform.
     # The mountain/logo and sound-wave paths from the reference are intentionally
     # excluded, so the new logo never erases or replaces the background artwork.
+    if background_color:
+        rect = ET.fromstring(serialize(rect))
+        rect.set("fill", background_color)
     decorations = list(group)[:decoration_count]
     decor_svg = "".join(serialize(node) for node in decorations)
     return (
@@ -99,8 +103,10 @@ def save(image, path):
 transparent_foreground = RES / "drawable-nodpi" / "launcher_transparent_foreground.png"
 save(Image.new("RGBA", (512, 512), (0, 0, 0, 0)), transparent_foreground)
 
-for style, (symbol_id, logo_color, decoration_count) in STYLES.items():
-    background = render(build_background(style, symbol_id, decoration_count))
+for style, style_data in STYLES.items():
+    symbol_id, logo_color, decoration_count = style_data[:3]
+    background_color = style_data[3] if len(style_data) > 3 else None
+    background = render(build_background(style, symbol_id, decoration_count, background_color))
     logo = render(build_logo(logo_color, pixelated=(style == "8bit")))
 
     # Pixelate only the logo layer for 8bit; keep background details crisp and visible.
@@ -151,4 +157,4 @@ for style, (symbol_id, logo_color, decoration_count) in STYLES.items():
         (adaptive / "ic_launcher.xml").write_text(base_xml, encoding="utf-8")
         (adaptive / "ic_launcher_round.xml").write_text(base_xml, encoding="utf-8")
 
-print("Generated all 11 icon styles with independent background/foreground layers and 66% logo width.")
+print(f"Generated all {len(STYLES)} icon styles with independent background/foreground layers and 66% logo width.")
