@@ -456,7 +456,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         else vm.toast("请输入有效的 http/https 网址")
         showLink = false
     }) { showLink = false }
-}    if (showDeleteConfirm != null) {
+    if (showDeleteConfirm != null) {
         val target = showDeleteConfirm!!
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
