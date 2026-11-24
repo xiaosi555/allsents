@@ -75,6 +75,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var previewMode by remember { mutableStateOf(false) }
     var pendingSave by remember { mutableIntStateOf(0) }
     var searchText by remember { mutableStateOf("") }
+    var articleFilter by remember { mutableStateOf("全部") }
     var showDeleteConfirm by remember { mutableStateOf<ArticleDocument?>(null) }
     var showRevisionList by remember { mutableStateOf(false) }
     var showArticleInfo by remember { mutableStateOf(false) }
@@ -101,7 +102,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showImageAlt by remember { mutableStateOf(false) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
-    val filteredArticles = vm.data.articles.filter { searchText.isBlank() || it.title.contains(searchText, true) || it.summary.contains(searchText, true) || it.tags.any { tag -> tag.contains(searchText, true) } }.sortedByDescending { it.updatedAt }
+    val filteredArticles = vm.data.articles.filter { article ->
+        (articleFilter == "全部" || (articleFilter == "草稿" && article.status != "complete") || (articleFilter == "已完成" && article.status == "complete")) &&
+            (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
+    }.sortedByDescending { it.updatedAt }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val pageBg = Color(0xFFF5F6F5)
     val ink = Color(0xFF252A27)
@@ -384,10 +388,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 TextButton(onClick = { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }) { Text("导入", color = ink) }
                 TextButton(onClick = { newArticle() }) { Text("+ 新建文章", color = accent) }
             }
-            OutlinedTextField(searchText, { searchText = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp), singleLine = true, placeholder = { Text("搜索文章标题、摘要或标签") })
-            if (vm.data.articles.isEmpty()) {
+            OutlinedTextField(searchText, { searchText = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp), singleLine = true, placeholder = { Text("搜索文章标题、摘要、分类或标签") })
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf("全部", "草稿", "已完成").forEach { filter ->
+                    EditorTool(filter, articleFilter == filter) { articleFilter = filter }
+                }
+                Text("\${filteredArticles.size} 篇", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterVertically))
+            }
+            if (filteredArticles.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("还没有保存的文章，点击「新建文章」开始创作", color = Color.Gray, fontSize = 13.sp)
+                    Text(if (vm.data.articles.isEmpty()) "还没有保存的文章，点击「新建文章」开始创作" else "没有符合条件的文章，试试更换筛选条件", color = Color.Gray, fontSize = 13.sp)
                 }
             } else {
                 androidx.compose.foundation.lazy.LazyColumn(
