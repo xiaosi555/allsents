@@ -175,7 +175,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 val ext = if (png) "png" else "jpg"
                 val newName = "crop_$newId.$ext"
                 val target = File(mediaRoot, newName)
-                val dimensions = withContext(Dispatchers.IO) { cropArticleImageFile(source, target, targetRatio, png) }
+                val position = Regex("""object-position\s*:\s*([\d.]+)%\s+([\d.]+)%""").find(selectedImageHtml)
+                val positionX = (position?.groupValues?.getOrNull(1)?.toFloatOrNull() ?: 50f) / 100f
+                val positionY = (position?.groupValues?.getOrNull(2)?.toFloatOrNull() ?: 50f) / 100f
+                val dimensions = withContext(Dispatchers.IO) { cropArticleImageFile(source, target, targetRatio, png, positionX, positionY) }
                 val mime = if (png) "image/png" else "image/jpeg"
                 vm.saveMediaAsset(MediaAsset(newId, newName, mime, "article_media/$newName", target.length(), System.currentTimeMillis().toString()))
                 runJs("replaceSelectedImage('https://editor.local/assets/$newId',${JSONObject.quote(newName)})")
@@ -793,7 +796,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';snapshots=[root.innerHTML];historyIndex=0;activeImage=null;NativeEditor.imageSelected('');NativeEditor.blockSelected('');saveSelection();}
                             function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block,.selected-image').forEach(e=>e.classList.remove('selected-block','selected-image'));activeImage=null;NativeEditor.blockSelected('');NativeEditor.imageSelected('');}}
                             function setPreviewInfo(t,sub,author,summary){const h=document.getElementById('previewHeader');h.innerHTML='';if(!t&&!sub&&!author&&!summary){h.style.display='none';return;}h.style.display='block';if(t){const e=document.createElement('h1');e.textContent=t;h.appendChild(e);}if(sub){const e=document.createElement('p');e.className='sub';e.textContent=sub;h.appendChild(e);}const meta=[author,summary].filter(Boolean).join(' · ');if(meta){const e=document.createElement('p');e.className='meta';e.textContent=meta;h.appendChild(e);}}
-                            function setSelectedImageWidth(v){if(!activeImage)return;activeImage.style.width=v;activeImage.style.maxWidth='100%';activeImage.style.height='auto';commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function setSelectedImageWidth(v){if(!activeImage)return;activeImage.style.width=v;activeImage.style.maxWidth='100%';activeImage.style.height='auto';commitHistory();NativeEditor.changed(root.innerHTML);}function setSelectedImageObjectPosition(v){if(!activeImage)return;activeImage.style.objectPosition=v;commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
                             function rotateSelectedImage(){if(!activeImage)return;const n=(parseInt(activeImage.dataset.rotation||'0')+90)%360;activeImage.dataset.rotation=n;activeImage.style.transform='rotate('+n+'deg)';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageRadius(v){if(!activeImage)return;activeImage.style.borderRadius=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function cropSelectedImage(ratio){if(!activeImage)return;const w=activeImage.parentElement.clientWidth||320;const h=ratio==='1:1'?w:ratio==='4:3'?w*0.75:w*0.5625;activeImage.style.width='100%';activeImage.style.height=Math.round(h)+'px';activeImage.style.objectFit='cover';activeImage.style.objectPosition='center';commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -956,6 +959,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("像素裁切1:1") { cropSelectedImagePixels(1f) }
                                 EditorTool("像素裁切4:3") { cropSelectedImagePixels(4f / 3f) }
                                 EditorTool("像素裁切16:9") { cropSelectedImagePixels(16f / 9f) }
+                                EditorTool("裁切向上") { runJs("setSelectedImageObjectPosition('50% 20%')") }
+                                EditorTool("裁切向下") { runJs("setSelectedImageObjectPosition('50% 80%')") }
+                                EditorTool("裁切向左") { runJs("setSelectedImageObjectPosition('20% 50%')") }
+                                EditorTool("裁切向右") { runJs("setSelectedImageObjectPosition('80% 50%')") }
+                                EditorTool("裁切居中") { runJs("setSelectedImageObjectPosition('50% 50%')") }
                                 EditorTool("原始比例") { runJs("resetSelectedImageCrop()") }
                                 EditorTool("细边框") { runJs("setSelectedImageBorder('1px solid #dfe5e1')") }
                                 EditorTool("无边框") { runJs("setSelectedImageBorder('0')") }
@@ -1487,7 +1495,7 @@ private fun markdownToArticleHtml(markdown: String): String {
     closeList()
     return out.toString().ifBlank { "<p><br></p>" }
 }
-private fun cropArticleImageFile(source: File, target: File, ratio: Float, png: Boolean): Pair<Int, Int> {
+private fun cropArticleImageFile(source: File, target: File, ratio: Float, png: Boolean, positionX: Float = 0.5f, positionY: Float = 0.5f): Pair<Int, Int> {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(source.absolutePath, bounds)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) error("无法读取图片尺寸")
@@ -1505,8 +1513,8 @@ private fun cropArticleImageFile(source: File, target: File, ratio: Float, png: 
         cropWidth = bitmap.width
         cropHeight = (cropWidth / ratio).toInt().coerceIn(1, bitmap.height)
     }
-    val left = (bitmap.width - cropWidth) / 2
-    val top = (bitmap.height - cropHeight) / 2
+    val left = ((bitmap.width - cropWidth) * positionX.coerceIn(0f, 1f)).toInt()
+    val top = ((bitmap.height - cropHeight) * positionY.coerceIn(0f, 1f)).toInt()
     val cropped = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
     target.outputStream().use { output ->
         if (png) cropped.compress(Bitmap.CompressFormat.PNG, 100, output)
