@@ -84,6 +84,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingSave by remember { mutableIntStateOf(0) }
     var searchText by remember { mutableStateOf("") }
     var articleFilter by remember { mutableStateOf("全部") }
+    var mediaSearchText by remember { mutableStateOf("") }
     var showDeleteConfirm by remember { mutableStateOf<ArticleDocument?>(null) }
     var showRevisionList by remember { mutableStateOf(false) }
     var showArticleInfo by remember { mutableStateOf(false) }
@@ -115,6 +116,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         (articleFilter == "全部" || (articleFilter == "草稿" && article.status != "complete") || (articleFilter == "已完成" && article.status == "complete")) &&
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
     }.sortedByDescending { it.updatedAt }
+    val filteredMediaAssets = vm.data.mediaAssets.filter { mediaSearchText.isBlank() || it.fileName.contains(mediaSearchText, true) || it.mimeType.contains(mediaSearchText, true) }.sortedByDescending { it.createdAt }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val previewBitmap = remember(previewAsset?.id) {
         previewAsset?.let { asset ->
@@ -742,8 +744,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                         if (vm.data.mediaAssets.isNotEmpty()) {
                             Text("本地图片库 · ${vm.data.mediaAssets.size} 张", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
+                            OutlinedTextField(mediaSearchText, { mediaSearchText = it }, modifier = Modifier.fillMaxWidth().padding(top = 5.dp), singleLine = true, placeholder = { Text("搜索图片文件名或格式") })
                             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                vm.data.mediaAssets.forEach { asset ->
+                                filteredMediaAssets.forEach { asset ->
                                     EditorTool(asset.fileName.take(12)) {
                                         insert("<p><img src='https://editor.local/assets/${asset.id}' alt='${asset.fileName}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
                                     }
@@ -761,6 +764,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     }
                                 }
                             }
+                            if (filteredMediaAssets.isEmpty()) Text("没有找到匹配的图片", color = Color.Gray, fontSize = 11.sp)
                         }
                         Text("本地图片已复制到应用私有目录；网络图片仍依赖原图链接可访问。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))
                     }
