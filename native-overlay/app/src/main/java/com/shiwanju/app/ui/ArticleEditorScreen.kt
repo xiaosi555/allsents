@@ -808,7 +808,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 Array.from(e.attributes).forEach(a=>{
                                   const key=a.name.toLowerCase(),value=(a.value||'').trim().toLowerCase();
                                   if(key.startsWith('on')||key==='srcdoc')e.removeAttribute(a.name);
-                                  if(['href','src','xlink:href','action','formaction'].includes(key)&&(value.startsWith('javascript:')||value.startsWith('data:text/html')||value.startsWith('vbscript:')))e.removeAttribute(a.name);
+                                  if(['href','src','xlink:href','action','formaction'].includes(key)&&(value.startsWith('javascript:')||value.startsWith('data:text/html')||value.startsWith('vbscript:')||value.startsWith('file:')||value.startsWith('content:')||value.startsWith('blob:')))e.removeAttribute(a.name);
                                 });
                               });
                               insertHtml(box.innerHTML);
@@ -1347,7 +1347,7 @@ private fun sanitizeArticleHtml(source: String): String {
         attrs.filter { it.startsWith("on", true) }.forEach { element.removeAttr(it) }
         listOf("href", "src", "xlink:href").forEach { key ->
             val value = element.attr(key).trim().lowercase(Locale.ROOT)
-            if (value.startsWith("javascript:") || value.startsWith("data:text/html")) element.removeAttr(key)
+            if (value.startsWith("javascript:") || value.startsWith("data:text/html") || value.startsWith("vbscript:") || value.startsWith("file:") || value.startsWith("content:") || value.startsWith("blob:")) element.removeAttr(key)
         }
     }
     return doc.body().html()
