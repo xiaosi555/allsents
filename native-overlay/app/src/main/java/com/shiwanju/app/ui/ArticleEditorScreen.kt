@@ -762,6 +762,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function setSelectedImageAlt(v){if(!activeImage)return;activeImage.alt=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function replaceSelectedImage(src,alt){if(!activeImage)return;activeImage.src=src;if(alt)activeImage.alt=alt;commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.imageSelected(activeImage.outerHTML);}
                             function deleteSelectedImage(){if(!activeImage)return;const parent=activeImage.parentElement;activeImage.remove();if(parent&&/^(P|DIV)$/.test(parent.tagName)&&!parent.textContent.trim()&&!parent.querySelector('img,table'))parent.remove();activeImage=null;NativeEditor.imageSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function moveSelectedImageInGroup(dir){if(!activeImage)return;const cell=activeImage.closest('td,th');if(!cell)return;const sibling=dir<0?cell.previousElementSibling:cell.nextElementSibling;if(!sibling)return;if(dir<0)cell.parentNode.insertBefore(cell,sibling);else cell.parentNode.insertBefore(sibling,cell);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedParagraph(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|BLOCKQUOTE|LI|PRE)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
                             function styleSelectedParagraph(prop,value){restoreSelection();const e=selectedParagraph();if(!e)return;e.style[prop]=value;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function replaceAllText(search,replacement){if(!search)return 0;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,count=0;while(node=walker.nextNode()){if(node.nodeValue.includes(search)){const parts=node.nodeValue.split(search);count+=parts.length-1;node.nodeValue=parts.join(replacement);}}if(count){commitHistory();NativeEditor.changed(root.innerHTML);}return count;}
@@ -917,6 +918,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("无边框") { runJs("setSelectedImageBorder('0')") }
                                 EditorTool("替换图片") { imageReplacementPicker.launch(arrayOf("image/*")) }
                                 EditorTool("删除图片") { runJs("deleteSelectedImage()"); selectedImageHtml = "" }
+                                EditorTool("组内左移") { runJs("moveSelectedImageInGroup(-1)") }
+                                EditorTool("组内右移") { runJs("moveSelectedImageInGroup(1)") }
                                 EditorTool("替代文字") { dialogValue = ""; showImageAlt = true }
                             }
                         }
