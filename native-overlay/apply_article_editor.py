@@ -401,6 +401,7 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "function cropSelectedImage"),
     (UI / "ArticleEditorScreen.kt", "function replaceSelectedImage"),
     (UI / "ArticleEditorScreen.kt", "function deleteSelectedImage"),
+    (UI / "ArticleEditorScreen.kt", "function moveSelectedImageInGroup"),
     (UI / "ArticleEditorScreen.kt", "root.addEventListener('paste'"),
     (UI / "ArticleEditorScreen.kt", "function setSelectionFontSize"),
     (UI / "ArticleEditorScreen.kt", "copyTextFormat"),
