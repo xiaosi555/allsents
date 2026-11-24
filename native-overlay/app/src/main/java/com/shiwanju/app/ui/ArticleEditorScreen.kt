@@ -615,7 +615,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 EditorTool("导入文章包") { articleJsonImporter.launch(arrayOf("application/json", "text/json")) }
                 EditorTool("导出文章包") {
-                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                    if (editor == null || !webReady) vm.toast("编辑器尚未准备好，请稍后重试")
+                    else editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        runCatching {
                         val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
                         val pack = JSONObject()
                             .put("format", "shiwanju.article.v1")
@@ -638,6 +640,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         pack.put("assets", assets)
                         pendingExportArticleJson = pack.toString(2)
                         articleJsonExporter.launch("${title.ifBlank { "文章" }}.shiwanju.json")
+                        }.onFailure { vm.toast("文章包导出失败：${it.message ?: "无法读取素材"}") }
                     }
                 }
                 EditorTool("保存整篇模板") {
