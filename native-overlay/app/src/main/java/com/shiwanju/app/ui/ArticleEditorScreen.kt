@@ -230,14 +230,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 id = vm.newId(), title = pack.optString("title", "导入文章"), html = importedHtml,
                 createdAt = now, updatedAt = now, subtitle = pack.optString("subtitle"),
                 summary = pack.optString("summary"), author = pack.optString("author"),
-                category = pack.optString("category"), tags = importedTags,
+                category = pack.optString("category"), tags = importedTags, coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty(),
                 status = pack.optString("status", "draft"), wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length
             )
             vm.saveArticle(imported)
             articleId = imported.id; title = imported.title; html = imported.html
             subtitle = imported.subtitle; summary = imported.summary; author = imported.author
             category = imported.category; tagsText = imported.tags.joinToString(", ")
-            articleStatus = imported.status; coverAssetId = ""
+            articleStatus = imported.status; coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty()
             previewMode = false; showArticleList = false
             editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(imported.html)});setEditable(true);", null)
             pendingSave++
@@ -417,6 +417,28 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
                 EditorTool("文章信息") { showArticleInfo = true }
+                EditorTool("导入文章包") { articleJsonImporter.launch(arrayOf("application/json", "text/json")) }
+                EditorTool("导出文章包") {
+                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                        val pack = JSONObject()
+                            .put("format", "shiwanju.article.v1")
+                            .put("title", title).put("subtitle", subtitle).put("summary", summary)
+                            .put("author", author).put("category", category).put("tags", org.json.JSONArray(tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }))
+                            .put("status", articleStatus).put("coverAssetId", coverAssetId).put("html", current)
+                        val assets = org.json.JSONArray()
+                        vm.data.mediaAssets.filter { current.contains(it.id) }.forEach { asset ->
+                            val file = File(context.filesDir, asset.relativePath)
+                            if (file.isFile) runCatching {
+                                assets.put(JSONObject().put("id", asset.id).put("fileName", asset.fileName).put("mimeType", asset.mimeType)
+                                    .put("base64", Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)))
+                            }
+                        }
+                        pack.put("assets", assets)
+                        pendingExportArticleJson = pack.toString(2)
+                        articleJsonExporter.launch("${title.ifBlank { "文章" }}.shiwanju.json")
+                    }
+                }
                 EditorTool("保存整篇模板") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         val fullHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
