@@ -385,6 +385,8 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "articleHtmlToMarkdown"),
     (UI / "ArticleEditorScreen.kt", "articleCompatibilityWarnings"),
     (UI / "ArticleEditorScreen.kt", "function duplicateSelectedBlock"),
+    (UI / "ArticleEditorScreen.kt", "function replaceSelectedBlockWithHtml"),
+    (UI / "ArticleEditorScreen.kt", "function setMultiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "function undoEditor"),
     (UI / "ArticleEditorScreen.kt", "function cropSelectedImage"),
     (UI / "ArticleEditorScreen.kt", "function replaceSelectedImage"),
