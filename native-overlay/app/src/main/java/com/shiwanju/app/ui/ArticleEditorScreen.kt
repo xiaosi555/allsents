@@ -3,6 +3,7 @@ package com.shiwanju.app.ui
 import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -23,147 +24,342 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.shiwanju.app.data.ArticleDocument
 import org.json.JSONObject
+import kotlinx.coroutines.delay
 
 private class ArticleEditorBridge(private val onChange: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
 }
 
+private enum class EditorPanel(val label: String) {
+    TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), STYLE("样式"), TEMPLATE("模板")
+}
+
 @Composable
 fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
+    var articleId by remember { mutableStateOf(vm.newId()) }
     var title by remember { mutableStateOf("未命名文章") }
-    val articleId = remember { vm.newId() }
     var html by remember { mutableStateOf("<p><br></p>") }
     var editor by remember { mutableStateOf<WebView?>(null) }
+    var webReady by remember { mutableStateOf(false) }
+    var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
     var activeCategory by remember { mutableStateOf("") }
+    var showArticleList by remember { mutableStateOf(false) }
     var showLink by remember { mutableStateOf(false) }
     var showImage by remember { mutableStateOf(false) }
-    var showTable by remember { mutableStateOf(false) }
     var dialogValue by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
     var previewMode by remember { mutableStateOf(false) }
+    var pendingSave by remember { mutableIntStateOf(0) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
-    BackHandler { onBack() }
+    val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
+    val pageBg = Color(0xFFF5F6F5)
+    val ink = Color(0xFF252A27)
+    val accent = Color(0xFF159765)
 
-    fun command(name: String, value: String? = null) {
-        val v = value?.let { JSONObject.quote(it) } ?: "null"
-        editor?.evaluateJavascript("document.execCommand('$name',false,$v);document.getElementById('editor').focus();", null)
+    fun runJs(script: String) {
+        editor?.evaluateJavascript(script, null)
         saved = false
+        pendingSave++
+    }
+    fun command(name: String, value: String? = null) {
+        val arg = value?.let { JSONObject.quote(it) } ?: "null"
+        runJs("restoreSelection();document.execCommand('$name',false,$arg);saveSelection();document.getElementById('editor').focus();")
     }
     fun insert(fragment: String) {
-        editor?.evaluateJavascript("document.execCommand('insertHTML',false,${JSONObject.quote(fragment)});document.getElementById('editor').focus();", null)
-        saved = false
+        runJs("restoreSelection();insertHtml(${JSONObject.quote(fragment)});saveSelection();document.getElementById('editor').focus();")
     }
-    fun saveDocument() {
-        editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+    fun saveDocument(showToast: Boolean = false) {
+        val view = editor
+        if (view == null || !webReady) {
+            val now = System.currentTimeMillis().toString()
+            val old = vm.data.articles.firstOrNull { it.id == articleId }
+            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, html, old?.createdAt ?: now, now))
+            saved = true
+            if (showToast) vm.toast("文章已保存")
+            return
+        }
+        view.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
             val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
             html = current
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == articleId }
             vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, current, old?.createdAt ?: now, now))
             saved = true
-            vm.toast("文章已保存")
+            if (showToast) vm.toast("文章已保存")
         }
     }
+    fun newArticle() {
+        saveDocument()
+        articleId = vm.newId()
+        title = "未命名文章"
+        html = "<p><br></p>"
+        previewMode = false
+        showArticleList = false
+        if (webReady) editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(html)});setEditable(true);", null)
+        saved = false
+    }
+    fun openArticle(article: ArticleDocument) {
+        articleId = article.id
+        title = article.title
+        html = article.html
+        showArticleList = false
+        previewMode = false
+        if (webReady) editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(article.html)});setEditable(true);", null)
+        saved = true
+    }
 
-    Column(Modifier.fillMaxSize().background(Color(0xFFF5F5F5)).systemBarsPadding()) {
-        Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, "返回", tint = Color(0xFF999999)) }
-            BasicTextField(value = title, onValueChange = { title = it; saved = false },
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp), singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF222222), fontSize = 16.sp, fontWeight = FontWeight.Medium),
-                decorationBox = { inner -> Box { if (title.isEmpty()) Text("文章标题", color = Color.LightGray); inner() } })
-            Text(if (saved) "已保存" else "未保存", color = Color(0xFF999999), fontSize = 11.sp)
-            TextButton(onClick = { saveDocument() }) { Text("保存") }
-        }
-        Row(Modifier.fillMaxWidth().background(Color.White).horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            EditorTool("撤销") { command("undo") }; EditorTool("重做") { command("redo") }
-            EditorTool("B") { command("bold") }; EditorTool("I") { command("italic") }; EditorTool("U") { command("underline") }; EditorTool("S") { command("strikeThrough") }
-            EditorTool("正文") { command("formatBlock", "p") }; EditorTool("H1") { command("formatBlock", "h1") }; EditorTool("H2") { command("formatBlock", "h2") }
-            EditorTool("引用") { command("formatBlock", "blockquote") }
-            EditorTool("左对齐") { command("justifyLeft") }; EditorTool("居中") { command("justifyCenter") }; EditorTool("右对齐") { command("justifyRight") }
-        }
-        Row(Modifier.fillMaxWidth().background(Color.White).horizontalScroll(rememberScrollState()).padding(start = 8.dp, end = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            EditorTool("字号") { command("fontSize", "4") }; EditorTool("文字色") { command("foreColor", "#333333") }; EditorTool("高亮") { command("hiliteColor", "#FFF2A8") }
-            EditorTool("无序列表") { command("insertUnorderedList") }; EditorTool("编号列表") { command("insertOrderedList") }
-            EditorTool("减少缩进") { command("outdent") }; EditorTool("增加缩进") { command("indent") }
-            EditorTool("分割线") { insert("<hr style='border:0;border-top:1px solid #ddd;margin:22px 0;'>") }
-            EditorTool("链接") { dialogValue = ""; showLink = true }; EditorTool("图片") { dialogValue = ""; showImage = true }
-            EditorTool("表格") { showTable = true }
-            EditorTool(if (previewMode) "编辑" else "预览") {
-                previewMode = !previewMode
-                editor?.evaluateJavascript("document.getElementById('editor').contentEditable='${!previewMode}'", null)
-            }
-        }
-        AndroidView(factory = { ctx ->
-            WebView(ctx).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = false
-                settings.allowFileAccess = false
-                settings.allowContentAccess = false
-                settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                isVerticalScrollBarEnabled = true
-                setBackgroundColor(android.graphics.Color.WHITE)
-                addJavascriptInterface(ArticleEditorBridge { html = it; saved = false }, "NativeEditor")
-                webViewClient = WebViewClient()
-                val page = """
-                    <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-                    <style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#333;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
-                    #editor{min-height:100%;padding:20px 18px 80px;outline:none;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
-                    #editor:empty:before{content:"从这里开始写文章…";color:#bbb}
-                    #editor h1{font-size:26px;line-height:1.4;margin:24px 0 16px}#editor h2{font-size:21px;line-height:1.5;margin:22px 0 14px}
-                    #editor p{margin:0 0 14px}#editor blockquote{margin:18px 0;padding:8px 14px;border-left:3px solid #07c160;background:#f7f7f7;color:#666}
-                    #editor img{max-width:100%;height:auto;display:block;margin:12px auto}#editor table{width:100%;border-collapse:collapse}#editor td{border:1px solid #ddd;padding:8px;min-width:30px}</style></head>
-                    <body><div id="editor" contenteditable="true" spellcheck="true"></div><script>
-                    const root=document.getElementById('editor');root.innerHTML=${JSONObject.quote(html)};
-                    let timer;root.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>NativeEditor.changed(root.innerHTML),250)});
-                    </script></body></html>
-                """.trimIndent()
-                loadDataWithBaseURL("https://editor.local/", page, "text/html", "UTF-8", null)
-                editor = this
-                tag = "article-editor"
-            }
-        }, modifier = Modifier.weight(1f).fillMaxWidth(), update = { editor = it })
+    LaunchedEffect(title, html, articleId, pendingSave, webReady) {
+        if (!webReady || showArticleList) return@LaunchedEffect
+        saved = false
+        delay(1100)
+        saveDocument()
+    }
+    BackHandler {
+        if (showArticleList) showArticleList = false else { saveDocument(); onBack() }
+    }
 
-        if (categories.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().background(Color(0xFFF8F8F8)).padding(vertical = 7.dp)) {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    categories.forEach { cat -> EditorTool(cat, activeCategory == cat) { activeCategory = cat } }
+    Column(Modifier.fillMaxSize().background(pageBg).systemBarsPadding()) {
+        Row(
+            Modifier.fillMaxWidth().height(56.dp).background(Color.White).padding(horizontal = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { saveDocument(); onBack() }) { Icon(Icons.Outlined.ArrowBack, "返回", tint = Color(0xFF777777)) }
+            Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                BasicTextField(
+                    value = title, onValueChange = { title = it; saved = false; pendingSave++ },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                    decorationBox = { inner -> Box { if (title.isEmpty()) Text("文章标题", color = Color.LightGray); inner() } }
+                )
+                Text(if (saved) "已自动保存" else "正在编辑 · 自动保存", color = Color(0xFF9A9F9B), fontSize = 10.sp)
+            }
+            TextButton(onClick = { saveDocument(true) }) { Text("保存", color = accent) }
+            TextButton(onClick = { saveDocument(); showArticleList = true }) { Text("文章", color = ink) }
+        }
+
+        if (showArticleList) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("我的文章", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = ink, modifier = Modifier.weight(1f))
+                TextButton(onClick = { newArticle() }) { Text("+ 新建文章", color = accent) }
+            }
+            if (vm.data.articles.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("还没有保存的文章，点击「新建文章」开始创作", color = Color.Gray, fontSize = 13.sp)
                 }
-                if (categoryStyles.isNotEmpty()) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
-                } else Text("该分类暂无样式模块，可在「我的 - 样式」中添加", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp))
+            } else {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    Modifier.fillMaxSize().padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(vm.data.articles.size, key = { vm.data.articles[it].id }) { index ->
+                        val item = vm.data.articles.sortedByDescending { it.updatedAt }.getOrNull(index)
+                        if (item != null) {
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White)
+                                    .clickable { openArticle(item) }.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(item.title.ifBlank { "未命名文章" }, color = ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("最近编辑：${item.updatedAt.take(10)} · ${item.html.replace(Regex("<[^>]*>"), "").length} 字", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
+                                }
+                                TextButton(onClick = {
+                                    val copy = item.copy(id = vm.newId(), title = item.title + "（副本）", createdAt = System.currentTimeMillis().toString(), updatedAt = System.currentTimeMillis().toString())
+                                    vm.saveArticle(copy)
+                                }) { Text("复制", color = accent) }
+                            }
+                        }
+                    }
+                }
             }
-        } else Text("还没有自定义样式分类，可到「我的 - 样式」中创建", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.fillMaxWidth().background(Color(0xFFF8F8F8)).padding(10.dp))
+        } else {
+            Row(
+                Modifier.fillMaxWidth().background(Color.White).horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 9.dp, vertical = 7.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                EditorTool("撤销") { runJs("restoreSelection();document.execCommand('undo');saveSelection();") }
+                EditorTool("重做") { runJs("restoreSelection();document.execCommand('redo');saveSelection();") }
+                EditorTool("预览", previewMode) {
+                    previewMode = !previewMode
+                    editor?.evaluateJavascript("setEditable(${!previewMode});", null)
+                }
+                EditorTool("全选") { runJs("document.getElementById('editor').focus();document.execCommand('selectAll');saveSelection();") }
+            }
+
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = false
+                        settings.allowFileAccess = false
+                        settings.allowContentAccess = false
+                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                        settings.javaScriptCanOpenWindowsAutomatically = false
+                        isVerticalScrollBarEnabled = true
+                        setBackgroundColor(android.graphics.Color.WHITE)
+                        addJavascriptInterface(ArticleEditorBridge { value -> html = value; saved = false; pendingSave++ }, "NativeEditor")
+                        webViewClient = object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                webReady = true
+                            }
+                        }
+                        val page = """
+                            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+                            <style>
+                            *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#333;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+                            #editor{min-height:100vh;padding:24px 18px 100px;outline:none;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
+                            #editor:empty:before{content:"从这里开始写文章…";color:#b8bdb9}
+                            #editor h1{font-size:26px;line-height:1.4;margin:24px 0 16px}#editor h2{font-size:21px;line-height:1.5;margin:22px 0 14px}
+                            #editor h3{font-size:18px;line-height:1.5;margin:18px 0 12px}#editor p{margin:0 0 14px}
+                            #editor blockquote{margin:18px 0;padding:10px 14px;border-left:3px solid #159765;background:#f4f8f5;color:#66716a}
+                            #editor img{max-width:100%;height:auto;display:block;margin:12px auto}
+                            #editor table{width:100%;border-collapse:collapse;table-layout:fixed}#editor td,#editor th{border:1px solid #dfe4e0;padding:8px;min-width:24px;vertical-align:top}
+                            #editor a{color:#16865a;text-decoration:underline}#editor hr{border:0;border-top:1px solid #e1e5e2;margin:22px 0}
+                            </style></head><body><div id="editor" contenteditable="true" spellcheck="true"></div>
+                            <script>
+                            const root=document.getElementById('editor');let savedRange=null;let timer=null;
+                            function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';saveSelection();}
+                            function setEditable(v){root.contentEditable=!!v;}
+                            function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
+                            function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
+                            function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);return;}
+                              const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();}
+                            root.addEventListener('keyup',saveSelection);root.addEventListener('mouseup',saveSelection);root.addEventListener('touchend',saveSelection);
+                            root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>NativeEditor.changed(root.innerHTML),300);});
+                            document.addEventListener('selectionchange',()=>{if(document.activeElement===root)saveSelection();});
+                            </script></body></html>
+                        """.trimIndent()
+                        loadDataWithBaseURL("https://editor.local/", page, "text/html", "UTF-8", null)
+                        editor = this
+                        tag = "article-editor"
+                    }
+                },
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                update = { editor = it }
+            )
+
+            Row(
+                Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 7.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                EditorPanel.values().forEach { panel ->
+                    EditorTool(panel.label, activePanel == panel) { activePanel = panel }
+                }
+            }
+            Column(
+                Modifier.fillMaxWidth().background(Color(0xFFFCFDFC)).navigationBarsPadding()
+                    .heightIn(min = 92.dp, max = 176.dp).padding(horizontal = 9.dp, vertical = 8.dp)
+            ) {
+                when (activePanel) {
+                    EditorPanel.TEXT -> {
+                        Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("加粗 B") { command("bold") }; EditorTool("斜体 I") { command("italic") }; EditorTool("下划线 U") { command("underline") }; EditorTool("删除线") { command("strikeThrough") }
+                            EditorTool("上标") { command("superscript") }; EditorTool("下标") { command("subscript") }; EditorTool("清除格式") { command("removeFormat") }
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("正文") { command("formatBlock", "p") }; EditorTool("H1") { command("formatBlock", "h1") }; EditorTool("H2") { command("formatBlock", "h2") }; EditorTool("H3") { command("formatBlock", "h3") }; EditorTool("引用") { command("formatBlock", "blockquote") }
+                            EditorTool("左对齐") { command("justifyLeft") }; EditorTool("居中") { command("justifyCenter") }; EditorTool("右对齐") { command("justifyRight") }
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("14" to "小", "16" to "标准", "18" to "大", "22" to "特大").forEach { (size, label) -> EditorTool("字号$label") { runJs("restoreSelection();document.execCommand('fontSize',false,'$size');saveSelection();") } }
+                            EditorTool("文字色") { runJs("restoreSelection();document.execCommand('foreColor',false,'#159765');saveSelection();") }
+                            EditorTool("高亮") { runJs("restoreSelection();document.execCommand('hiliteColor',false,'#FFF1B8');saveSelection();") }
+                            EditorTool("无序列表") { command("insertUnorderedList") }; EditorTool("编号列表") { command("insertOrderedList") }
+                            EditorTool("缩进") { command("indent") }; EditorTool("减缩进") { command("outdent") }
+                        }
+                    }
+                    EditorPanel.IMAGE -> {
+                        Text("图片素材", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("插入网络图片") { dialogValue = ""; showImage = true }
+                            EditorTool("双图并排") { insert("<table style='width:100%;table-layout:fixed;border-collapse:collapse'><tr><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+1' style='width:100%'></td><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+2' style='width:100%'></td></tr></table>") }
+                            EditorTool("图片说明") { insert("<p style='text-align:center;color:#999;font-size:12px;margin-top:6px'>在此输入图片说明</p>") }
+                            EditorTool("图片居中") { command("justifyCenter") }
+                        }
+                        Text("本阶段支持网络图片链接；本地图片持久化、裁剪与素材库将在媒体阶段接入。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
+                    }
+                    EditorPanel.COMPONENT -> {
+                        Text("公众号排版组件 · 插入后可继续编辑", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("编号标题") { insert("<section style='margin:22px 0 14px;padding:10px 14px;border-left:4px solid #159765;background:#f2f8f4'><p style='margin:0;font-size:19px;font-weight:700;color:#235b43'>01 / 在这里输入标题</p></section>") }
+                            EditorTool("引用卡片") { insert("<blockquote style='margin:18px 0;padding:14px 16px;background:#f4f7f5;border-left:3px solid #159765'><p style='margin:0'>在这里输入引用内容</p></blockquote>") }
+                            EditorTool("提示卡片") { insert("<section style='margin:18px 0;padding:14px;background:#f1f8f4;border-radius:8px'><p style='margin:0 0 6px;color:#168653;font-weight:700'>温馨提示</p><p style='margin:0'>在这里输入提示内容</p></section>") }
+                            EditorTool("分割线") { insert("<hr style='border:0;border-top:1px solid #dfe6e1;margin:24px 0'><p><br></p>") }
+                            EditorTool("留白") { insert("<p style='height:24px;margin:0'><br></p>") }
+                            EditorTool("数字列表") { insert("<ol><li>第一步</li><li>第二步</li><li>第三步</li></ol>") }
+                        }
+                    }
+                    EditorPanel.STYLE -> {
+                        Text("我的样式 · 选择分类后插入已保存模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        if (categories.isEmpty()) Text("暂无样式分类，请在「我的 - 样式」中创建", color = Color.Gray, fontSize = 11.sp)
+                        else {
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                categories.forEach { category -> EditorTool(category, activeCategory == category) { activeCategory = category } }
+                            }
+                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
+                            }
+                        }
+                    }
+                    EditorPanel.TEMPLATE -> {
+                        Text("快速模板 · 插入到当前光标位置", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("简约文章开头") { insert("<h1 style='font-size:25px;line-height:1.5;margin:18px 0'>在这里输入文章标题</h1><p style='color:#999;font-size:12px;margin-bottom:24px'>作者 · 拾万句</p><p>从这里开始写正文……</p>") }
+                            EditorTool("杂志风标题") { insert("<section style='margin:24px 0;padding:18px 12px;border-top:2px solid #222;border-bottom:1px solid #aaa'><p style='font-size:24px;font-weight:700;letter-spacing:2px;margin:0'>SECTION TITLE</p><p style='font-size:11px;color:#999;letter-spacing:2px;margin:5px 0 0'>VOL. 01 / EDITORIAL</p></section>") }
+                            EditorTool("文艺引用") { insert("<blockquote style='margin:24px 0;padding:18px;background:#f7f4ef;border:0;color:#685f54;font-size:17px;line-height:1.9'><p>“在这里写下一段值得被记住的话。”</p><p style='text-align:right;font-size:12px;color:#aaa'>—— 摘录</p></blockquote>") }
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    if (showLink) EditorInputDialog("插入链接", "输入完整网址", dialogValue, { dialogValue = it }, {
-        if (dialogValue.startsWith("https://") || dialogValue.startsWith("http://")) insert("<a href='${dialogValue.replace("'", "%27")}' target='_blank'>链接文字</a>")
-        showLink = false
-    }) { showLink = false }
-    if (showImage) EditorInputDialog("插入图片", "输入图片 URL", dialogValue, { dialogValue = it }, {
-        if (dialogValue.startsWith("https://") || dialogValue.startsWith("http://")) insert("<img src='${dialogValue.replace("'", "%27")}' alt='图片' style='max-width:100%;height:auto;'>")
+    if (showImage) EditorInputDialog("插入图片", "输入 https:// 开头的图片地址", dialogValue, { dialogValue = it }, {
+        val url = dialogValue.trim()
+        if (url.startsWith("https://") || url.startsWith("http://")) insert("<img src='${url.replace("'", "%27")}' alt='图片' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
+        else vm.toast("请输入有效的 http/https 图片地址")
         showImage = false
     }) { showImage = false }
-    if (showTable) AlertDialog(onDismissRequest = { showTable = false }, title = { Text("插入表格") }, text = { Text("插入 2 行 × 2 列的可编辑表格") },
-        confirmButton = { TextButton(onClick = { insert("<table><tbody><tr><td>内容</td><td>内容</td></tr><tr><td>内容</td><td>内容</td></tr></tbody></table><p><br></p>"); showTable = false }) { Text("插入") } },
-        dismissButton = { TextButton(onClick = { showTable = false }) { Text("取消") } })
+    if (showLink) EditorInputDialog("插入链接", "输入 https:// 开头的网址", dialogValue, { dialogValue = it }, {
+        val url = dialogValue.trim()
+        if (url.startsWith("https://") || url.startsWith("http://")) insert("<a href='${url.replace("'", "%27")}' target='_blank'>链接文字</a>")
+        else vm.toast("请输入有效的 http/https 网址")
+        showLink = false
+    }) { showLink = false }
 }
 
 @Composable
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
-    Box(Modifier.clip(RoundedCornerShape(7.dp)).background(if (selected) Color(0xFFE3F6EC) else Color(0xFFF1F1F1)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
-        Text(label, color = if (selected) Color(0xFF078B4B) else Color(0xFF555555), fontSize = 12.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+    Box(
+        Modifier.clip(RoundedCornerShape(7.dp))
+            .background(if (selected) Color(0xFFE6F5EC) else Color(0xFFF1F3F1))
+            .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = if (selected) Color(0xFF087B4A) else Color(0xFF515852), fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
     }
 }
+
 @Composable
 private fun EditorInputDialog(title: String, hint: String, value: String, onChange: (String) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(title) }, text = { OutlinedTextField(value, onChange, modifier = Modifier.fillMaxWidth(), placeholder = { Text(hint) }, singleLine = true) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("确定") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } })
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { OutlinedTextField(value, onChange, modifier = Modifier.fillMaxWidth(), placeholder = { Text(hint) }, singleLine = true) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("确定") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
 }
