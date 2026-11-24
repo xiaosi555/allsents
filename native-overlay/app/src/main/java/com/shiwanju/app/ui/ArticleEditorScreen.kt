@@ -716,11 +716,11 @@ private fun sanitizeArticleHtml(source: String): String {
 private fun articleCompatibilityWarnings(html: String): List<String> {
     val warnings = mutableListOf<String>()
     if (Regex("(?is)<img[^>]+src=[\\"']https?://").containsMatchIn(html)) warnings += "包含外链图片：复制到公众号后可能需要重新上传或替换为公众号素材。"
-    if (Regex("(?is)<table\\\\b").containsMatchIn(html)) warnings += "包含表格：请检查手机端是否出现横向溢出或列宽挤压。"
-    if (Regex("(?is)@font-face|https?://[^\\\\s\\"']+\\\\.(?:woff2?|ttf|otf)").containsMatchIn(html)) warnings += "可能依赖外部字体文件，公众号环境不一定能加载。"
-    if (Regex("(?is)<(?:iframe|video|audio|object|embed)\\\\b").containsMatchIn(html)) warnings += "包含音视频或嵌入式媒体标签，公众号正文不一定支持直接承载，建议改用平台素材或链接卡片。"
-    if (Regex("(?is)<p[^>]*>\\\\s*(?:<br\\\\s*/?>)?\\\\s*</p>").findAll(html).count() > 5) warnings += "空段落较多，可能造成阅读间距过大。"
-    if (Regex("(?is)style=[\\"'][^\\\\"']*(?:position\\\\s*:\\\\s*fixed|display\\\\s*:\\\\s*flex|grid)").containsMatchIn(html)) warnings += "包含复杂布局 CSS，公众号可能清理或改变其显示效果。"
+    if (Regex("(?is)<table\\b").containsMatchIn(html)) warnings += "包含表格：请检查手机端是否出现横向溢出或列宽挤压。"
+    if (Regex("(?is)@font-face|https?://[^\\s\\"']+\\.(?:woff2?|ttf|otf)").containsMatchIn(html)) warnings += "可能依赖外部字体文件，公众号环境不一定能加载。"
+    if (Regex("(?is)<(?:iframe|video|audio|object|embed)\\b").containsMatchIn(html)) warnings += "包含音视频或嵌入式媒体标签，公众号正文不一定支持直接承载，建议改用平台素材或链接卡片。"
+    if (Regex("(?is)<p[^>]*>\\s*(?:<br\\s*/?>)?\\s*</p>").findAll(html).count() > 5) warnings += "空段落较多，可能造成阅读间距过大。"
+    if (Regex("(?is)style=[\\"'][^\\"']*(?:position\\s*:\\s*fixed|display\\s*:\\s*flex|grid)").containsMatchIn(html)) warnings += "包含复杂布局 CSS，公众号可能清理或改变其显示效果。"
     if (Regex("(?is)href=[\\"'](?:javascript:|#)").containsMatchIn(html)) warnings += "存在脚本链接或空锚点，请检查链接是否有效。"
     return warnings
 }
