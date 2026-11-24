@@ -524,7 +524,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 webReady = true
-                                view?.evaluateJavascript("setEditorHtml(${JSONObject.quote(html)});", null)
+                                view?.evaluateJavascript("setEditorHtml(${JSONObject.quote(html)});setEditable(${!previewMode});setPreviewInfo(${JSONObject.quote(if (previewMode) title else "")},${JSONObject.quote(if (previewMode) subtitle else "")},${JSONObject.quote(if (previewMode) author else "")},${JSONObject.quote(if (previewMode) summary else "")});", null)
                             }
                         }
                         val page = """
