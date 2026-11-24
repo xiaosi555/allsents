@@ -16,6 +16,9 @@ private fun TopBar(vm: AppViewModel) {
         Text(vm.charCount.toString() + "字", color = AppColors.TextDim, fontSize = 12.sp)
         Spacer(Modifier.width(10.dp))
         ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
+        IconButton(onClick = { vm.screen = "article_editor" }, modifier = Modifier.size(38.dp)) {
+            Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(21.dp))
+        }
     }
 }'''
 s,n=re.subn(r'@Composable\nprivate fun TopBar\(vm: AppViewModel\) \{.*?\n\}',lambda m:toolbar,s,count=1,flags=re.S)
