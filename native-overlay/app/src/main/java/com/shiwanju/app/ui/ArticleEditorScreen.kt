@@ -302,6 +302,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
                 EditorTool("文章信息") { showArticleInfo = true }
+                EditorTool("插入链接") { dialogValue = ""; showLink = true }
                 EditorTool("模块上移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(-1)") }
                 EditorTool("模块下移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(1)") }
                 EditorTool("复制模块", selectedBlockHtml.isNotBlank()) { runJs("duplicateSelectedBlock()") }
@@ -415,6 +416,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("高亮") { runJs("restoreSelection();document.execCommand('hiliteColor',false,'#FFF1B8');saveSelection();") }
                             EditorTool("无序列表") { command("insertUnorderedList") }; EditorTool("编号列表") { command("insertOrderedList") }
                             EditorTool("缩进") { command("indent") }; EditorTool("减缩进") { command("outdent") }
+                            EditorTool("代码段") { command("formatBlock", "pre") }
+                            EditorTool("日期") { insert("<span>${java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())}</span>") }
+                            EditorTool("分隔线") { insert("<hr style='border:0;border-top:1px solid #ddd;margin:22px 0'><p><br></p>") }
+                            EditorTool("Emoji") { insert("✨") }
+                            EditorTool("特殊符号") { insert("「」『』· — … ★ ✓ → ※") }
                         }
                     }
                     EditorPanel.IMAGE -> {
@@ -426,7 +432,26 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("图片说明") { insert("<p style='text-align:center;color:#999;font-size:12px;margin-top:6px'>在此输入图片说明</p>") }
                             EditorTool("图片居中") { command("justifyCenter") }
                         }
-                        Text("本阶段支持网络图片链接；本地图片持久化、裁剪与素材库将在媒体阶段接入。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
+                        if (vm.data.mediaAssets.isNotEmpty()) {
+                            Text("本地图片库 · ${vm.data.mediaAssets.size} 张", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                vm.data.mediaAssets.forEach { asset ->
+                                    EditorTool(asset.fileName.take(12)) {
+                                        insert("<p><img src='https://editor.local/assets/${asset.id}' alt='${asset.fileName}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
+                                    }
+                                    EditorTool("删") {
+                                        val used = html.contains(asset.id) || vm.data.articles.any { it.id != articleId && it.html.contains(asset.id) }
+                                        if (used) vm.toast("该图片仍被文章引用，不能删除")
+                                        else {
+                                            File(context.filesDir, asset.relativePath).delete()
+                                            vm.deleteMediaAsset(asset.id)
+                                            vm.toast("图片已从素材库删除")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Text("本地图片已复制到应用私有目录；网络图片仍依赖原图链接可访问。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))
                     }
                     EditorPanel.COMPONENT -> {
                         Text("公众号排版组件 · 插入后可继续编辑", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
@@ -437,6 +462,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("分割线") { insert("<hr style='border:0;border-top:1px solid #dfe6e1;margin:24px 0'><p><br></p>") }
                             EditorTool("留白") { insert("<p style='height:24px;margin:0'><br></p>") }
                             EditorTool("数字列表") { insert("<ol><li>第一步</li><li>第二步</li><li>第三步</li></ol>") }
+                            EditorTool("色块标题") { insert("<h2 style='margin:22px 0 14px;padding:9px 13px;background:#edf6f0;border-left:4px solid #159765;color:#235b43;font-size:19px'>在这里输入标题</h2>") }
+                            EditorTool("边线标题") { insert("<h2 style='margin:22px 0 14px;padding-bottom:9px;border-bottom:1px solid #159765;color:#333;font-size:20px'>在这里输入标题</h2>") }
+                            EditorTool("重点段落") { insert("<p style='margin:16px 0;padding:12px 14px;background:#fff8e9;color:#805d24;border-radius:5px;line-height:1.9'>在这里输入需要强调的内容</p>") }
+                            EditorTool("首字下沉") { insert("<p style='line-height:2'><span style='float:left;font-size:42px;line-height:1;color:#159765;padding:4px 7px 0 0'>拾</span>在这里继续输入正文内容。</p>") }
+                            EditorTool("时间轴") { insert("<section style='border-left:2px solid #b8d8c6;margin:18px 0;padding-left:16px'><p style='margin:0 0 5px;color:#159765;font-weight:700'>01 · 时间节点</p><p style='margin:0 0 16px'>在这里输入事件内容</p><p style='margin:0 0 5px;color:#159765;font-weight:700'>02 · 时间节点</p><p style='margin:0'>在这里输入事件内容</p></section>") }
+                            EditorTool("表格") { insert("<table style='width:100%;border-collapse:collapse'><tr><th style='border:1px solid #ddd;padding:8px'>项目</th><th style='border:1px solid #ddd;padding:8px'>内容</th></tr><tr><td style='border:1px solid #ddd;padding:8px'>项目一</td><td style='border:1px solid #ddd;padding:8px'>填写内容</td></tr></table><p><br></p>") }
+                            EditorTool("代码块") { insert("<pre style='padding:12px;background:#f4f5f4;white-space:pre-wrap;font-family:monospace;font-size:13px'>在此输入代码或等宽文本</pre>") }
+                            EditorTool("关注引导") { insert("<section style='margin:24px 0;padding:18px 14px;text-align:center;background:#f3f8f4;border:1px solid #dcebe1'><p style='margin:0 0 6px;font-weight:700;color:#28724e'>感谢阅读</p><p style='margin:0;font-size:13px;color:#77857c'>关注「拾万句」，查看更多内容</p></section>") }
+                            EditorTool("作者简介") { insert("<section style='margin:22px 0;padding:14px;background:#f6f7f6'><p style='margin:0 0 5px;font-weight:700'>关于作者</p><p style='margin:0;font-size:13px;color:#777'>在这里填写作者简介</p></section>") }
                         }
                     }
                     EditorPanel.STYLE -> {
