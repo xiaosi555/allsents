@@ -107,6 +107,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportArticleJson by remember { mutableStateOf("") }
     var pendingImageGroupCount by remember { mutableIntStateOf(2) }
     var selectedBlockHtml by remember { mutableStateOf("") }
+    var multiSelectMode by remember { mutableStateOf(false) }
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
     var previewAsset by remember { mutableStateOf<MediaAsset?>(null) }
@@ -531,7 +532,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 }
                 EditorTool("插入链接") { dialogValue = ""; linkInsertType = "link"; showLink = true }
-                if (selectedBlockHtml.isNotBlank()) {
+                EditorTool(if (multiSelectMode) "退出多选" else "多选组合", multiSelectMode) {
+                    multiSelectMode = !multiSelectMode
+                    runJs("setMultiSelectMode(${multiSelectMode})")
+                    selectedBlockHtml = ""
+                }
+                if (multiSelectMode && selectedBlockHtml.isNotBlank()) {
+                    EditorTool("保存组合样式") {
+                        vm.saveStyle(StyleModule(vm.newId(), "组合组件", "组合组件", selectedBlockHtml, System.currentTimeMillis().toString()))
+                        vm.toast("已保存组合组件到「我的 - 样式」")
+                        multiSelectMode = false
+                        runJs("setMultiSelectMode(false)")
+                    }
+                } else if (selectedBlockHtml.isNotBlank()) {
                     EditorTool("模块上移") { runJs("moveSelectedBlock(-1)") }
                     EditorTool("模块下移") { runJs("moveSelectedBlock(1)") }
                     EditorTool("复制模块") { runJs("duplicateSelectedBlock()") }
@@ -630,7 +643,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function addTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{const c=r.insertCell(-1);c.innerHTML='<br>';c.style.border='1px solid #ddd';c.style.padding='8px';});commitHistory();NativeEditor.changed(root.innerHTML);}
                             function removeTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{if(r.cells.length>1)r.deleteCell(r.cells.length-1);});commitHistory();NativeEditor.changed(root.innerHTML);}
-                            root.addEventListener('click',function(ev){if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(e.outerHTML);}});
+                            function setMultiSelectMode(v){multiSelectMode=!!v;root.querySelectorAll('.selected-block').forEach(e=>{e.classList.remove('selected-block');e.draggable=false;});NativeEditor.blockSelected('');}
+                            root.addEventListener('click',function(ev){
+                              if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}
+                              let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;
+                              if(e&&e!==root){
+                                if(multiSelectMode){e.classList.toggle('selected-block');e.draggable=false;NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>x.outerHTML).join(''));}
+                                else{root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(e.outerHTML);}
+                              }
+                            });
                             root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(!e||e===root||!e.classList.contains('selected-block')){ev.preventDefault();return;}dragSource=e;ev.dataTransfer.effectAllowed='move';});
                             root.addEventListener('dragover',function(ev){if(dragSource)ev.preventDefault();});
                             root.addEventListener('drop',function(ev){if(!dragSource)return;ev.preventDefault();let target=ev.target;while(target&&target!==root&&target.parentElement!==root)target=target.parentElement;if(target&&target!==root&&target!==dragSource){const rect=target.getBoundingClientRect();if(ev.clientY<rect.top+rect.height/2)target.parentNode.insertBefore(dragSource,target);else target.parentNode.insertBefore(dragSource,target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(dragSource.outerHTML);}dragSource=null;});
