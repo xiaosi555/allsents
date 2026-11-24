@@ -86,6 +86,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var articleStatus by remember { mutableStateOf("draft") }
     var coverAssetId by remember { mutableStateOf("") }
     var pendingExportHtml by remember { mutableStateOf("") }
+    var pendingExportMarkdown by remember { mutableStateOf("") }
     var selectedBlockHtml by remember { mutableStateOf("") }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
@@ -199,6 +200,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             pendingSave++
             vm.toast("HTML 已导入")
         }.onFailure { vm.toast("HTML 导入失败：${it.message ?: "无法读取文件"}") }
+    }
+    val markdownExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportMarkdown) }
+                ?: error("无法写入文件")
+            vm.toast("Markdown 已导出")
+        }.onFailure { vm.toast("Markdown 导出失败：${it.message ?: "无法写入文件"}") }
     }
     val htmlExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/html")) { uri ->
         if (uri != null) runCatching {
@@ -338,6 +346,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         pendingExportHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
                         htmlExporter.launch("${title.ifBlank { "文章" }}.html")
+                    }
+                }
+                EditorTool("导出Markdown") {
+                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                        pendingExportMarkdown = articleHtmlToMarkdown(current)
+                        markdownExporter.launch("${title.ifBlank { "文章" }}.md")
                     }
                 }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
@@ -724,3 +739,40 @@ private fun articleCompatibilityWarnings(html: String): List<String> {
     if (Regex("""(?is)href=["'](?:javascript:|#)""").containsMatchIn(html)) warnings += "存在脚本链接或空锚点，请检查链接是否有效。"
     return warnings
 }
+private fun articleHtmlToMarkdown(html: String): String {
+    var value = html
+    value = value.replace(Regex("(?is)<h1[^>]*>(.*?)</h1>")) { "
+# ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}
+
+" }
+    value = value.replace(Regex("(?is)<h2[^>]*>(.*?)</h2>")) { "
+## ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}
+
+" }
+    value = value.replace(Regex("(?is)<h([34])[^>]*>(.*?)</h[34]>")) { "
+### ${it.groupValues[2].replace(Regex("<[^>]*>"), "").trim()}
+
+" }
+    value = value.replace(Regex("(?is)<blockquote[^>]*>(.*?)</blockquote>")) { "
+> ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}
+
+" }
+    value = value.replace(Regex("(?is)<li[^>]*>(.*?)</li>")) { "- ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}
+" }
+    value = value.replace(Regex("(?is)<(strong|b)[^>]*>(.*?)</\\1>")) { "**${it.groupValues[2].replace(Regex("<[^>]*>"), "")}**" }
+    value = value.replace(Regex("(?is)<(em|i)[^>]*>(.*?)</\\1>")) { "*${it.groupValues[2].replace(Regex("<[^>]*>"), "")}*" }
+    value = value.replace(Regex("(?is)<br\\s*/?>"), "
+")
+    value = value.replace(Regex("(?is)</p>|</div>|</section>|</tr>"), "
+
+")
+    value = value.replace(Regex("(?is)<hr[^>]*>"), "
+---
+")
+    value = value.replace(Regex("(?is)<[^>]+>"), "")
+    value = org.jsoup.parser.Parser.unescapeEntities(value, false)
+    return value.replace(Regex("\\n{3,}"), "
+
+").trim()
+}
+
