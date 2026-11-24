@@ -484,7 +484,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             Column(
                 Modifier.fillMaxWidth().background(Color(0xFFFCFDFC)).navigationBarsPadding()
-                    .heightIn(min = 92.dp, max = 176.dp).padding(horizontal = 9.dp, vertical = 8.dp)
+                    .heightIn(min = 92.dp, max = 220.dp).verticalScroll(rememberScrollState()).padding(horizontal = 9.dp, vertical = 8.dp)
             ) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
