@@ -371,6 +371,7 @@ checks = [
     (DATA / "Models.kt", "val styleSeedApplied: Boolean"),
     (DATA / "Models.kt", "val mediaAssets: List<MediaAsset>"),
     (DATA / "Models.kt", "val articleRevisions: List<ArticleRevision>"),
+    (DATA / "Models.kt", "val isFavorite: Boolean = false"),
     (DATA / "Store.kt", "styles = fill(raw.styles"),
     (DATA / "Store.kt", "mediaAssets = fill<MediaAsset>"),
     (DATA / "Store.kt", "articleRevisions = fill<ArticleRevision>"),
@@ -402,6 +403,9 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "mediaSearchText"),
     (UI / "ArticleEditorScreen.kt", "articleFilter"),
     (UI / "ArticleEditorScreen.kt", "formatArticleTimestamp"),
+    (UI / "ArticleEditorScreen.kt", "filteredTemplates"),
+    (UI / "ArticleEditorScreen.kt", "templatePreview"),
+    (UI / "ArticleEditorScreen.kt", "multiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
 ]
