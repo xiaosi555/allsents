@@ -462,11 +462,25 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             runCatching {
                 val jsonText = org.json.JSONTokener(raw ?: "null").nextValue() as String
                 val payload = JSONObject(jsonText)
-                val rich = payload.optString("html")
+                var rich = payload.optString("html")
                 val plain = payload.optString("text")
+                val localIds = Regex("""https://editor\\.local/assets/([A-Za-z0-9_-]+)""").findAll(rich).map { it.groupValues[1] }.distinct().toList()
+                var embeddedBytes = 0L
+                localIds.forEach { id ->
+                    val asset = vm.data.mediaAssets.firstOrNull { it.id == id } ?: return@forEach
+                    val root = File(context.filesDir, "article_media").canonicalFile
+                    val file = File(context.filesDir, asset.relativePath).canonicalFile
+                    if (file.path.startsWith(root.path + File.separator) && file.isFile) {
+                        val bytes = file.readBytes()
+                        embeddedBytes += bytes.size
+                        if (embeddedBytes > 24L * 1024 * 1024) error("本地图片总量超过 24 MB，请减少图片后再复制")
+                        val dataUri = "data:${asset.mimeType.ifBlank { "image/jpeg" }};base64,${Base64.encodeToString(bytes, Base64.NO_WRAP)}"
+                        rich = rich.replace("https://editor.local/assets/$id", dataUri)
+                    }
+                }
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newHtmlText(title, plain, rich))
-                vm.toast("已复制富文本，可粘贴到支持 HTML 的编辑器")
+                vm.toast(if (localIds.isEmpty()) "已复制富文本，可粘贴到支持 HTML 的编辑器" else "已复制富文本并尝试内嵌本地图片；若公众号不接收内嵌图片，请在公众号重新上传图片")
             }.onFailure {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText(title, html.replace(Regex("<[^>]*>"), "")))
