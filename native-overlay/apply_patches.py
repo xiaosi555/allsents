@@ -3431,7 +3431,7 @@ private fun HomeGroupRow(title: String, summary: String, onClick: () -> Unit) {
             Text(title, color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Text(summary, color = Color(0xFF9CA3AF), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
         }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFB8B8B8), modifier = Modifier.size(18.dp))
+        Text("›", color = Color(0xFFB8B8B8), fontSize = 22.sp)
     }
 }
 
