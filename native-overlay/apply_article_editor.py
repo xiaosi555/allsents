@@ -2,21 +2,28 @@
 from pathlib import Path
 import re
 import shutil
+import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app"
 UI = JAVA / "ui"
 DATA = JAVA / "data"
 
-shutil.copy2(ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt",
-             UI / "ArticleEditorScreen.kt")
+def fail(message):
+    (ROOT / "article_editor_patch_error.txt").write_text(message + "\n" + traceback.format_exc(), encoding="utf-8")
+    raise SystemExit(message)
+
+try:
+    shutil.copy2(ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt", UI / "ArticleEditorScreen.kt")
+except Exception as error:
+    fail("Unable to copy ArticleEditorScreen.kt: " + repr(error))
 
 def replace_once(path, old, new, label):
     s = path.read_text(encoding="utf-8")
     if new in s:
         return
     if old not in s:
-        raise SystemExit("Article editor patch anchor missing: " + label)
+        fail("Article editor patch anchor missing: " + label)
     path.write_text(s.replace(old, new, 1), encoding="utf-8")
 
 # Data model: reusable style blocks and editable article documents.
@@ -62,7 +69,7 @@ replace_once(p,
                 .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
-    raise SystemExit("Style/article fields are not normalized")
+    fail("Style/article fields are not normalized")
 
 # Shared business actions.
 p = UI / "AppViewModel.kt"
@@ -108,7 +115,7 @@ if 'HomeGroupRow("样式"' not in s:
 
     anchor = "// ---------------------------------------------------------------------- 版式"
     if anchor not in s:
-        raise SystemExit("MyScreens layout section anchor missing")
+        fail("MyScreens layout section anchor missing")
     styles_code = '''
 // ---------------------------------------------------------------------- 样式：与文案模块同样的列表 / 宫格 / 排序 / 新增编辑删除；分类由用户自定义。
 
@@ -190,7 +197,7 @@ if 'contentDescription = "文章编辑器"' not in s:
             Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(21.dp))
         }'''
     if old not in s:
-        raise SystemExit("Layout top bar edit button anchor missing")
+        fail("Layout top bar edit button anchor missing")
     s = s.replace(old, new, 1)
 p.write_text(s, encoding="utf-8")
 
@@ -207,7 +214,7 @@ if 'ArticleEditorScreen(vm)' not in s:
                           else -> MyScreen(vm)
                       }'''
     if old not in s:
-        raise SystemExit("MainActivity screen routing anchor missing")
+        fail("MainActivity screen routing anchor missing")
     s = s.replace(old, new, 1)
 p.write_text(s, encoding="utf-8")
 
@@ -223,5 +230,5 @@ checks = [
 ]
 for path, token in checks:
     if token not in path.read_text(encoding="utf-8"):
-        raise SystemExit("Article editor wiring check failed: " + str(path) + " :: " + token)
+        fail("Article editor wiring check failed: " + str(path) + " :: " + token)
 print("Article editor data, style manager, editor route and layout entry wired.")
