@@ -380,6 +380,7 @@ checks = [
     (UI / "AppViewModel.kt", "fun deleteArticle("),
     (UI / "AppViewModel.kt", "fun saveMediaAsset("),
     (UI / "AppViewModel.kt", "previous.coverAssetId != x.coverAssetId"),
+    (UI / "AppViewModel.kt", "d.styles.any { it.html.contains(id) }"),
     (UI / "AppViewModel.kt", "revision.subtitle"),
     (UI / "MyScreens.kt", "private fun StylesPage("),
     (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
