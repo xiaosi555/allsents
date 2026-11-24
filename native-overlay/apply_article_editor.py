@@ -207,7 +207,7 @@ s = p.read_text(encoding="utf-8")
 if 'ArticleEditorScreen(vm)' not in s:
     s = s.replace('import com.shiwanju.app.ui.LayoutScreen',
                   'import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.ArticleEditorScreen', 1)
-    old = '''                      if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)
+    old = '                      if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)'
     new = '''                      when (vm.screen) {
                           "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
                           "layout" -> LayoutScreen(vm)
