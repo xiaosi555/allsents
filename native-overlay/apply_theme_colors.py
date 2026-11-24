@@ -52,6 +52,23 @@ new_colors = """    private var themeState by mutableStateOf(Color(0xFF01CC7A))
 if old_colors not in theme:
     raise SystemExit("Required theme patch anchor missing (AppColors constants): Theme.kt")
 theme = theme.replace(old_colors, new_colors, 1)
+
+# Convert the app's shared surface/text colors to live light/dark getters.
+_dark_values = {
+    "MyBg": "0xFF111315",
+    "MyCard": "0xFF1C2023",
+    "MyText": "0xFFF1F3F4",
+    "MySubText": "0xFFB7BEC4",
+    "MyHint": "0xFF92999F",
+}
+for _name, _dark_hex in _dark_values.items():
+    _pattern = rf"(?m)^([ \\t]*)val {_name}\\s*=\\s*Color\\((0x[0-9A-Fa-f]+)\\)"
+    _match = re.search(_pattern, theme)
+    if _match and "get() = if (darkAppearance)" not in _match.group(0):
+        _indent, _light_hex = _match.group(1), _match.group(2)
+        _replacement = f"{_indent}val {_name}: Color get() = if (darkAppearance) Color({_dark_hex}) else Color({_light_hex})"
+        theme = re.sub(_pattern, lambda _m: _replacement, theme, count=1)
+
 theme_path.write_text(theme, encoding="utf-8")
 
 # Persist only this UI preference in SharedPreferences; business JSON remains untouched.
