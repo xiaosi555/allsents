@@ -111,7 +111,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     fun insert(fragment: String) {
         runJs("restoreSelection();insertHtml(${JSONObject.quote(fragment)});saveSelection();document.getElementById('editor').focus();")
     }
-    fun saveDocument(showToast: Boolean = false) {
+    fun saveDocument(showToast: Boolean = false, onComplete: (() -> Unit)? = null) {
         val savingId = articleId
         val savingTitle = title.ifBlank { "未命名文章" }
         val savingSubtitle = subtitle
@@ -130,6 +130,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 savingStatus, html.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
+            onComplete?.invoke()
             return
         }
         view.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
@@ -142,6 +143,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 old?.status ?: "draft", current.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
+            onComplete?.invoke()
         }
     }
     fun newArticle() {
@@ -259,7 +261,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         saveDocument()
     }
     BackHandler {
-        if (showArticleList) showArticleList = false else { saveDocument(); onBack() }
+        if (showArticleList) showArticleList = false else saveDocument(onComplete = onBack)
     }
 
     Column(Modifier.fillMaxSize().background(pageBg).systemBarsPadding()) {
@@ -267,7 +269,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             Modifier.fillMaxWidth().height(56.dp).background(Color.White).padding(horizontal = 7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { saveDocument(); onBack() }) { Icon(Icons.Outlined.ArrowBack, "返回", tint = Color(0xFF777777)) }
+            IconButton(onClick = { saveDocument(onComplete = onBack) }) { Icon(Icons.Outlined.ArrowBack, "返回", tint = Color(0xFF777777)) }
             Column(Modifier.weight(1f).padding(start = 4.dp)) {
                 BasicTextField(
                     value = title, onValueChange = { title = it; saved = false; pendingSave++ },
@@ -278,7 +280,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Text(if (saved) "已自动保存" else "正在编辑 · 自动保存", color = Color(0xFF9A9F9B), fontSize = 10.sp)
             }
             TextButton(onClick = { saveDocument(true) }) { Text("保存", color = accent) }
-            TextButton(onClick = { saveDocument(); showArticleList = true }) { Text("文章", color = ink) }
+            TextButton(onClick = { saveDocument(onComplete = { showArticleList = true }) }) { Text("文章", color = ink) }
         }
 
         if (showArticleList) {
