@@ -130,6 +130,9 @@ replace_once(p,
         d.copy(styles = if (i >= 0) list.toMutableList().also { it[i] = x } else list + x)
     }
     fun deleteStyle(id: String) = updateData { d -> d.copy(styles = d.styles.filterNot { it.id == id }) }
+    fun renameStyleCategory(from: String, to: String) = updateData { d ->
+        if (from.isBlank() || to.isBlank()) d else d.copy(styles = d.styles.map { if (it.category == from) it.copy(category = to) else it })
+    }
     fun reorderStyle(from: Int, to: Int) = updateData { d ->
         val list = d.styles.toMutableList()
         if (from in list.indices && to in list.indices && from != to) { val item = list.removeAt(from); list.add(to, item) }
@@ -201,12 +204,41 @@ private fun StylesPage(vm: AppViewModel) = Page {
     var isNew by remember { mutableStateOf(false) }
     var grid by remember { mutableStateOf(false) }
     var sorting by remember { mutableStateOf(false) }
-    val list = vm.data.styles
+    var showCategoryManager by remember { mutableStateOf(false) }
+    var categoryFrom by remember { mutableStateOf("") }
+    var categoryTo by remember { mutableStateOf("") }
+    var searchStyle by remember { mutableStateOf("") }
+    val list = vm.data.styles.filter { searchStyle.isBlank() || it.name.contains(searchStyle, true) || it.category.contains(searchStyle, true) }
+    val categories = vm.data.styles.map { it.category }.filter { it.isNotBlank() }.distinct()
     TopActions {
         ThemeChip(if (grid) "列表" else "宫格", false, dark = false) { grid = !grid }
         Spacer(Modifier.width(8.dp))
+        ThemeChip("分类管理", false, dark = false) { categoryFrom = categories.firstOrNull().orEmpty(); categoryTo = ""; showCategoryManager = true }
+        Spacer(Modifier.width(8.dp))
         ThemeChip(if (sorting) "完成" else "排序", sorting, dark = false) { sorting = !sorting }
         if (!sorting) { Spacer(Modifier.width(8.dp)); ThemeChip("+ 新建样式", true, dark = false) { edit = StyleModule(id = vm.newId(), category = "自定义分类"); isNew = true } }
+    }
+    OutlinedTextField(searchStyle, { searchStyle = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = { Text("搜索样式名称或分类") })
+    if (showCategoryManager) {
+        AlertDialog(
+            onDismissRequest = { showCategoryManager = false },
+            title = { Text("样式分类管理") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("分类由样式模块关联。将旧分类名称改为新名称，即可批量迁移该分类下的所有样式。", color = AppColors.MyDim, fontSize = 12.sp)
+                    OutlinedTextField(categoryFrom, { categoryFrom = it }, label = { Text("原分类名称") }, singleLine = true)
+                    OutlinedTextField(categoryTo, { categoryTo = it }, label = { Text("新分类名称") }, singleLine = true)
+                    Text("现有分类：${categories.joinToString("、").ifBlank { "暂无" }}", color = AppColors.MyDim, fontSize = 11.sp)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (categoryFrom.isBlank() || categoryTo.isBlank()) vm.toast("请填写原分类和新分类")
+                    else { vm.renameStyleCategory(categoryFrom.trim(), categoryTo.trim()); showCategoryManager = false; vm.toast("分类及关联样式已迁移") }
+                }) { Text("迁移/重命名") }
+            },
+            dismissButton = { TextButton(onClick = { showCategoryManager = false }) { Text("取消") } }
+        )
     }
     Text("分类名称由你自己填写；编辑器会将这些分类显示为可插入的样式功能项。", color = AppColors.MyDim, fontSize = 12.sp)
     if (list.isEmpty()) Empty("暂无样式模块，请点击右上角新建")
