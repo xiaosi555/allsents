@@ -250,10 +250,16 @@ private fun StylesPage(vm: AppViewModel) = Page {
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    if (categoryFrom.isBlank() || categoryTo.isBlank()) vm.toast("请填写原分类和新分类")
-                    else { vm.renameStyleCategory(categoryFrom.trim(), categoryTo.trim()); showCategoryManager = false; vm.toast("分类及关联样式已迁移") }
-                }) { Text("迁移/重命名") }
+                Row {
+                    TextButton(onClick = {
+                        if (categoryFrom.isBlank() || categoryTo.isBlank()) vm.toast("请填写原分类和新分类")
+                        else { vm.renameStyleCategory(categoryFrom.trim(), categoryTo.trim()); showCategoryManager = false; vm.toast("分类及关联样式已迁移") }
+                    }) { Text("迁移/重命名") }
+                    TextButton(onClick = {
+                        if (categoryFrom.isBlank()) vm.toast("请先填写要删除的分类")
+                        else { vm.renameStyleCategory(categoryFrom.trim(), "未分类"); showCategoryManager = false; vm.toast("分类已删除，关联样式已迁移到未分类") }
+                    }) { Text("删除并迁移") }
+                }
             },
             dismissButton = { TextButton(onClick = { showCategoryManager = false }) { Text("取消") } }
         )
