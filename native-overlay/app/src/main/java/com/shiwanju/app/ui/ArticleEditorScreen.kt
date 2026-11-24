@@ -282,6 +282,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     editor?.evaluateJavascript("setEditable(${!previewMode});", null)
                 }
                 EditorTool("全选") { runJs("document.getElementById('editor').focus();document.execCommand('selectAll');saveSelection();") }
+                EditorTool("复制富文本") { copyRichHtml() }
+                EditorTool("导入HTML") { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }
+                EditorTool("导出HTML") {
+                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        pendingExportHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                        htmlExporter.launch("${title.ifBlank { "文章" }}.html")
+                    }
+                }
+                EditorTool("版本记录") { saveDocument(); showRevisionList = true }
+                EditorTool("文章信息") { showArticleInfo = true }
             }
 
             AndroidView(
@@ -298,8 +308,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         addJavascriptInterface(ArticleEditorBridge { value -> html = value; saved = false; pendingSave++ }, "NativeEditor")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
+                            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                                val url = request?.url ?: return null
+                                if (url.host != "editor.local" || !url.path.orEmpty().startsWith("/assets/")) return null
+                                val id = url.lastPathSegment ?: return null
+                                val asset = vm.data.mediaAssets.firstOrNull { it.id == id } ?: return null
+                                val mediaRoot = File(context.filesDir, "article_media").canonicalFile
+                                val file = File(context.filesDir, asset.relativePath).canonicalFile
+                                if (!file.path.startsWith(mediaRoot.path + File.separator) || !file.isFile) return null
+                                return runCatching { WebResourceResponse(asset.mimeType.ifBlank { "application/octet-stream" }, null, file.inputStream()) }.getOrNull()
+                            }
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 webReady = true
+                                view?.evaluateJavascript("setEditorHtml(${JSONObject.quote(html)});", null)
                             }
                         }
                         val page = """
@@ -372,6 +393,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     EditorPanel.IMAGE -> {
                         Text("图片素材", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("本地图片/相册") { imagePicker.launch(arrayOf("image/*")) }
                             EditorTool("插入网络图片") { dialogValue = ""; showImage = true }
                             EditorTool("双图并排") { insert("<table style='width:100%;table-layout:fixed;border-collapse:collapse'><tr><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+1' style='width:100%'></td><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+2' style='width:100%'></td></tr></table>") }
                             EditorTool("图片说明") { insert("<p style='text-align:center;color:#999;font-size:12px;margin-top:6px'>在此输入图片说明</p>") }
