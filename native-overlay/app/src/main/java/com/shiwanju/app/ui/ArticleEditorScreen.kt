@@ -496,7 +496,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         saveDocument()
     }
     BackHandler {
-        if (showArticleList) showArticleList = false else saveDocument(onComplete = onBack)
+        when {
+            showArticleList -> showArticleList = false
+            previewMode -> {
+                previewMode = false
+                editor?.evaluateJavascript("setEditable(true);setPreviewInfo('','','','');", null)
+            }
+            else -> saveDocument(onComplete = onBack)
+        }
     }
 
     Column(Modifier.fillMaxSize().background(pageBg).systemBarsPadding()) {
