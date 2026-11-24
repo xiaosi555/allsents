@@ -45,7 +45,15 @@ data class ArticleDocument(
     val title: String = "",
     val html: String = "",
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    val subtitle: String = "",
+    val summary: String = "",
+    val author: String = "",
+    val coverAssetId: String = "",
+    val category: String = "",
+    val tags: List<String> = emptyList(),
+    val status: String = "draft",
+    val wordCount: Int = 0
 )
 
 data class MediaAsset(
@@ -87,7 +95,7 @@ replace_once(p,
             styles = fill(raw.styles, "style", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(name = it.name ?: "", category = it.category ?: "", html = it.html ?: "", updatedAt = it.updatedAt ?: "") },
             articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(id = i) })
-                .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
+                .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "", subtitle = it.subtitle ?: "", summary = it.summary ?: "", author = it.author ?: "", coverAssetId = it.coverAssetId ?: "", category = it.category ?: "", tags = it.tags ?: emptyList(), status = it.status ?: "draft") },
             styleSeedApplied = raw.styleSeedApplied,
             mediaAssets = fill(raw.mediaAssets, "media", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(fileName = it.fileName ?: "", mimeType = it.mimeType ?: "", relativePath = it.relativePath ?: "", createdAt = it.createdAt ?: "") },
