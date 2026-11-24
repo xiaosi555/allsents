@@ -1,5 +1,7 @@
 package com.shiwanju.app.ui
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 import android.content.ClipData
@@ -15,6 +17,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -31,6 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -102,6 +108,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var selectedBlockHtml by remember { mutableStateOf("") }
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
+    var previewAsset by remember { mutableStateOf<MediaAsset?>(null) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val filteredArticles = vm.data.articles.filter { article ->
@@ -109,6 +116,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
     }.sortedByDescending { it.updatedAt }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
+    val previewBitmap = remember(previewAsset?.id) {
+        previewAsset?.let { asset ->
+            runCatching {
+                val root = File(context.filesDir, "article_media").canonicalFile
+                val file = File(context.filesDir, asset.relativePath).canonicalFile
+                if (file.path.startsWith(root.path + File.separator) && file.isFile) decodeArticleAssetPreview(file) else null
+            }.getOrNull()
+        }
+    }
     val pageBg = Color(0xFFF5F6F5)
     val ink = Color(0xFF252A27)
     val accent = Color(0xFF159765)
@@ -715,6 +731,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     EditorTool(asset.fileName.take(12)) {
                                         insert("<p><img src='https://editor.local/assets/${asset.id}' alt='${asset.fileName}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
                                     }
+                                    EditorTool("预览") { previewAsset = asset }
                                     EditorTool("删") {
                                         val used = html.contains(asset.id) || coverAssetId == asset.id || vm.data.articles.any { it.id != articleId && (it.html.contains(asset.id) || it.coverAssetId == asset.id) }
                                         if (used) vm.toast("该图片仍被文章引用，不能删除")
@@ -790,6 +807,28 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    if (previewAsset != null) {
+        Dialog(onDismissRequest = { previewAsset = null }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(previewAsset!!.fileName, color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    if (previewBitmap != null) {
+                        Image(previewBitmap.asImageBitmap(), contentDescription = previewAsset!!.fileName,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 440.dp), contentScale = ContentScale.Fit)
+                    } else Text("图片文件不存在或无法解码", color = Color.Gray, fontSize = 12.sp)
+                    Text("${previewAsset!!.mimeType} · ${previewAsset!!.sizeBytes / 1024} KB", color = Color.Gray, fontSize = 11.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { previewAsset = null }) { Text("关闭", color = accent) }
+                        TextButton(onClick = {
+                            val asset = previewAsset!!
+                            insert("<p><img src='https://editor.local/assets/${asset.id}' alt='${asset.fileName}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
+                            previewAsset = null
+                        }) { Text("插入文章", color = accent) }
+                    }
+                }
+            }
+        }
+    }
     if (showImageAlt) EditorInputDialog("图片替代文字", "描述图片内容", dialogValue, { dialogValue = it }, {
         runJs("setSelectedImageAlt(${JSONObject.quote(dialogValue)});")
         showImageAlt = false
@@ -997,6 +1036,15 @@ private fun sanitizeArticleHtml(source: String): String {
 }
 
 
+private fun decodeArticleAssetPreview(file: File): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.absolutePath, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    var sample = 1
+    while (bounds.outWidth / sample > 1400 || bounds.outHeight / sample > 1400) sample *= 2
+    val options = BitmapFactory.Options().apply { inSampleSize = sample; inPreferredConfig = Bitmap.Config.RGB_565 }
+    return BitmapFactory.decodeFile(file.absolutePath, options)
+}
 private fun formatArticleTimestamp(raw: String): String = runCatching {
     val millis = raw.toLong()
     SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(millis))
