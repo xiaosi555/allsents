@@ -405,6 +405,8 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "formatArticleTimestamp"),
     (UI / "ArticleEditorScreen.kt", "filteredTemplates"),
     (UI / "ArticleEditorScreen.kt", "templatePreview"),
+    (UI / "ArticleEditorScreen.kt", "stylePackageImporter"),
+    (UI / "ArticleEditorScreen.kt", "shiwanju.styles.v1"),
     (UI / "ArticleEditorScreen.kt", "multiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
