@@ -430,7 +430,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             .put("author", author).put("category", category).put("tags", org.json.JSONArray(tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }))
                             .put("status", articleStatus).put("coverAssetId", coverAssetId).put("html", current)
                         val assets = org.json.JSONArray()
-                        vm.data.mediaAssets.filter { current.contains(it.id) }.forEach { asset ->
+                        vm.data.mediaAssets.filter { current.contains(it.id) || coverAssetId == it.id }.forEach { asset ->
                             val file = File(context.filesDir, asset.relativePath)
                             if (file.isFile) runCatching {
                                 assets.put(JSONObject().put("id", asset.id).put("fileName", asset.fileName).put("mimeType", asset.mimeType)
