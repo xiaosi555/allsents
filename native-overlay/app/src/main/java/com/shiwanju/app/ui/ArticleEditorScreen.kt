@@ -741,17 +741,17 @@ private fun articleCompatibilityWarnings(html: String): List<String> {
 }
 private fun articleHtmlToMarkdown(html: String): String {
     var value = html
-    value = value.replace(Regex("""(?is)<h1[^>]*>(.*?)</h1>""")) { "\n# \${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
-    value = value.replace(Regex("""(?is)<h2[^>]*>(.*?)</h2>""")) { "\n## \${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
-    value = value.replace(Regex("""(?is)<h([34])[^>]*>(.*?)</h[34]>""")) { "\n### \${it.groupValues[2].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
-    value = value.replace(Regex("""(?is)<blockquote[^>]*>(.*?)</blockquote>""")) { "\n> \${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
-    value = value.replace(Regex("""(?is)<li[^>]*>(.*?)</li>""")) { "- \${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n" }
-    value = value.replace(Regex("""(?is)<(strong|b)[^>]*>(.*?)</\\1>""")) { "**\${it.groupValues[2].replace(Regex("<[^>]*>"), "")}**" }
-    value = value.replace(Regex("""(?is)<(em|i)[^>]*>(.*?)</\\1>""")) { "*\${it.groupValues[2].replace(Regex("<[^>]*>"), "")}*" }
-    value = value.replace(Regex("""(?is)<br\\s*/?>"""), "\n")
+    value = value.replace(Regex("""(?is)<h1[^>]*>(.*?)</h1>""")) { "\n# ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
+    value = value.replace(Regex("""(?is)<h2[^>]*>(.*?)</h2>""")) { "\n## ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
+    value = value.replace(Regex("""(?is)<h([34])[^>]*>(.*?)</h[34]>""")) { "\n### ${it.groupValues[2].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
+    value = value.replace(Regex("""(?is)<blockquote[^>]*>(.*?)</blockquote>""")) { "\n> ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
+    value = value.replace(Regex("""(?is)<li[^>]*>(.*?)</li>""")) { "- ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n" }
+    value = value.replace(Regex("""(?is)<(strong|b)[^>]*>(.*?)</\1>""")) { "**${it.groupValues[2].replace(Regex("<[^>]*>"), "")}**" }
+    value = value.replace(Regex("""(?is)<(em|i)[^>]*>(.*?)</\1>""")) { "*${it.groupValues[2].replace(Regex("<[^>]*>"), "")}*" }
+    value = value.replace(Regex("""(?is)<br\s*/?>"""), "\n")
     value = value.replace(Regex("""(?is)</p>|</div>|</section>|</tr>"""), "\n\n")
     value = value.replace(Regex("""(?is)<hr[^>]*>"""), "\n---\n")
     value = value.replace(Regex("""(?is)<[^>]+>"""), "")
     value = org.jsoup.parser.Parser.unescapeEntities(value, false)
-    return value.replace(Regex("""\\n{3,}"""), "\n\n").trim()
+    return value.replace(Regex("""\n{3,}"""), "\n\n").trim()
 }
