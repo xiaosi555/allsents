@@ -398,6 +398,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');NativeEditor.changed(root.innerHTML);}
                             function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);NativeEditor.changed(root.innerHTML);}
+                            function selectedTable(){const e=selectedBlock();return e?(e.tagName==='TABLE'?e:e.querySelector('table')):null;}
+                            function addTableRow(){const t=selectedTable();if(!t||!t.rows.length)return;const r=t.rows[t.rows.length-1];const n=r.cloneNode(true);Array.from(n.cells).forEach(c=>c.innerHTML='<br>');r.parentNode.insertBefore(n,r.nextSibling);NativeEditor.changed(root.innerHTML);}
+                            function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);NativeEditor.changed(root.innerHTML);}
+                            function addTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{const c=r.insertCell(-1);c.innerHTML='<br>';c.style.border='1px solid #ddd';c.style.padding='8px';});NativeEditor.changed(root.innerHTML);}
+                            function removeTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{if(r.cells.length>1)r.deleteCell(r.cells.length-1);});NativeEditor.changed(root.innerHTML);}
                             root.addEventListener('click',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>x.classList.remove('selected-block'));e.classList.add('selected-block');NativeEditor.blockSelected(e.outerHTML);}});
                             function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
@@ -502,6 +507,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("代码块") { insert("<pre style='padding:12px;background:#f4f5f4;white-space:pre-wrap;font-family:monospace;font-size:13px'>在此输入代码或等宽文本</pre>") }
                             EditorTool("关注引导") { insert("<section style='margin:24px 0;padding:18px 14px;text-align:center;background:#f3f8f4;border:1px solid #dcebe1'><p style='margin:0 0 6px;font-weight:700;color:#28724e'>感谢阅读</p><p style='margin:0;font-size:13px;color:#77857c'>关注「拾万句」，查看更多内容</p></section>") }
                             EditorTool("作者简介") { insert("<section style='margin:22px 0;padding:14px;background:#f6f7f6'><p style='margin:0 0 5px;font-weight:700'>关于作者</p><p style='margin:0;font-size:13px;color:#777'>在这里填写作者简介</p></section>") }
+                            EditorTool("表格加行", selectedBlockHtml.contains("<table", true)) { runJs("addTableRow()") }
+                            EditorTool("表格删行", selectedBlockHtml.contains("<table", true)) { runJs("removeTableRow()") }
+                            EditorTool("表格加列", selectedBlockHtml.contains("<table", true)) { runJs("addTableColumn()") }
+                            EditorTool("表格删列", selectedBlockHtml.contains("<table", true)) { runJs("removeTableColumn()") }
                         }
                     }
                     EditorPanel.STYLE -> {
