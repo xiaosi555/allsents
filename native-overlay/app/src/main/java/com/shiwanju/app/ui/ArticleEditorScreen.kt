@@ -1360,9 +1360,9 @@ private fun markdownInlineToHtml(source: String): String {
     var value = escapeMarkdownText(source)
     value = Regex("""!\[([^\]]*)\]\((https?://[^\s)]+)\)""").replace(value) { m -> "<img src=\"${m.groupValues[2]}\" alt=\"${m.groupValues[1]}\" style=\"max-width:100%;height:auto\">" }
     value = Regex("""\[([^\]]+)\]\((https?://[^\s)]+)\)""").replace(value) { m -> "<a href=\"${m.groupValues[2]}\">${m.groupValues[1]}</a>" }
-    value = Regex("""\*\*(.+?)\*\*""").replace(value, "<strong>$1</strong>")
-    value = Regex("""(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)""").replace(value, "<em>$1</em>")
-    value = Regex("""~~(.+?)~~""").replace(value, "<del>$1</del>")
+    value = Regex("""\*\*(.+?)\*\*""").replace(value) { "<strong>${it.groupValues[1]}</strong>" }
+    value = Regex("""(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)""").replace(value) { "<em>${it.groupValues[1]}</em>" }
+    value = Regex("""~~(.+?)~~""").replace(value) { "<del>${it.groupValues[1]}</del>" }
     return value
 }
 
