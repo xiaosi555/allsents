@@ -99,7 +99,7 @@ if "var themeColor: String" not in store:
 vm_path = java / "ui/AppViewModel.kt"
 vm = vm_path.read_text(encoding="utf-8")
 vm_anchor = "    var textViewMode by mutableStateOf(store.textViewMode); private set\n"
-vm_insert = "    var themeColor by mutableStateOf(store.themeColor); private set\n"
+vm_insert = "    var themeColor by mutableStateOf(store.themeColor); private set\\n    var appearanceMode by mutableStateOf(store.appearanceMode); private set\\n"
 if "var themeColor by mutableStateOf(store.themeColor)" not in vm:
     if vm_anchor not in vm:
         raise SystemExit("Required theme patch anchor missing (ViewModel preference state): AppViewModel.kt")
