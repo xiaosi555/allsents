@@ -1031,6 +1031,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showHtmlImportPreview = false }) { Text("取消", color = Color.Gray) }
                         TextButton(onClick = {
+                            showArticleList = false
                             html = pendingImportedHtml
                             editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(pendingImportedHtml)});setEditable(true);", null)
                             pendingSave++
