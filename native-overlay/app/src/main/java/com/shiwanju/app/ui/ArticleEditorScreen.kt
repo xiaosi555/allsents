@@ -623,12 +623,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             .put("author", author).put("category", category).put("tags", org.json.JSONArray(tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }))
                             .put("status", articleStatus).put("coverAssetId", coverAssetId).put("html", current)
                         val assets = org.json.JSONArray()
+                        var packageImageBytes = 0L
                         vm.data.mediaAssets.filter { current.contains(it.id) || coverAssetId == it.id }.forEach { asset ->
                             val mediaRoot = File(context.filesDir, "article_media").canonicalFile
                             val file = File(context.filesDir, asset.relativePath).canonicalFile
-                            if (file.path.startsWith(mediaRoot.path + File.separator) && file.isFile) runCatching {
+                            if (file.path.startsWith(mediaRoot.path + File.separator) && file.isFile) {
+                                val bytes = file.readBytes()
+                                packageImageBytes += bytes.size
+                                if (bytes.size > 12 * 1024 * 1024 || packageImageBytes > 36L * 1024 * 1024) error("文章引用图片超过文章包导出容量限制")
                                 assets.put(JSONObject().put("id", asset.id).put("fileName", asset.fileName).put("mimeType", asset.mimeType)
-                                    .put("base64", Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)))
+                                    .put("base64", Base64.encodeToString(bytes, Base64.NO_WRAP)))
                             }
                         }
                         pack.put("assets", assets)
@@ -980,6 +984,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         EditorTool("导入模板包") { stylePackageImporter.launch(arrayOf("application/json", "text/json")) }
                         EditorTool("导出模板包") {
                             runCatching {
+                            if (vm.data.styles.size > 100) error("样式超过 100 个，请分批导出")
+                            if (vm.data.styles.sumOf { it.html.length } > 12 * 1024 * 1024) error("模板 HTML 总量超过 12 MB，请分批导出")
                             val pack = JSONObject().put("format", "shiwanju.styles.v1")
                             val rows = org.json.JSONArray()
                             vm.data.styles.forEach { style ->
