@@ -523,6 +523,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function resetSelectedImageCrop(){if(!activeImage)return;activeImage.style.height='auto';activeImage.style.objectFit='contain';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageBorder(v){if(!activeImage)return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageAlt(v){if(!activeImage)return;activeImage.alt=v;commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function selectedParagraph(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|BLOCKQUOTE|LI|PRE)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
+                            function styleSelectedParagraph(prop,value){const e=selectedParagraph();if(!e)return;e.style[prop]=value;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -590,6 +592,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("分隔线") { insert("<hr style='border:0;border-top:1px solid #ddd;margin:22px 0'><p><br></p>") }
                             EditorTool("Emoji") { insert("✨") }
                             EditorTool("特殊符号") { insert("「」『』· — … ★ ✓ → ※") }
+                            EditorTool("行距1.6") { runJs("styleSelectedParagraph('lineHeight','1.6')") }
+                            EditorTool("行距1.8") { runJs("styleSelectedParagraph('lineHeight','1.8')") }
+                            EditorTool("行距2.0") { runJs("styleSelectedParagraph('lineHeight','2')") }
+                            EditorTool("首行缩进") { runJs("styleSelectedParagraph('textIndent','2em')") }
+                            EditorTool("取消缩进") { runJs("styleSelectedParagraph('textIndent','0')") }
+                            EditorTool("段距12") { runJs("styleSelectedParagraph('marginBottom','12px')") }
+                            EditorTool("段距24") { runJs("styleSelectedParagraph('marginBottom','24px')") }
+                            EditorTool("字距1px") { runJs("styleSelectedParagraph('letterSpacing','1px')") }
+                            EditorTool("宋体") { runJs("restoreSelection();document.execCommand('fontName',false,'SimSun');saveSelection();") }
+                            EditorTool("黑体") { runJs("restoreSelection();document.execCommand('fontName',false,'Microsoft YaHei');saveSelection();") }
                         }
                     }
                     EditorPanel.IMAGE -> {
