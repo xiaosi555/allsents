@@ -432,8 +432,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             .put("status", articleStatus).put("coverAssetId", coverAssetId).put("html", current)
                         val assets = org.json.JSONArray()
                         vm.data.mediaAssets.filter { current.contains(it.id) || coverAssetId == it.id }.forEach { asset ->
-                            val file = File(context.filesDir, asset.relativePath)
-                            if (file.isFile) runCatching {
+                            val mediaRoot = File(context.filesDir, "article_media").canonicalFile
+                            val file = File(context.filesDir, asset.relativePath).canonicalFile
+                            if (file.path.startsWith(mediaRoot.path + File.separator) && file.isFile) runCatching {
                                 assets.put(JSONObject().put("id", asset.id).put("fileName", asset.fileName).put("mimeType", asset.mimeType)
                                     .put("base64", Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)))
                             }
