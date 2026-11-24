@@ -158,14 +158,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         runJs("restoreSelection();insertHtml(${JSONObject.quote(fragment)});saveSelection();document.getElementById('editor').focus();")
     }
     fun cropSelectedImagePixels(targetRatio: Float) {
-        val match = Regex("""https://editor\\.local/assets/([A-Za-z0-9_-]+)""").find(selectedImageHtml)
+        val match = Regex("""https://editor\.local/assets/([A-Za-z0-9_-]+)""").find(selectedImageHtml)
         val asset = match?.groupValues?.getOrNull(1)?.let { id -> vm.data.mediaAssets.firstOrNull { it.id == id } }
         if (asset == null) {
             vm.toast("像素裁切目前仅支持已导入素材库的本地图片")
             return
         }
         coroutineScope.launch {
-            runCatching {
+            try {
                 val mediaRoot = File(context.filesDir, "article_media").canonicalFile
                 val source = File(context.filesDir, asset.relativePath).canonicalFile
                 if (!source.path.startsWith(mediaRoot.path + File.separator) || !source.isFile) error("原图片文件不存在")
@@ -176,13 +176,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 val newName = "crop_$newId.$ext"
                 val target = File(mediaRoot, newName)
                 val dimensions = withContext(Dispatchers.IO) { cropArticleImageFile(source, target, targetRatio, png) }
-                withContext(Dispatchers.Main) {
-                    val mime = if (png) "image/png" else "image/jpeg"
-                    vm.saveMediaAsset(MediaAsset(newId, newName, mime, "article_media/$newName", target.length(), System.currentTimeMillis().toString()))
-                    runJs("replaceSelectedImage('https://editor.local/assets/$newId',${JSONObject.quote(newName)})")
-                    vm.toast("已完成像素裁切：${dimensions.first} × ${dimensions.second}")
-                }
-            }.onFailure { withContext(Dispatchers.Main) { vm.toast("像素裁切失败：${it.message ?: "图片处理错误"}") } }
+                val mime = if (png) "image/png" else "image/jpeg"
+                vm.saveMediaAsset(MediaAsset(newId, newName, mime, "article_media/$newName", target.length(), System.currentTimeMillis().toString()))
+                runJs("replaceSelectedImage('https://editor.local/assets/$newId',${JSONObject.quote(newName)})")
+                vm.toast("已完成像素裁切：${dimensions.first} × ${dimensions.second}")
+            } catch (error: Exception) {
+                vm.toast("像素裁切失败：${error.message ?: "图片处理错误"}")
+            }
         }
     }
 
