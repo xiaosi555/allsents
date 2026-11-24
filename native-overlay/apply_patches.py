@@ -1912,7 +1912,7 @@ preview_source = (base / "assets/preview.html").read_text(encoding="utf-8")
 checks = {
     "initial media margins merge by maximum": "maxOf(m[2], m[0])" in engine_source,
     "live media margins merge by maximum": "Math.max(t, b)" in preview_source,
-    "My home shows more module count": '"共 " + moreCount + " 个数据模块"' in my_source,
+    "My home shows more module count": ('"共 " + moreCount + " 个数据模块"' in my_source or 'HomeGroupRow("更多", "共 ${d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size} 个数据模块")' in my_source),
     "My layout page title is concise": '"layouts" -> "版式"' in my_source,
 }
 failed = [label for label, ok in checks.items() if not ok]
