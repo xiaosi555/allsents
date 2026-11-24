@@ -256,8 +256,8 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
                         FilterChip(selected = provider == "dajiala", onClick = { provider = "dajiala" }, label = { Text("极致了 API") })
                         FilterChip(selected = provider == "justone", onClick = { provider = "justone" }, label = { Text("JustOneAPI") })
                     }
-                    OutlinedTextField(account, { account = it }, Modifier.fillMaxWidth(), label = { Text(if (provider == "dajiala") "公众号名称或 ghid" else "公众号 ghid（可留空）"), placeholder = { Text("例如 gh_...") }, singleLine = true)
-                    OutlinedTextField(sourceUrl, { sourceUrl = it }, Modifier.fillMaxWidth(), label = { Text("公众号文章链接（推荐）"), placeholder = { Text("https://mp.weixin.qq.com/s/...") }, singleLine = true)
+                    OutlinedTextField(account, { account = it }, Modifier.fillMaxWidth(), label = { Text(if (provider == "dajiala") "公众号名称或 ghid" else "公众号 ghid（可留空）") }, placeholder = { Text("例如 gh_...") }, singleLine = true)
+                    OutlinedTextField(sourceUrl, { sourceUrl = it }, Modifier.fillMaxWidth(), label = { Text("公众号文章链接（推荐）") }, placeholder = { Text("https://mp.weixin.qq.com/s/...") }, singleLine = true)
                     if (provider == "dajiala") {
                         OutlinedTextField(key, { key = it }, Modifier.fillMaxWidth(), label = { Text("API Key") }, singleLine = true)
                         OutlinedTextField(verify, { verify = it }, Modifier.fillMaxWidth(), label = { Text("附加码 verifycode（没有可留空）") }, singleLine = true)
