@@ -80,6 +80,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showArticleInfo by remember { mutableStateOf(false) }
     var fullTemplateConfirm by remember { mutableStateOf<StyleModule?>(null) }
     var showCompatibilityReport by remember { mutableStateOf(false) }
+    var showFindReplace by remember { mutableStateOf(false) }
+    var findValue by remember { mutableStateOf("") }
+    var replaceValue by remember { mutableStateOf("") }
     var compatibilityWarnings by remember { mutableStateOf(emptyList<String>()) }
     var subtitle by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
@@ -525,6 +528,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function setSelectedImageAlt(v){if(!activeImage)return;activeImage.alt=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedParagraph(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|BLOCKQUOTE|LI|PRE)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
                             function styleSelectedParagraph(prop,value){const e=selectedParagraph();if(!e)return;e.style[prop]=value;commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function replaceAllText(search,replacement){if(!search)return 0;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,count=0;while(node=walker.nextNode()){if(node.nodeValue.includes(search)){const parts=node.nodeValue.split(search);count+=parts.length-1;node.nodeValue=parts.join(replacement);}}if(count){commitHistory();NativeEditor.changed(root.innerHTML);}return count;}
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -600,6 +604,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("段距12") { runJs("styleSelectedParagraph('marginBottom','12px')") }
                             EditorTool("段距24") { runJs("styleSelectedParagraph('marginBottom','24px')") }
                             EditorTool("字距1px") { runJs("styleSelectedParagraph('letterSpacing','1px')") }
+                            EditorTool("查找替换") { showFindReplace = true }
                             EditorTool("宋体") { runJs("restoreSelection();document.execCommand('fontName',false,'SimSun');saveSelection();") }
                             EditorTool("黑体") { runJs("restoreSelection();document.execCommand('fontName',false,'Microsoft YaHei');saveSelection();") }
                         }
@@ -783,6 +788,28 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 vm.toast("整篇模板已应用")
             }) { Text("替换正文", color = Color(0xFFCC5555)) } },
             dismissButton = { TextButton(onClick = { fullTemplateConfirm = null }) { Text("取消") } }
+        )
+    }
+    if (showFindReplace) {
+        AlertDialog(
+            onDismissRequest = { showFindReplace = false },
+            title = { Text("查找与替换") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(findValue, { findValue = it }, label = { Text("查找内容") }, singleLine = true)
+                    OutlinedTextField(replaceValue, { replaceValue = it }, label = { Text("替换为") }, singleLine = true)
+                    Text("仅替换正文文本，不修改 HTML 标签、链接地址和图片属性。", color = Color.Gray, fontSize = 11.sp)
+                }
+            },
+            confirmButton = { TextButton(onClick = {
+                if (findValue.isBlank()) vm.toast("请输入查找内容")
+                else {
+                    runJs("replaceAllText(${JSONObject.quote(findValue)},${JSONObject.quote(replaceValue)})")
+                    showFindReplace = false
+                    vm.toast("已执行正文文本替换")
+                }
+            }) { Text("全部替换", color = accent) } },
+            dismissButton = { TextButton(onClick = { showFindReplace = false }) { Text("取消") } }
         )
     }
     if (showCompatibilityReport) {
