@@ -140,7 +140,7 @@ my = my_path.read_text(encoding="utf-8")
 # Keep "follow system" synchronized at the app's main Compose entry, not only inside Settings.
 for _imp in ["import androidx.compose.foundation.isSystemInDarkTheme", "import androidx.compose.runtime.LaunchedEffect"]:
     if _imp not in my:
-        my = my.replace("import androidx.compose.runtime.Composable", "import androidx.compose.runtime.Composable\n" + _imp, 1)
+        my = my.replace("package com.shiwanju.app.ui", "package com.shiwanju.app.ui\n" + _imp, 1)
 _entry = re.search(r"(?m)^(@Composable\s+fun\s+\w+\([^)]*AppViewModel[^)]*\)\s*\{)", my)
 if _entry and "AppColors.setAppearanceMode(vm.appearanceMode, systemDark)" not in my:
     _body = _entry.group(1) + "\n    val systemDark = isSystemInDarkTheme()\n    LaunchedEffect(vm.appearanceMode, systemDark) { AppColors.setAppearanceMode(vm.appearanceMode, systemDark) }"
