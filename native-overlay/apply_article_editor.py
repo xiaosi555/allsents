@@ -46,6 +46,24 @@ data class ArticleDocument(
     val html: String = "",
     val createdAt: String = "",
     val updatedAt: String = ""
+)
+
+data class MediaAsset(
+    val id: String = "",
+    val fileName: String = "",
+    val mimeType: String = "",
+    val relativePath: String = "",
+    val sizeBytes: Long = 0L,
+    val createdAt: String = ""
+)
+
+data class ArticleRevision(
+    val id: String = "",
+    val articleId: String = "",
+    val title: String = "",
+    val html: String = "",
+    val createdAt: String = "",
+    val note: String = ""
 )''', "style and article data classes")
 replace_once(p,
 '''    val emoji: List<EmojiItem> = emptyList(),
@@ -54,6 +72,8 @@ replace_once(p,
     val styles: List<StyleModule> = emptyList(),
     val articles: List<ArticleDocument> = emptyList(),
     val styleSeedApplied: Boolean = false,
+    val mediaAssets: List<MediaAsset> = emptyList(),
+    val articleRevisions: List<ArticleRevision> = emptyList(),
     val files: Files = Files(),''', "AppData editor fields")
 
 # Keep old JSON backups compatible and preserve new fields on import/export.
@@ -69,6 +89,9 @@ replace_once(p,
             articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
             styleSeedApplied = raw.styleSeedApplied,
+            mediaAssets = fill(raw.mediaAssets, "media", { it.id }, { x, i -> x.copy(id = i) })
+                .map { it.copy(fileName = it.fileName ?: "", mimeType = it.mimeType ?: "", relativePath = it.relativePath ?: "", createdAt = it.createdAt ?: "") },
+            articleRevisions = fill(raw.articleRevisions, "revision", { it.id }, { x, i -> x.copy(articleId = it.articleId ?: "", title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", note = it.note ?: "") }),
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
     fail("Style/article fields are not normalized")
@@ -107,7 +130,34 @@ replace_once(p,
     fun saveArticle(x: ArticleDocument) = updateData { d ->
         val list = d.articles
         val i = list.indexOfFirst { it.id == x.id }
-        d.copy(articles = if (i >= 0) list.toMutableList().also { it[i] = x } else list + x)
+        val previous = list.getOrNull(i)
+        val changed = previous != null && (previous.html != x.html || previous.title != x.title)
+        val now = System.currentTimeMillis().toString()
+        val revisions = if (changed) {
+            (d.articleRevisions + ArticleRevision(
+                id = newId(), articleId = previous!!.id, title = previous.title,
+                html = previous.html, createdAt = now, note = "自动保存快照"
+            )).takeLast(30)
+        } else d.articleRevisions
+        d.copy(
+            articles = if (i >= 0) list.toMutableList().also { it[i] = x } else list + x,
+            articleRevisions = revisions
+        )
+    }
+    fun deleteArticle(id: String) = updateData { d ->
+        d.copy(articles = d.articles.filterNot { it.id == id }, articleRevisions = d.articleRevisions.filterNot { it.articleId == id })
+    }
+    fun restoreArticleRevision(revision: ArticleRevision) {
+        val current = data.articles.firstOrNull { it.id == revision.articleId } ?: return
+        saveArticle(current.copy(title = revision.title, html = revision.html, updatedAt = System.currentTimeMillis().toString()))
+    }
+    fun saveMediaAsset(asset: MediaAsset) = updateData { d ->
+        val i = d.mediaAssets.indexOfFirst { it.id == asset.id }
+        d.copy(mediaAssets = if (i >= 0) d.mediaAssets.toMutableList().also { it[i] = asset } else d.mediaAssets + asset)
+    }
+    fun deleteMediaAsset(id: String) = updateData { d ->
+        val used = d.articles.any { it.html.contains(id) }
+        if (used) d else d.copy(mediaAssets = d.mediaAssets.filterNot { it.id == id })
     }
 
     fun saveEmoji(x: EmojiItem) = updateData { d ->''', "AppViewModel style/article actions")
