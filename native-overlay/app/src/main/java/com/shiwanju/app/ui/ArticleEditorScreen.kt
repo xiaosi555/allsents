@@ -627,8 +627,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     }) { showImageAlt = false }
     if (showImage) EditorInputDialog("插入图片", "输入 https:// 开头的图片地址", dialogValue, { dialogValue = it }, {
         val url = dialogValue.trim()
-        if (url.startsWith("https://") || url.startsWith("http://")) insert("<img src='${url.replace("'", "%27")}' alt='图片' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
-        else vm.toast("请输入有效的 http/https 图片地址")
+        if (url.startsWith("https://")) insert("<img src='${url.replace("'", "%27")}' alt='图片' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
+        else vm.toast("请输入有效的 HTTPS 图片地址，避免混合内容被 WebView 拦截")
         showImage = false
     }) { showImage = false }
     if (showLink) EditorInputDialog(if (linkInsertType == "link") "插入链接" else if (linkInsertType == "video") "视频链接卡" else "音频链接卡", "输入 https:// 开头的网址", dialogValue, { dialogValue = it }, {
