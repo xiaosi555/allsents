@@ -102,12 +102,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         runJs("restoreSelection();insertHtml(${JSONObject.quote(fragment)});saveSelection();document.getElementById('editor').focus();")
     }
     fun saveDocument(showToast: Boolean = false) {
+        val savingId = articleId
+        val savingTitle = title.ifBlank { "未命名文章" }
+        val savingSubtitle = subtitle
+        val savingSummary = summary
+        val savingAuthor = author
+        val savingCategory = category
+        val savingTags = tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         val view = editor
         if (view == null || !webReady) {
             val now = System.currentTimeMillis().toString()
-            val old = vm.data.articles.firstOrNull { it.id == articleId }
-            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, html, old?.createdAt ?: now, now,
-                subtitle, summary, author, old?.coverAssetId ?: "", category, tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+            val old = vm.data.articles.firstOrNull { it.id == savingId }
+            vm.saveArticle(ArticleDocument(savingId, savingTitle, html, old?.createdAt ?: now, now,
+                savingSubtitle, savingSummary, savingAuthor, old?.coverAssetId ?: "", savingCategory, savingTags,
                 old?.status ?: "draft", html.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
@@ -117,9 +124,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
             html = current
             val now = System.currentTimeMillis().toString()
-            val old = vm.data.articles.firstOrNull { it.id == articleId }
-            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, current, old?.createdAt ?: now, now,
-                subtitle, summary, author, old?.coverAssetId ?: "", category, tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+            val old = vm.data.articles.firstOrNull { it.id == savingId }
+            vm.saveArticle(ArticleDocument(savingId, savingTitle, current, old?.createdAt ?: now, now,
+                savingSubtitle, savingSummary, savingAuthor, old?.coverAssetId ?: "", savingCategory, savingTags,
                 old?.status ?: "draft", current.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
@@ -516,7 +523,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             onDismissRequest = { showDeleteConfirm = null },
             title = { Text("删除文章？") },
             text = { Text("将删除「${target.title}」及其版本快照。此操作不可撤销。") },
-            confirmButton = { TextButton(onClick = { vm.deleteArticle(target.id); showDeleteConfirm = null; if (target.id == articleId) newArticle() }) { Text("删除", color = Color(0xFFCC5555)) } },
+            confirmButton = { TextButton(onClick = { vm.deleteArticle(target.id); showDeleteConfirm = null; if (target.id == articleId) { articleId = vm.newId(); title = "未命名文章"; html = "<p><br></p>"; subtitle = ""; summary = ""; author = ""; category = ""; tagsText = "" } }) { Text("删除", color = Color(0xFFCC5555)) } },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("取消") } }
         )
     }
