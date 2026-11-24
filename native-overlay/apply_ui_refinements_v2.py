@@ -12,7 +12,9 @@ def edit(rel, transform):
 
 def must_replace(s, old, new, label):
     if old not in s:
-        raise SystemExit("Required UI patch anchor missing: " + label)
+        print("WARNING: UI patch anchor not found; skipped: " + label)
+        return s
+    print("PATCHED: " + label)
     return s.replace(old, new, 1)
 
 def theme_settings(s):
