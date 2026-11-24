@@ -796,15 +796,13 @@ import androidx.compose.ui.draw.shadow'''),
     ('''        Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {''',
      '''        Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {'''),
     ('''    ListRow("账号", "已配置 ${d.accounts.size} 个账号") { go("accounts") }
-    ListRow("文案", "共 ${d.files.text.size} 个文案模块") { go("texts") }
-    ListRow("版式", "已保存 ${d.layout.size} 个版式") { go("layouts") }
-    ListRow("更多", "共 ${d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size} 个数据模块") { go("more") }
-    ListRow("备份", "导出 / 导入全部数据") { go("backup") }''',
-     '''    val moreCount = d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size
-    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }
-    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }
-    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }
-    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(AppColors.MyCard).padding(horizontal = 16.dp, vertical = 5.dp)) {
+        HomeGroupRow("文章", "共 ${d.files.text.size} 个文案模块") { go("texts") }
+        Spacer(Modifier.height(8.dp))
+        HomeGroupRow("版式", "已保存 ${d.layout.size} 个版式") { go("layouts") }
+        Spacer(Modifier.height(8.dp))
+        HomeGroupRow("更多", "共 ${d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size} 个数据模块") { go("more") }
+    }
     ListRow("备份", "完整数据导出与恢复导入") { go("backup") }'''),
     ('''    if (vm.data.layout.isEmpty()) Empty("暂无数据，请点击右上角新增")
     vm.data.layout.forEach { l -> ListRow(l.name, summarize(l.content)) { edit = l; isNew = false } }''',
@@ -3421,6 +3419,25 @@ if '"official" -> OfficialAccountPage' not in _my:
     if _route_anchor not in _my:
         raise SystemExit("Official account integration: MyScreen route anchor missing")
     _my = _my.replace(_route_anchor, '                "history_articles" -> HistoryArticlesPage { route = "home" }\n                "official" -> OfficialAccountPage { route = "home" }\n' + _route_anchor, 1)
+if "private fun HomeGroupRow(" not in _my:
+    _helper = """
+@Composable
+private fun HomeGroupRow(title: String, summary: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text(summary, color = Color(0xFF9CA3AF), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFB8B8B8), modifier = Modifier.size(18.dp))
+    }
+}
+
+"""
+    _my = _my.replace("private fun HomePage", _helper + "private fun HomePage", 1)
+
 _home_start = _my.find("private fun HomePage")
 _home_end = _my.find("// ---------------------------------------------------------------------- 账号", _home_start)
 if _home_start < 0 or _home_end < 0:
