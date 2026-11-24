@@ -146,8 +146,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == savingId }
             vm.saveArticle(ArticleDocument(savingId, savingTitle, current, old?.createdAt ?: now, now,
-                savingSubtitle, savingSummary, savingAuthor, old?.coverAssetId ?: "", savingCategory, savingTags,
-                old?.status ?: "draft", current.replace(Regex("<[^>]*>"), "").length))
+                savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
+                savingStatus, current.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
             onComplete?.invoke()
@@ -196,6 +196,22 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 insert("<p><img src='https://editor.local/assets/$id' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
             }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") }
         }
+    }
+    val imageReplacementPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            if (selectedImageHtml.isBlank()) error("请先选中要替换的图片")
+            val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+            if (!mime.startsWith("image/")) error("所选文件不是图片")
+            val ext = when (mime.lowercase(Locale.ROOT)) { "image/png" -> "png"; "image/webp" -> "webp"; "image/gif" -> "gif"; "image/heic" -> "heic"; else -> "jpg" }
+            var id = vm.newId()
+            while (vm.data.mediaAssets.any { it.id == id }) id = vm.newId()
+            val dir = File(context.filesDir, "article_media").apply { mkdirs() }
+            val target = File(dir, "$id.$ext")
+            context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
+            vm.saveMediaAsset(MediaAsset(id, target.name, mime, "article_media/${target.name}", target.length(), System.currentTimeMillis().toString()))
+            runJs("replaceSelectedImage('https://editor.local/assets/$id','${JSONObject.quote(target.name).removeSurrounding("\"")}')")
+            vm.toast("图片已替换")
+        }.onFailure { vm.toast("图片替换失败：${it.message ?: "未知错误"}") }
     }
     val articleJsonExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) runCatching {
@@ -559,6 +575,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function resetSelectedImageCrop(){if(!activeImage)return;activeImage.style.height='auto';activeImage.style.objectFit='contain';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageBorder(v){if(!activeImage)return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageAlt(v){if(!activeImage)return;activeImage.alt=v;commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function replaceSelectedImage(src,alt){if(!activeImage)return;activeImage.src=src;if(alt)activeImage.alt=alt;commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.imageSelected(activeImage.outerHTML);}
+                            function deleteSelectedImage(){if(!activeImage)return;const parent=activeImage.parentElement;activeImage.remove();if(parent&&!parent.textContent.trim()&&!parent.querySelector('img,table'))parent.remove();activeImage=null;NativeEditor.imageSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedParagraph(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|BLOCKQUOTE|LI|PRE)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
                             function styleSelectedParagraph(prop,value){const e=selectedParagraph();if(!e)return;e.style[prop]=value;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function replaceAllText(search,replacement){if(!search)return 0;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,count=0;while(node=walker.nextNode()){if(node.nodeValue.includes(search)){const parts=node.nodeValue.split(search);count+=parts.length-1;node.nodeValue=parts.join(replacement);}}if(count){commitHistory();NativeEditor.changed(root.innerHTML);}return count;}
@@ -669,6 +687,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("原始比例") { runJs("resetSelectedImageCrop()") }
                                 EditorTool("细边框") { runJs("setSelectedImageBorder('1px solid #dfe5e1')") }
                                 EditorTool("无边框") { runJs("setSelectedImageBorder('0')") }
+                                EditorTool("替换图片") { imageReplacementPicker.launch(arrayOf("image/*")) }
+                                EditorTool("删除图片") { runJs("deleteSelectedImage()"); selectedImageHtml = "" }
                                 EditorTool("替代文字") { dialogValue = ""; showImageAlt = true }
                             }
                         }
@@ -782,7 +802,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             onDismissRequest = { showDeleteConfirm = null },
             title = { Text("删除文章？") },
             text = { Text("将删除「${target.title}」及其版本快照。此操作不可撤销。") },
-            confirmButton = { TextButton(onClick = { vm.deleteArticle(target.id); showDeleteConfirm = null; if (target.id == articleId) { articleId = vm.newId(); title = "未命名文章"; html = "<p><br></p>"; subtitle = ""; summary = ""; author = ""; category = ""; tagsText = "" } }) { Text("删除", color = Color(0xFFCC5555)) } },
+            confirmButton = { TextButton(onClick = {
+                vm.deleteArticle(target.id)
+                showDeleteConfirm = null
+                if (target.id == articleId) {
+                    articleId = vm.newId(); title = "未命名文章"; html = "<p><br></p>"
+                    subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""
+                    articleStatus = "draft"; coverAssetId = ""; previewMode = false
+                    editor?.evaluateJavascript("setEditorHtml('<p><br></p>');setEditable(true);setPreviewInfo('','','','');", null)
+                    saved = false; pendingSave++
+                }
+            }) { Text("删除", color = Color(0xFFCC5555)) } },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("取消") } }
         )
     }
