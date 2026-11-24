@@ -112,13 +112,21 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_ui_refinements.py
 
-      - name: Validate UI refinement script syntax
+      - name: Refine settings UI
         if: steps.source.outputs.present == 'true'
-        run: python3 -m py_compile native-overlay/apply_ui_refinements_v2.py
+        run: python3 native-overlay/refine_settings.py
 
-      - name: Apply requested UI refinements
+      - name: Refine My page cards and history editor
         if: steps.source.outputs.present == 'true'
-        run: python3 native-overlay/apply_ui_refinements_v2.py
+        run: python3 native-overlay/refine_my_cards.py
+
+      - name: Refine layout toolbar and image scrolling
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/refine_layout_toolbar.py
+
+      - name: Refine text-only history selection
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/refine_history_selection.py
 
       - name: Generate launcher icons and splash screen
         if: steps.source.outputs.present == 'true'
