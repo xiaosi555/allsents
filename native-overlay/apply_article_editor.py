@@ -97,9 +97,10 @@ replace_once(p,
             articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "", subtitle = it.subtitle ?: "", summary = it.summary ?: "", author = it.author ?: "", coverAssetId = it.coverAssetId ?: "", category = it.category ?: "", tags = it.tags ?: emptyList(), status = it.status ?: "draft") },
             styleSeedApplied = raw.styleSeedApplied,
-            mediaAssets = fill(raw.mediaAssets, "media", { it.id }, { x, i -> x.copy(id = i) })
-                .map { it.copy(fileName = it.fileName ?: "", mimeType = it.mimeType ?: "", relativePath = it.relativePath ?: "", createdAt = it.createdAt ?: "") },
-            articleRevisions = fill(raw.articleRevisions, "revision", { it.id }, { x, i -> x.copy(articleId = it.articleId ?: "", title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", note = it.note ?: "") }),
+            mediaAssets = fill<MediaAsset>(raw.mediaAssets, "media", { asset: MediaAsset -> asset.id }, { asset: MediaAsset, i -> asset.copy(id = i) })
+                .map { asset: MediaAsset -> asset.copy(fileName = asset.fileName ?: "", mimeType = asset.mimeType ?: "", relativePath = asset.relativePath ?: "", createdAt = asset.createdAt ?: "") },
+            articleRevisions = fill<ArticleRevision>(raw.articleRevisions, "revision", { revision: ArticleRevision -> revision.id }, { revision: ArticleRevision, i -> revision.copy(id = i) })
+                .map { revision: ArticleRevision -> revision.copy(articleId = revision.articleId ?: "", title = revision.title ?: "", html = revision.html ?: "", createdAt = revision.createdAt ?: "", note = revision.note ?: "") },
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
     fail("Style/article fields are not normalized")
