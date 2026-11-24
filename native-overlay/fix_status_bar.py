@@ -10,17 +10,17 @@ if "import androidx.core.view.WindowCompat" not in s:
 if "import com.shiwanju.app.ui.AppColors" not in s:
     s = s.replace("import com.shiwanju.app.ui.AppViewModel\n", "import com.shiwanju.app.ui.AppViewModel\nimport com.shiwanju.app.ui.AppColors\n")
 
-anchor = '''            ShiWanJuTheme(dark = vm.screen == "layout") {
-                if (showSplash.value) {'''
-replacement = '''            ShiWanJuTheme(dark = vm.screen == "layout") {
-                // Edge-to-edge status bar icons must contrast with the active page surface.
+anchor = '            ShiWanJuTheme(dark = vm.screen == "layout") {'
+replacement = anchor + '''
+                // Keep status-bar icons readable against the active page background.
                 SideEffect {
                     WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars =
                         !AppColors.IsDark
-                }
-                if (showSplash.value) {'''
-if anchor not in s:
-    raise SystemExit("MainActivity theme/status-bar insertion anchor not found")
-s = s.replace(anchor, replacement, 1)
+                }'''
+if "isAppearanceLightStatusBars" not in s:
+    if anchor not in s:
+        raise SystemExit("MainActivity theme anchor not found")
+    s = s.replace(anchor, replacement, 1)
+
 p.write_text(s, encoding="utf-8")
-print("Status-bar icon contrast now follows the active app theme.")
+print("Status-bar icon contrast patch applied.")
