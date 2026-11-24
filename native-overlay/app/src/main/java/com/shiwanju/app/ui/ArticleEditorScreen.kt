@@ -865,19 +865,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
-                    Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板") })
-                        EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
-                    }
-                    if (filteredTemplates.isEmpty()) Text("暂无匹配模板，可将当前文章保存为整篇模板", color = Color.Gray, fontSize = 11.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        filteredTemplates.forEach { template ->
-                            EditorTool("预览·${template.name}") { templatePreview = template }
-                            EditorTool(if (template.isFavorite) "★" else "☆") { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) }
-                            EditorTool("应用·${template.name}") { fullTemplateConfirm = template }
-                        }
-                    }
                     EditorPanel.STYLE -> {
                         Text("我的样式 · 选择分类后插入已保存模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         if (categories.isEmpty()) Text("暂无样式分类，请在「我的 - 样式」中创建", color = Color.Gray, fontSize = 11.sp)
@@ -907,6 +894,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("结尾段落") { insert("<section style='margin:28px 0 12px;padding-top:16px;border-top:1px solid #e4e8e5'><p style='margin:0;color:#666;line-height:1.9'>愿你在平凡的日子里，也能找到值得珍藏的片刻。</p></section>") }
 
                         }
+                    Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板") })
+                        EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
+                    }
+                    if (filteredTemplates.isEmpty()) Text("暂无匹配模板，可将当前文章保存为整篇模板", color = Color.Gray, fontSize = 11.sp)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        filteredTemplates.forEach { template ->
+                            EditorTool("预览·${template.name}") { templatePreview = template }
+                            EditorTool(if (template.isFavorite) "★" else "☆") { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) }
+                            EditorTool("应用·${template.name}") { fullTemplateConfirm = template }
+                        }
+                    }
                     }
                 }
             }
