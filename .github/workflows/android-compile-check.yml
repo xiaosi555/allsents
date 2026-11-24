@@ -1,8 +1,6 @@
 name: Android Kotlin Compile Check
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -185,7 +183,7 @@ jobs:
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
           sed -i 's/vm.setTextViewMode(/vm.updateTextViewMode(/g' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/MyScreens.kt"
 
-      - name: Build debug APK
+      - name: Compile Kotlin sources only
         if: steps.source.outputs.present == 'true'
         run: gradle --no-daemon -p source/ShiWanJu-Android :app:compileDebugKotlin
 
