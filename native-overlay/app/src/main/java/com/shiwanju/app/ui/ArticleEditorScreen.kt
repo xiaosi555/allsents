@@ -393,7 +393,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 listOf("全部", "草稿", "已完成").forEach { filter ->
                     EditorTool(filter, articleFilter == filter) { articleFilter = filter }
                 }
-                Text("\${filteredArticles.size} 篇", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterVertically))
+                Text("${filteredArticles.size} 篇", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterVertically))
             }
             if (filteredArticles.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
