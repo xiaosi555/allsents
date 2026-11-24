@@ -37,7 +37,7 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit) {
 @Composable
 fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var title by remember { mutableStateOf("未命名文章") }
-    var articleId by remember { mutableStateOf(vm.newId()) }
+    val articleId = remember { vm.newId() }
     var html by remember { mutableStateOf("<p><br></p>") }
     var editor by remember { mutableStateOf<WebView?>(null) }
     var activeCategory by remember { mutableStateOf("") }
@@ -62,7 +62,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
     fun saveDocument() {
         editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
-            val current = runCatching { org.json.JSONTokener(raw ?: "\"\\\"\\\"").nextValue() as? String }.getOrNull() ?: html
+            val current = runCatching { org.json.JSONTokener(raw ?: "\"\\\"").nextValue() as? String }.getOrNull() ?: html
             html = current
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == articleId }
