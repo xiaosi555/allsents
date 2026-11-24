@@ -108,6 +108,15 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_article_editor.py
 
+      - name: Upload article editor patch diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: article-editor-patch-diagnostic
+          path: article_editor_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Fix status bar icon contrast
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_status_bar.py
