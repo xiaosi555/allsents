@@ -158,10 +158,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 val target = File(dir, "$id.$ext")
                 context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } }
                     ?: error("无法读取图片")
-                val relative = "article_media/\${target.name}"
+                val relative = "article_media/${target.name}"
                 vm.saveMediaAsset(MediaAsset(id, target.name, mime, relative, target.length(), System.currentTimeMillis().toString()))
-                insert("<p><img src='https://editor.local/assets/$id' alt='\${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
-            }.onFailure { vm.toast("图片导入失败：\${it.message ?: "未知错误"}") }
+                insert("<p><img src='https://editor.local/assets/$id' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
+            }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") }
         }
     }
     val htmlImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -169,17 +169,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
             val safe = sanitizeArticleHtml(raw)
             html = safe
-            editor?.evaluateJavascript("setEditorHtml(\${JSONObject.quote(safe)});", null)
+            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(safe)});", null)
             pendingSave++
             vm.toast("HTML 已导入")
-        }.onFailure { vm.toast("HTML 导入失败：\${it.message ?: "无法读取文件"}") }
+        }.onFailure { vm.toast("HTML 导入失败：${it.message ?: "无法读取文件"}") }
     }
     val htmlExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/html")) { uri ->
         if (uri != null) runCatching {
             context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportHtml) }
                 ?: error("无法写入文件")
             vm.toast("HTML 已导出")
-        }.onFailure { vm.toast("HTML 导出失败：\${it.message ?: "无法写入文件"}") }
+        }.onFailure { vm.toast("HTML 导出失败：${it.message ?: "无法写入文件"}") }
     }
     fun copyRichHtml() {
         val view = editor
