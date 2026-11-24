@@ -83,7 +83,8 @@ data class ArticleRevision(
     val coverAssetId: String = "",
     val category: String = "",
     val tags: List<String> = emptyList(),
-    val status: String = "draft"
+    val status: String = "draft",
+    val isFavorite: Boolean = false
 )''', "style and article data classes")
 replace_once(p,
 '''    val emoji: List<EmojiItem> = emptyList(),
