@@ -407,7 +407,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             if (previewMode) {
                 Row(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("阅读预览", color = ink, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                    EditorTool("返回编辑") { previewMode = false; editor?.evaluateJavascript("setEditable(true);", null) }
+                    EditorTool("返回编辑") { previewMode = false; editor?.evaluateJavascript("setEditable(true);setPreviewInfo('','','','');", null) }
                 }
             } else {
             Row(
@@ -419,7 +419,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 EditorTool("重做") { runJs("redoEditor()") }
                 EditorTool("预览", previewMode) {
                     previewMode = !previewMode
-                    editor?.evaluateJavascript("setEditable(${!previewMode});", null)
+                    editor?.evaluateJavascript("setEditable(${!previewMode});setPreviewInfo(${JSONObject.quote(if (previewMode) title else "")},${JSONObject.quote(if (previewMode) subtitle else "")},${JSONObject.quote(if (previewMode) author else "")},${JSONObject.quote(if (previewMode) summary else "")});", null)
                 }
                 EditorTool("全选") { runJs("document.getElementById('editor').focus();document.execCommand('selectAll');saveSelection();") }
                 EditorTool("复制富文本") { copyRichHtml() }
@@ -531,6 +531,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
                             <style>
                             *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#333;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+                            #previewHeader{display:none;padding:26px 18px 0;color:#333}#previewHeader h1{font-size:25px;line-height:1.45;margin:0 0 10px;font-weight:700}#previewHeader .sub{font-size:16px;color:#666;margin:0 0 10px;line-height:1.6}#previewHeader .meta{font-size:12px;color:#999;margin:0 0 14px}
                             #editor{min-height:100vh;padding:24px 18px 100px;outline:none;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
                             #editor:empty:before{content:"从这里开始写文章…";color:#b8bdb9}
                             #editor h1{font-size:26px;line-height:1.4;margin:24px 0 16px}#editor h2{font-size:21px;line-height:1.5;margin:22px 0 14px}
@@ -541,7 +542,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor a{color:#16865a;text-decoration:underline}#editor hr{border:0;border-top:1px solid #e1e5e2;margin:22px 0}
                             #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}
                             #editor img.selected-image{outline:2px solid #159765;outline-offset:2px}
-                            </style></head><body><div id="editor" contenteditable="true" spellcheck="true"></div>
+                            </style></head><body><header id="previewHeader"></header><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
                             const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;let activeImage=null;
                             function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshots.push(value);if(snapshots.length>60)snapshots.shift();historyIndex=snapshots.length-1;}
@@ -550,6 +551,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function redoEditor(){if(historyIndex>=snapshots.length-1)return;historyIndex++;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
                             function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';snapshots=[root.innerHTML];historyIndex=0;activeImage=null;NativeEditor.imageSelected('');NativeEditor.blockSelected('');saveSelection();}
                             function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block,.selected-image').forEach(e=>e.classList.remove('selected-block','selected-image'));activeImage=null;NativeEditor.blockSelected('');NativeEditor.imageSelected('');}}
+                            function setPreviewInfo(t,sub,author,summary){const h=document.getElementById('previewHeader');h.innerHTML='';if(!t&&!sub&&!author&&!summary){h.style.display='none';return;}h.style.display='block';if(t){const e=document.createElement('h1');e.textContent=t;h.appendChild(e);}if(sub){const e=document.createElement('p');e.className='sub';e.textContent=sub;h.appendChild(e);}const meta=[author,summary].filter(Boolean).join(' · ');if(meta){const e=document.createElement('p');e.className='meta';e.textContent=meta;h.appendChild(e);}}
                             function setSelectedImageWidth(v){if(!activeImage)return;activeImage.style.width=v;activeImage.style.maxWidth='100%';activeImage.style.height='auto';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function rotateSelectedImage(){if(!activeImage)return;const n=(parseInt(activeImage.dataset.rotation||'0')+90)%360;activeImage.dataset.rotation=n;activeImage.style.transform='rotate('+n+'deg)';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageRadius(v){if(!activeImage)return;activeImage.style.borderRadius=v;commitHistory();NativeEditor.changed(root.innerHTML);}
