@@ -44,10 +44,11 @@ import com.shiwanju.app.data.StyleModule
 import org.json.JSONObject
 import kotlinx.coroutines.delay
 
-private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit) {
+private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
     @JavascriptInterface fun blockSelected(value: String) { main.post { onBlock(value) } }
+    @JavascriptInterface fun imageSelected(value: String) { main.post { onImage(value) } }
 }
 
 private enum class EditorPanel(val label: String) {
@@ -88,6 +89,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportHtml by remember { mutableStateOf("") }
     var pendingExportMarkdown by remember { mutableStateOf("") }
     var selectedBlockHtml by remember { mutableStateOf("") }
+    var selectedImageHtml by remember { mutableStateOf("") }
+    var showImageAlt by remember { mutableStateOf(false) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val filteredArticles = vm.data.articles.filter { searchText.isBlank() || it.title.contains(searchText, true) || it.summary.contains(searchText, true) || it.tags.any { tag -> tag.contains(searchText, true) } }.sortedByDescending { it.updatedAt }
@@ -391,7 +394,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         setBackgroundColor(android.graphics.Color.WHITE)
                         addJavascriptInterface(ArticleEditorBridge(
                             { value -> html = value; saved = false; pendingSave++ },
-                            { value -> selectedBlockHtml = value }
+                            { value -> selectedBlockHtml = value },
+                            { value -> selectedImageHtml = value }
                         ), "NativeEditor")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
@@ -423,15 +427,20 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor table{width:100%;border-collapse:collapse;table-layout:fixed}#editor td,#editor th{border:1px solid #dfe4e0;padding:8px;min-width:24px;vertical-align:top}
                             #editor a{color:#16865a;text-decoration:underline}#editor hr{border:0;border-top:1px solid #e1e5e2;margin:22px 0}
                             #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}
+                            #editor img.selected-image{outline:2px solid #159765;outline-offset:2px}
                             </style></head><body><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
-                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;
+                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;let activeImage=null;
                             function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshots.push(value);if(snapshots.length>60)snapshots.shift();historyIndex=snapshots.length-1;}
                             function restoreHistoryCaret(){root.focus();const r=document.createRange();r.selectNodeContents(root);r.collapse(false);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);saveSelection();}
                             function undoEditor(){if(historyIndex<=0)return;historyIndex--;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
                             function redoEditor(){if(historyIndex>=snapshots.length-1)return;historyIndex++;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
                             function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';snapshots=[root.innerHTML];historyIndex=0;saveSelection();}
-                            function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block').forEach(e=>e.classList.remove('selected-block'));}}
+                            function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block,.selected-image').forEach(e=>e.classList.remove('selected-block','selected-image'));}}
+                            function setSelectedImageWidth(v){if(!activeImage)return;activeImage.style.width=v;activeImage.style.maxWidth='100%';activeImage.style.height='auto';commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function rotateSelectedImage(){if(!activeImage)return;const n=(parseInt(activeImage.dataset.rotation||'0')+90)%360;activeImage.dataset.rotation=n;activeImage.style.transform='rotate('+n+'deg)';commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function setSelectedImageRadius(v){if(!activeImage)return;activeImage.style.borderRadius=v;commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function setSelectedImageAlt(v){if(!activeImage)return;activeImage.alt=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -441,7 +450,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function addTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{const c=r.insertCell(-1);c.innerHTML='<br>';c.style.border='1px solid #ddd';c.style.padding='8px';});commitHistory();NativeEditor.changed(root.innerHTML);}
                             function removeTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{if(r.cells.length>1)r.deleteCell(r.cells.length-1);});commitHistory();NativeEditor.changed(root.innerHTML);}
-                            root.addEventListener('click',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(e.outerHTML);}});
+                            root.addEventListener('click',function(ev){if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(e.outerHTML);}});
                             root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(!e||e===root||!e.classList.contains('selected-block')){ev.preventDefault();return;}dragSource=e;ev.dataTransfer.effectAllowed='move';});
                             root.addEventListener('dragover',function(ev){if(dragSource)ev.preventDefault();});
                             root.addEventListener('drop',function(ev){if(!dragSource)return;ev.preventDefault();let target=ev.target;while(target&&target!==root&&target.parentElement!==root)target=target.parentElement;if(target&&target!==root&&target!==dragSource){const rect=target.getBoundingClientRect();if(ev.clientY<rect.top+rect.height/2)target.parentNode.insertBefore(dragSource,target);else target.parentNode.insertBefore(dragSource,target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(dragSource.outerHTML);}dragSource=null;});
@@ -509,6 +518,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("双图并排") { insert("<table style='width:100%;table-layout:fixed;border-collapse:collapse'><tr><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+1' style='width:100%'></td><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+2' style='width:100%'></td></tr></table>") }
                             EditorTool("图片说明") { insert("<p style='text-align:center;color:#999;font-size:12px;margin-top:6px'>在此输入图片说明</p>") }
                             EditorTool("图片居中") { command("justifyCenter") }
+                        }
+                        if (selectedImageHtml.isNotBlank()) {
+                            Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
+                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                EditorTool("宽度100%") { runJs("setSelectedImageWidth('100%')") }
+                                EditorTool("宽度75%") { runJs("setSelectedImageWidth('75%')") }
+                                EditorTool("宽度50%") { runJs("setSelectedImageWidth('50%')") }
+                                EditorTool("圆角") { runJs("setSelectedImageRadius('10px')") }
+                                EditorTool("直角") { runJs("setSelectedImageRadius('0')") }
+                                EditorTool("旋转90°") { runJs("rotateSelectedImage()") }
+                                EditorTool("替代文字") { dialogValue = ""; showImageAlt = true }
+                            }
                         }
                         if (vm.data.mediaAssets.isNotEmpty()) {
                             Text("本地图片库 · ${vm.data.mediaAssets.size} 张", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
@@ -585,6 +606,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    if (showImageAlt) EditorInputDialog("图片替代文字", "描述图片内容", dialogValue, { dialogValue = it }, {
+        runJs("setSelectedImageAlt(${JSONObject.quote(dialogValue)});")
+        showImageAlt = false
+    }) { showImageAlt = false }
     if (showImage) EditorInputDialog("插入图片", "输入 https:// 开头的图片地址", dialogValue, { dialogValue = it }, {
         val url = dialogValue.trim()
         if (url.startsWith("https://") || url.startsWith("http://")) insert("<img src='${url.replace("'", "%27")}' alt='图片' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
