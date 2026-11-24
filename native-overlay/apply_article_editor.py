@@ -402,6 +402,8 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "function setMultiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "function undoEditor"),
     (UI / "ArticleEditorScreen.kt", "function cropSelectedImage"),
+    (UI / "ArticleEditorScreen.kt", "fun cropSelectedImagePixels"),
+    (UI / "ArticleEditorScreen.kt", "private fun cropArticleImageFile"),
     (UI / "ArticleEditorScreen.kt", "function replaceSelectedImage"),
     (UI / "ArticleEditorScreen.kt", "function deleteSelectedImage"),
     (UI / "ArticleEditorScreen.kt", "function moveSelectedImageInGroup"),
