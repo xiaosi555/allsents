@@ -1877,14 +1877,14 @@ for line in home_lines:
     elif 'ListRow("账号",' in line:
         new_home_lines.append('    ListRow("账号", "已配置 " + d.accounts.size + " 个账号") { go("accounts") }')
         seen["account"] += 1
-    elif 'ListRow("文案",' in line:
-        new_home_lines.append('    ListRow("文案", "共 " + d.files.text.size + " 个文案模块") { go("texts") }')
+    elif 'HomeGroupRow("文章",' in line or 'ListRow("文案",' in line:
+        new_home_lines.append(line)
         seen["text"] += 1
-    elif 'ListRow("版式",' in line:
-        new_home_lines.append('    ListRow("版式", "已保存 " + d.layout.size + " 个版式") { go("layouts") }')
+    elif 'HomeGroupRow("版式",' in line or 'ListRow("版式",' in line:
+        new_home_lines.append(line)
         seen["layout"] += 1
-    elif 'ListRow("更多",' in line:
-        new_home_lines.append('    ListRow("更多", "共 " + moreCount + " 个数据模块") { go("more") }')
+    elif 'HomeGroupRow("更多",' in line or 'ListRow("更多",' in line:
+        new_home_lines.append(line)
         seen["more"] += 1
     else:
         new_home_lines.append(line)
