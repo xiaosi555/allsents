@@ -2,8 +2,14 @@ package com.shiwanju.app.ui
 
 import android.os.Handler
 import android.os.Looper
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -28,7 +34,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalContext
+import java.io.File
+import java.util.Locale
 import com.shiwanju.app.data.ArticleDocument
+import com.shiwanju.app.data.MediaAsset
 import org.json.JSONObject
 import kotlinx.coroutines.delay
 
@@ -43,6 +53,7 @@ private enum class EditorPanel(val label: String) {
 
 @Composable
 fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
+    val context = LocalContext.current
     var articleId by remember { mutableStateOf(vm.newId()) }
     var title by remember { mutableStateOf("未命名文章") }
     var html by remember { mutableStateOf("<p><br></p>") }
@@ -57,6 +68,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var saved by remember { mutableStateOf(false) }
     var previewMode by remember { mutableStateOf(false) }
     var pendingSave by remember { mutableIntStateOf(0) }
+    var searchText by remember { mutableStateOf("") }
+    var showDeleteConfirm by remember { mutableStateOf<ArticleDocument?>(null) }
+    var showRevisionList by remember { mutableStateOf(false) }
+    var showArticleInfo by remember { mutableStateOf(false) }
+    var subtitle by remember { mutableStateOf("") }
+    var summary by remember { mutableStateOf("") }
+    var author by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var tagsText by remember { mutableStateOf("") }
+    var pendingExportHtml by remember { mutableStateOf("") }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
@@ -81,7 +102,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (view == null || !webReady) {
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == articleId }
-            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, html, old?.createdAt ?: now, now))
+            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, html, old?.createdAt ?: now, now,
+                subtitle, summary, author, old?.coverAssetId ?: "", category, tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                old?.status ?: "draft", html.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
             return
@@ -91,7 +114,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             html = current
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == articleId }
-            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, current, old?.createdAt ?: now, now))
+            vm.saveArticle(ArticleDocument(articleId, title.ifBlank { "未命名文章" }, current, old?.createdAt ?: now, now,
+                subtitle, summary, author, old?.coverAssetId ?: "", category, tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                old?.status ?: "draft", current.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
         }
@@ -100,6 +125,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         saveDocument()
         articleId = vm.newId()
         title = "未命名文章"
+        subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""
         html = "<p><br></p>"
         previewMode = false
         showArticleList = false
@@ -110,6 +136,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         articleId = article.id
         title = article.title
         html = article.html
+        subtitle = article.subtitle
+        summary = article.summary
+        author = article.author
+        category = article.category
+        tagsText = article.tags.joinToString(", ")
         showArticleList = false
         previewMode = false
         if (webReady) editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(article.html)});setEditable(true);", null)
