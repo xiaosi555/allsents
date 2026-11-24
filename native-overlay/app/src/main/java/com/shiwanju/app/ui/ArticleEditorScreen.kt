@@ -5,6 +5,7 @@ import android.os.Looper
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -89,6 +90,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var coverAssetId by remember { mutableStateOf("") }
     var pendingExportHtml by remember { mutableStateOf("") }
     var pendingExportMarkdown by remember { mutableStateOf("") }
+    var pendingExportArticleJson by remember { mutableStateOf("") }
     var selectedBlockHtml by remember { mutableStateOf("") }
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
@@ -190,6 +192,57 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 insert("<p><img src='https://editor.local/assets/$id' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
             }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") }
         }
+    }
+    val articleJsonExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportArticleJson) }
+                ?: error("无法写入文件")
+            vm.toast("文章包及引用的本地图片已导出")
+        }.onFailure { vm.toast("文章包导出失败：${it.message ?: "无法写入文件"}") }
+    }
+    val articleJsonImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+            val pack = JSONObject(raw)
+            if (pack.optString("format") != "shiwanju.article.v1") error("不是拾万句文章包")
+            val now = System.currentTimeMillis().toString()
+            val idMap = mutableMapOf<String, String>()
+            val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
+            val mediaDir = File(context.filesDir, "article_media").apply { mkdirs() }
+            for (index in 0 until assets.length()) {
+                val item = assets.optJSONObject(index) ?: continue
+                val oldId = item.optString("id")
+                val newId = if (vm.data.mediaAssets.any { it.id == oldId }) vm.newId() + index else oldId
+                val fileName = item.optString("fileName", "image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
+                val mime = item.optString("mimeType", "image/jpeg")
+                val ext = fileName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").ifBlank { "jpg" }
+                val target = File(mediaDir, "$newId.$ext")
+                val bytes = Base64.decode(item.optString("base64"), Base64.DEFAULT)
+                target.writeBytes(bytes)
+                vm.saveMediaAsset(MediaAsset(newId, fileName, mime, "article_media/${target.name}", target.length(), now))
+                idMap[oldId] = newId
+            }
+            var importedHtml = sanitizeArticleHtml(pack.optString("html"))
+            idMap.forEach { (oldId, newId) -> importedHtml = importedHtml.replace("/assets/$oldId", "/assets/$newId") }
+            val tagsJson = pack.optJSONArray("tags") ?: org.json.JSONArray()
+            val importedTags = (0 until tagsJson.length()).mapNotNull { tagsJson.optString(it).takeIf { tag -> tag.isNotBlank() } }
+            val imported = ArticleDocument(
+                id = vm.newId(), title = pack.optString("title", "导入文章"), html = importedHtml,
+                createdAt = now, updatedAt = now, subtitle = pack.optString("subtitle"),
+                summary = pack.optString("summary"), author = pack.optString("author"),
+                category = pack.optString("category"), tags = importedTags,
+                status = pack.optString("status", "draft"), wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length
+            )
+            vm.saveArticle(imported)
+            articleId = imported.id; title = imported.title; html = imported.html
+            subtitle = imported.subtitle; summary = imported.summary; author = imported.author
+            category = imported.category; tagsText = imported.tags.joinToString(", ")
+            articleStatus = imported.status; coverAssetId = ""
+            previewMode = false; showArticleList = false
+            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(imported.html)});setEditable(true);", null)
+            pendingSave++
+            vm.toast("文章包已导入")
+        }.onFailure { vm.toast("文章包导入失败：${it.message ?: "文件格式错误"}") }
     }
     val htmlImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
