@@ -105,6 +105,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportHtml by remember { mutableStateOf("") }
     var pendingExportMarkdown by remember { mutableStateOf("") }
     var pendingExportArticleJson by remember { mutableStateOf("") }
+    var pendingExportStyleJson by remember { mutableStateOf("") }
     var pendingImageGroupCount by remember { mutableIntStateOf(2) }
     var selectedBlockHtml by remember { mutableStateOf("") }
     var multiSelectMode by remember { mutableStateOf(false) }
@@ -242,6 +243,41 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             runJs("replaceSelectedImage('https://editor.local/assets/$id',${JSONObject.quote(target.name)})")
             vm.toast("图片已替换")
         }.onFailure { vm.toast("图片替换失败：${it.message ?: "未知错误"}") }
+    }
+    val stylePackageExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportStyleJson) } ?: error("无法写入文件")
+            vm.toast("模板包已导出")
+        }.onFailure { vm.toast("模板包导出失败：${it.message ?: "无法写入文件"}") }
+    }
+    val stylePackageImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+            if (raw.length > 20 * 1024 * 1024) error("模板包超过 20 MB")
+            val pack = JSONObject(raw)
+            if (pack.optString("format") != "shiwanju.styles.v1") error("不是拾万句模板包")
+            val rows = pack.optJSONArray("styles") ?: error("模板列表缺失")
+            if (rows.length() > 100) error("单个模板包最多导入 100 个样式")
+            val importedStyles = mutableListOf<StyleModule>()
+            for (index in 0 until rows.length()) {
+                val row = rows.optJSONObject(index) ?: continue
+                val htmlValue = row.optString("html")
+                if (htmlValue.length > 2 * 1024 * 1024) error("第 ${index + 1} 个模板内容过大")
+                val tags = row.optJSONArray("tags") ?: org.json.JSONArray()
+                val safeTags = (0 until minOf(tags.length(), 30)).mapNotNull { tags.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
+                val type = row.optString("type").takeIf { it in listOf("full", "component", "combination") } ?: "component"
+                importedStyles += StyleModule(
+                    id = vm.newId(), name = row.optString("name", "导入样式").take(100).ifBlank { "导入样式" },
+                    category = row.optString("category", "导入模板").take(80).ifBlank { "导入模板" },
+                    html = sanitizeArticleHtml(htmlValue), updatedAt = System.currentTimeMillis().toString(),
+                    isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = row.optString("thumbnail").take(200),
+                    tags = safeTags
+                )
+            }
+            if (importedStyles.isEmpty()) error("模板包中没有可导入的样式")
+            importedStyles.forEach { vm.saveStyle(it) }
+            vm.toast("已导入 ${importedStyles.size} 个样式模板")
+        }.onFailure { vm.toast("模板包导入失败：${it.message ?: "文件格式错误"}") }
     }
     val articleJsonExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) runCatching {
@@ -894,6 +930,21 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("结尾段落") { insert("<section style='margin:28px 0 12px;padding-top:16px;border-top:1px solid #e4e8e5'><p style='margin:0;color:#666;line-height:1.9'>愿你在平凡的日子里，也能找到值得珍藏的片刻。</p></section>") }
 
                         }
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        EditorTool("导入模板包") { stylePackageImporter.launch(arrayOf("application/json", "text/json")) }
+                        EditorTool("导出模板包") {
+                            val pack = JSONObject().put("format", "shiwanju.styles.v1")
+                            val rows = org.json.JSONArray()
+                            vm.data.styles.forEach { style ->
+                                rows.put(JSONObject().put("id", style.id).put("name", style.name).put("category", style.category)
+                                    .put("html", style.html).put("isFavorite", style.isFavorite).put("type", style.type)
+                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)))
+                            }
+                            pack.put("styles", rows)
+                            pendingExportStyleJson = pack.toString(2)
+                            stylePackageExporter.launch("拾万句-样式模板包.json")
+                        }
+                    }
                     Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板") })
