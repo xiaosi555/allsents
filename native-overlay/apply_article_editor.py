@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import re
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app"
 UI = JAVA / "ui"
 DATA = JAVA / "data"
+
+shutil.copy2(ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt",
+             UI / "ArticleEditorScreen.kt")
 
 def replace_once(path, old, new, label):
     s = path.read_text(encoding="utf-8")
