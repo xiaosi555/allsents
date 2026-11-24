@@ -206,7 +206,7 @@ p = JAVA / "MainActivity.kt"
 s = p.read_text(encoding="utf-8")
 if "import com.shiwanju.app.ui.ArticleEditorScreen" not in s:
     s = s.replace("import com.shiwanju.app.ui.LayoutScreen",
-                  "import com.shiwanju.app.ui.LayoutScreen\\nimport com.shiwanju.app.ui.ArticleEditorScreen", 1)
+                  "import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.ArticleEditorScreen", 1)
 
 route = '''when (vm.screen) {
                           "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
@@ -214,13 +214,13 @@ route = '''when (vm.screen) {
                           else -> MyScreen(vm)
                       }'''
 if '"article_editor" -> ArticleEditorScreen(vm)' not in s:
-    pattern = re.compile(r'if\\s*\\(vm\\.screen\\s*==\\s*"layout"\\)\\s*LayoutScreen\\(vm\\)\\s*else\\s*MyScreen\\(vm\\)')
+    pattern = re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)')
     match = pattern.search(s)
     if match:
         s = s[:match.start()] + route + s[match.end():]
     else:
         # Also support a previous when-expression that omitted the editor branch.
-        pattern = re.compile(r'when\\s*\\(vm\\.screen\\)\\s*\\{[^}]*"layout"\\s*->\\s*LayoutScreen\\(vm\\)[^}]*else\\s*->\\s*MyScreen\\(vm\\)[^}]*\\}', re.S)
+        pattern = re.compile(r'when\s*\(vm\.screen\)\s*\{[^}]*"layout"\s*->\s*LayoutScreen\(vm\)[^}]*else\s*->\s*MyScreen\(vm\)[^}]*\}', re.S)
         match = pattern.search(s)
         if match:
             s = s[:match.start()] + route + s[match.end():]
