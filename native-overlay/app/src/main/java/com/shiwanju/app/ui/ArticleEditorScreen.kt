@@ -325,8 +325,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     .padding(horizontal = 9.dp, vertical = 7.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                EditorTool("撤销") { runJs("restoreSelection();document.execCommand('undo');saveSelection();") }
-                EditorTool("重做") { runJs("restoreSelection();document.execCommand('redo');saveSelection();") }
+                EditorTool("撤销") { runJs("undoEditor()") }
+                EditorTool("重做") { runJs("redoEditor()") }
                 EditorTool("预览", previewMode) {
                     previewMode = !previewMode
                     editor?.evaluateJavascript("setEditable(${!previewMode});", null)
@@ -425,25 +425,33 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}
                             </style></head><body><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
-                            const root=document.getElementById('editor');let savedRange=null;let timer=null;
-                            function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';saveSelection();}
+                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;
+                            function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshots.push(value);if(snapshots.length>60)snapshots.shift();historyIndex=snapshots.length-1;}
+                            function restoreHistoryCaret(){root.focus();const r=document.createRange();r.selectNodeContents(root);r.collapse(false);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);saveSelection();}
+                            function undoEditor(){if(historyIndex<=0)return;historyIndex--;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
+                            function redoEditor(){if(historyIndex>=snapshots.length-1)return;historyIndex++;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
+                            function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';snapshots=[root.innerHTML];historyIndex=0;saveSelection();}
                             function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block').forEach(e=>e.classList.remove('selected-block'));}}
                             function selectedBlock(){return root.querySelector('.selected-block');}
-                            function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');NativeEditor.changed(root.innerHTML);}
-                            function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);NativeEditor.changed(root.innerHTML);}
+                            function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedTable(){const e=selectedBlock();return e?(e.tagName==='TABLE'?e:e.querySelector('table')):null;}
-                            function addTableRow(){const t=selectedTable();if(!t||!t.rows.length)return;const r=t.rows[t.rows.length-1];const n=r.cloneNode(true);Array.from(n.cells).forEach(c=>c.innerHTML='<br>');r.parentNode.insertBefore(n,r.nextSibling);NativeEditor.changed(root.innerHTML);}
-                            function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);NativeEditor.changed(root.innerHTML);}
-                            function addTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{const c=r.insertCell(-1);c.innerHTML='<br>';c.style.border='1px solid #ddd';c.style.padding='8px';});NativeEditor.changed(root.innerHTML);}
-                            function removeTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{if(r.cells.length>1)r.deleteCell(r.cells.length-1);});NativeEditor.changed(root.innerHTML);}
-                            root.addEventListener('click',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>x.classList.remove('selected-block'));e.classList.add('selected-block');NativeEditor.blockSelected(e.outerHTML);}});
+                            function addTableRow(){const t=selectedTable();if(!t||!t.rows.length)return;const r=t.rows[t.rows.length-1];const n=r.cloneNode(true);Array.from(n.cells).forEach(c=>c.innerHTML='<br>');r.parentNode.insertBefore(n,r.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function addTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{const c=r.insertCell(-1);c.innerHTML='<br>';c.style.border='1px solid #ddd';c.style.padding='8px';});commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function removeTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{if(r.cells.length>1)r.deleteCell(r.cells.length-1);});commitHistory();NativeEditor.changed(root.innerHTML);}
+                            root.addEventListener('click',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(e.outerHTML);}});
+                            root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(!e||e===root||!e.classList.contains('selected-block')){ev.preventDefault();return;}dragSource=e;ev.dataTransfer.effectAllowed='move';});
+                            root.addEventListener('dragover',function(ev){if(dragSource)ev.preventDefault();});
+                            root.addEventListener('drop',function(ev){if(!dragSource)return;ev.preventDefault();let target=ev.target;while(target&&target!==root&&target.parentElement!==root)target=target.parentElement;if(target&&target!==root&&target!==dragSource){const rect=target.getBoundingClientRect();if(ev.clientY<rect.top+rect.height/2)target.parentNode.insertBefore(dragSource,target);else target.parentNode.insertBefore(dragSource,target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(dragSource.outerHTML);}dragSource=null;});
+                            root.addEventListener('dragend',function(){dragSource=null;});
                             function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
-                            function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);return;}
-                              const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();}
+                            function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);commitHistory();NativeEditor.changed(root.innerHTML);return;}
+                              const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}
                             root.addEventListener('keyup',saveSelection);root.addEventListener('mouseup',saveSelection);root.addEventListener('touchend',saveSelection);
-                            root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>NativeEditor.changed(root.innerHTML),300);});
+                            root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},300);});
                             document.addEventListener('selectionchange',()=>{if(document.activeElement===root)saveSelection();});
                             </script></body></html>
                         """.trimIndent()
