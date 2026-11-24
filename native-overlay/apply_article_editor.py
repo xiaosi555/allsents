@@ -207,15 +207,20 @@ s = p.read_text(encoding="utf-8")
 if 'ArticleEditorScreen(vm)' not in s:
     s = s.replace('import com.shiwanju.app.ui.LayoutScreen',
                   'import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.ArticleEditorScreen', 1)
-    old = '''                      if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)'''
+    old = '''                      if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)
     new = '''                      when (vm.screen) {
                           "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
                           "layout" -> LayoutScreen(vm)
                           else -> MyScreen(vm)
                       }'''
-    if old not in s:
-        fail("MainActivity screen routing anchor missing")
-    s = s.replace(old, new, 1)
+    if old in s:
+        s = s.replace(old, new, 1)
+    else:
+        pattern = re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*\{?\s*LayoutScreen\(vm\)\s*\}?\s*else\s*\{?\s*MyScreen\(vm\)\s*\}?')
+        match = pattern.search(s)
+        if not match:
+            fail("MainActivity screen routing anchor missing; current route expression: " + repr([line.strip() for line in s.splitlines() if "LayoutScreen(vm)" in line or "MyScreen(vm)" in line]))
+        s = s[:match.start()] + new.strip() + s[match.end():]
 p.write_text(s, encoding="utf-8")
 
 # Compile-time contract checks.
