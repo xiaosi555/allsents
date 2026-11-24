@@ -670,7 +670,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 EditorTool("导出Markdown") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
-                        pendingExportMarkdown = articleHtmlToMarkdown(current)
+                        pendingExportMarkdown = buildString {
+                            append("# ").append(title.ifBlank { "未命名文章" }).append("\n\n")
+                            if (subtitle.isNotBlank()) append(subtitle).append("\n\n")
+                            val meta = listOf(author, summary).filter { it.isNotBlank() }.joinToString(" · ")
+                            if (meta.isNotBlank()) append(meta).append("\n\n")
+                            append(articleHtmlToMarkdown(current))
+                        }
                         markdownExporter.launch("${title.ifBlank { "文章" }}.md")
                     }
                 }
