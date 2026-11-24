@@ -57,7 +57,8 @@ data class ArticleDocument(
     val category: String = "",
     val tags: List<String> = emptyList(),
     val status: String = "draft",
-    val wordCount: Int = 0
+    val wordCount: Int = 0,
+    val isFavorite: Boolean = false
 )
 
 data class MediaAsset(
@@ -106,12 +107,12 @@ replace_once(p,
             styles = fill(raw.styles, "style", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(name = it.name ?: "", category = it.category ?: "", html = it.html ?: "", updatedAt = it.updatedAt ?: "", type = it.type ?: "component", thumbnail = it.thumbnail ?: "", tags = it.tags ?: emptyList()) },
             articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(id = i) })
-                .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "", subtitle = it.subtitle ?: "", summary = it.summary ?: "", author = it.author ?: "", coverAssetId = it.coverAssetId ?: "", category = it.category ?: "", tags = it.tags ?: emptyList(), status = it.status ?: "draft") },
+                .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "", subtitle = it.subtitle ?: "", summary = it.summary ?: "", author = it.author ?: "", coverAssetId = it.coverAssetId ?: "", category = it.category ?: "", tags = it.tags ?: emptyList(), status = it.status ?: "draft", isFavorite = it.isFavorite) },
             styleSeedApplied = raw.styleSeedApplied,
             mediaAssets = fill<MediaAsset>(raw.mediaAssets, "media", { asset: MediaAsset -> asset.id }, { asset: MediaAsset, i -> asset.copy(id = i) })
                 .map { asset: MediaAsset -> asset.copy(fileName = asset.fileName ?: "", mimeType = asset.mimeType ?: "", relativePath = asset.relativePath ?: "", createdAt = asset.createdAt ?: "") },
             articleRevisions = fill<ArticleRevision>(raw.articleRevisions, "revision", { revision: ArticleRevision -> revision.id }, { revision: ArticleRevision, i -> revision.copy(id = i) })
-                .map { revision: ArticleRevision -> revision.copy(articleId = revision.articleId ?: "", title = revision.title ?: "", html = revision.html ?: "", createdAt = revision.createdAt ?: "", note = revision.note ?: "", subtitle = revision.subtitle ?: "", summary = revision.summary ?: "", author = revision.author ?: "", coverAssetId = revision.coverAssetId ?: "", category = revision.category ?: "", tags = revision.tags ?: emptyList(), status = revision.status ?: "draft") },
+                .map { revision: ArticleRevision -> revision.copy(articleId = revision.articleId ?: "", title = revision.title ?: "", html = revision.html ?: "", createdAt = revision.createdAt ?: "", note = revision.note ?: "", subtitle = revision.subtitle ?: "", summary = revision.summary ?: "", author = revision.author ?: "", coverAssetId = revision.coverAssetId ?: "", category = revision.category ?: "", tags = revision.tags ?: emptyList(), status = revision.status ?: "draft", isFavorite = revision.isFavorite) },
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
     fail("Style/article fields are not normalized")
@@ -157,7 +158,7 @@ replace_once(p,
         val changed = previous != null && (
             previous.html != x.html || previous.title != x.title || previous.subtitle != x.subtitle ||
             previous.summary != x.summary || previous.author != x.author || previous.coverAssetId != x.coverAssetId ||
-            previous.category != x.category || previous.tags != x.tags || previous.status != x.status
+            previous.category != x.category || previous.tags != x.tags || previous.status != x.status || previous.isFavorite != x.isFavorite
         )
         val now = System.currentTimeMillis().toString()
         val revisions = if (changed) {
@@ -165,7 +166,7 @@ replace_once(p,
                 id = newId(), articleId = previous!!.id, title = previous.title, html = previous.html,
                 createdAt = now, note = "自动保存快照", subtitle = previous.subtitle, summary = previous.summary,
                 author = previous.author, coverAssetId = previous.coverAssetId, category = previous.category,
-                tags = previous.tags, status = previous.status
+                tags = previous.tags, status = previous.status, isFavorite = previous.isFavorite
             )).takeLast(30)
         } else d.articleRevisions
         d.copy(
@@ -181,7 +182,7 @@ replace_once(p,
         saveArticle(current.copy(
             title = revision.title, html = revision.html, subtitle = revision.subtitle, summary = revision.summary,
             author = revision.author, coverAssetId = revision.coverAssetId, category = revision.category,
-            tags = revision.tags, status = revision.status, updatedAt = System.currentTimeMillis().toString()
+            tags = revision.tags, status = revision.status, isFavorite = revision.isFavorite, updatedAt = System.currentTimeMillis().toString()
         ))
     }
     fun saveMediaAsset(asset: MediaAsset) = updateData { d ->
