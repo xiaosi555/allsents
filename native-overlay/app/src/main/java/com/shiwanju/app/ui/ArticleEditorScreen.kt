@@ -79,6 +79,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var author by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var tagsText by remember { mutableStateOf("") }
+    var articleStatus by remember { mutableStateOf("draft") }
+    var coverAssetId by remember { mutableStateOf("") }
     var pendingExportHtml by remember { mutableStateOf("") }
     var selectedBlockHtml by remember { mutableStateOf("") }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
@@ -109,13 +111,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         val savingAuthor = author
         val savingCategory = category
         val savingTags = tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        val savingStatus = articleStatus
+        val savingCoverAssetId = coverAssetId
         val view = editor
         if (view == null || !webReady) {
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == savingId }
             vm.saveArticle(ArticleDocument(savingId, savingTitle, html, old?.createdAt ?: now, now,
-                savingSubtitle, savingSummary, savingAuthor, old?.coverAssetId ?: "", savingCategory, savingTags,
-                old?.status ?: "draft", html.replace(Regex("<[^>]*>"), "").length))
+                savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
+                savingStatus, html.replace(Regex("<[^>]*>"), "").length))
             saved = true
             if (showToast) vm.toast("文章已保存")
             return
@@ -136,7 +140,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         saveDocument()
         articleId = vm.newId()
         title = "未命名文章"
-        subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""
+        subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""; articleStatus = "draft"; coverAssetId = ""
         html = "<p><br></p>"
         previewMode = false
         showArticleList = false
@@ -152,6 +156,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         author = article.author
         category = article.category
         tagsText = article.tags.joinToString(", ")
+        articleStatus = article.status
+        coverAssetId = article.coverAssetId
         showArticleList = false
         previewMode = false
         if (webReady) editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(article.html)});setEditable(true);", null)
@@ -567,7 +573,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     OutlinedTextField(category, { category = it }, label = { Text("分类") }, singleLine = true)
                     OutlinedTextField(tagsText, { tagsText = it }, label = { Text("标签（逗号分隔）") }, singleLine = true)
                     OutlinedTextField(summary, { summary = it }, label = { Text("文章摘要") }, minLines = 3)
-                    Text("信息会随文章自动保存；封面管理将在素材与文章信息后续完善。", color = Color.Gray, fontSize = 11.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("文章状态", color = ink, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { articleStatus = if (articleStatus == "draft") "complete" else "draft" }) { Text(if (articleStatus == "draft") "草稿" else "已完成", color = accent) }
+                    }
+                    Text("封面图片", color = ink, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        EditorTool("不设置", coverAssetId.isBlank()) { coverAssetId = "" }
+                        vm.data.mediaAssets.forEach { asset -> EditorTool(asset.fileName.take(10), coverAssetId == asset.id) { coverAssetId = asset.id } }
+                    }
+                    Text("文章信息与封面资源 ID 会随文章保存；封面图片暂作为文章素材关联，不自动上传公众号。", color = Color.Gray, fontSize = 11.sp)
                 }
             },
             confirmButton = { TextButton(onClick = { showArticleInfo = false; pendingSave++ }) { Text("完成", color = accent) } },
