@@ -464,7 +464,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 val payload = JSONObject(jsonText)
                 var rich = payload.optString("html")
                 val plain = payload.optString("text")
-                val localIds = Regex("""https://editor\\.local/assets/([A-Za-z0-9_-]+)""").findAll(rich).map { it.groupValues[1] }.distinct().toList()
+                val localIds = Regex("""https://editor\.local/assets/([A-Za-z0-9_-]+)""").findAll(rich).map { it.groupValues[1] }.distinct().toList()
                 var embeddedBytes = 0L
                 localIds.forEach { id ->
                     val asset = vm.data.mediaAssets.firstOrNull { it.id == id } ?: return@forEach
