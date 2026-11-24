@@ -62,7 +62,7 @@ _dark_values = {
     "MyHint": "0xFF92999F",
 }
 for _name, _dark_hex in _dark_values.items():
-    _pattern = rf"(?m)^([ \\t]*)val {_name}\\s*=\\s*Color\\((0x[0-9A-Fa-f]+)\\)"
+    _pattern = rf"(?m)^([ \\t]*)val {_name}\s*=\s*Color\((0x[0-9A-Fa-f]+)\)"
     _match = re.search(_pattern, theme)
     if _match and "get() = if (darkAppearance)" not in _match.group(0):
         _indent, _light_hex = _match.group(1), _match.group(2)
