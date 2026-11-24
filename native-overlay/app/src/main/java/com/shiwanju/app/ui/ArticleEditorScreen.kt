@@ -639,6 +639,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
                             function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);commitHistory();NativeEditor.changed(root.innerHTML);return;}
                               const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}
+                            root.addEventListener('paste',function(ev){
+                              const data=ev.clipboardData;if(!data)return;const pasted=data.getData('text/html');if(!pasted)return;
+                              ev.preventDefault();const box=document.createElement('div');box.innerHTML=pasted;
+                              box.querySelectorAll('script,iframe,object,embed,form,meta,link').forEach(e=>e.remove());
+                              box.querySelectorAll('*').forEach(e=>{
+                                Array.from(e.attributes).forEach(a=>{
+                                  const key=a.name.toLowerCase(),value=(a.value||'').trim().toLowerCase();
+                                  if(key.startsWith('on')||key==='srcdoc')e.removeAttribute(a.name);
+                                  if(['href','src','xlink:href','action','formaction'].includes(key)&&(value.startsWith('javascript:')||value.startsWith('data:text/html')||value.startsWith('vbscript:')))e.removeAttribute(a.name);
+                                });
+                              });
+                              insertHtml(box.innerHTML);
+                            });
                             root.addEventListener('keyup',saveSelection);root.addEventListener('mouseup',saveSelection);root.addEventListener('touchend',saveSelection);
                             root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},300);});
                             document.addEventListener('selectionchange',()=>{if(document.activeElement===root)saveSelection();});
