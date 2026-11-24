@@ -255,7 +255,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val importedMedia = mutableListOf<MediaAsset>()
             runCatching {
                 val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
-                if (raw.length > 48 * 1024 * 1024) error("模板包超过 48 MB")
+                if (raw.length > 52 * 1024 * 1024) error("模板包超过 52 MB")
                 val pack = JSONObject(raw)
                 if (pack.optString("format") != "shiwanju.styles.v1") error("不是拾万句模板包")
                 val rows = pack.optJSONArray("styles") ?: error("模板列表缺失")
@@ -329,7 +329,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val importedMedia = mutableListOf<MediaAsset>()
             runCatching {
                 val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
-                if (raw.length > 40 * 1024 * 1024) error("文章包超过 40 MB，暂不支持导入")
+                if (raw.length > 52 * 1024 * 1024) error("文章包超过 52 MB，暂不支持导入")
                 val pack = JSONObject(raw)
                 if (pack.optString("format") != "shiwanju.article.v1") error("不是拾万句文章包")
                 val sourceHtml = pack.optString("html")
@@ -971,6 +971,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("导入模板包") { stylePackageImporter.launch(arrayOf("application/json", "text/json")) }
                         EditorTool("导出模板包") {
+                            runCatching {
                             val pack = JSONObject().put("format", "shiwanju.styles.v1")
                             val rows = org.json.JSONArray()
                             vm.data.styles.forEach { style ->
@@ -994,6 +995,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             pack.put("styles", rows).put("assets", assets)
                             pendingExportStyleJson = pack.toString(2)
                             stylePackageExporter.launch("拾万句-样式模板包.json")
+                            }.onFailure { vm.toast("模板包导出失败：${it.message ?: "无法读取素材"}") }
                         }
                     }
                     Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
