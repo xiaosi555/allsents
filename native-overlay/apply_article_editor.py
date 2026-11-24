@@ -201,26 +201,31 @@ if 'contentDescription = "文章编辑器"' not in s:
     s = s.replace(old, new, 1)
 p.write_text(s, encoding="utf-8")
 
-# Route the new page from the activity; preserve existing screen routes.
+# Route the new page from the activity. Do not infer routing from imports or comments.
 p = JAVA / "MainActivity.kt"
 s = p.read_text(encoding="utf-8")
-if 'ArticleEditorScreen(vm)' not in s:
-    s = s.replace('import com.shiwanju.app.ui.LayoutScreen',
-                  'import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.ArticleEditorScreen', 1)
-    old = '                      if (vm.screen == "layout") LayoutScreen(vm) else MyScreen(vm)'
-    new = '''                      when (vm.screen) {
+if "import com.shiwanju.app.ui.ArticleEditorScreen" not in s:
+    s = s.replace("import com.shiwanju.app.ui.LayoutScreen",
+                  "import com.shiwanju.app.ui.LayoutScreen\\nimport com.shiwanju.app.ui.ArticleEditorScreen", 1)
+
+route = '''when (vm.screen) {
                           "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
                           "layout" -> LayoutScreen(vm)
                           else -> MyScreen(vm)
                       }'''
-    if old in s:
-        s = s.replace(old, new, 1)
+if '"article_editor" -> ArticleEditorScreen(vm)' not in s:
+    pattern = re.compile(r'if\\s*\\(vm\\.screen\\s*==\\s*"layout"\\)\\s*LayoutScreen\\(vm\\)\\s*else\\s*MyScreen\\(vm\\)')
+    match = pattern.search(s)
+    if match:
+        s = s[:match.start()] + route + s[match.end():]
     else:
-        pattern = re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*\{?\s*LayoutScreen\(vm\)\s*\}?\s*else\s*\{?\s*MyScreen\(vm\)\s*\}?')
+        # Also support a previous when-expression that omitted the editor branch.
+        pattern = re.compile(r'when\\s*\\(vm\\.screen\\)\\s*\\{[^}]*"layout"\\s*->\\s*LayoutScreen\\(vm\\)[^}]*else\\s*->\\s*MyScreen\\(vm\\)[^}]*\\}', re.S)
         match = pattern.search(s)
-        if not match:
-            fail("MainActivity screen routing anchor missing; current route expression: " + repr([line.strip() for line in s.splitlines() if "LayoutScreen(vm)" in line or "MyScreen(vm)" in line]))
-        s = s[:match.start()] + new.strip() + s[match.end():]
+        if match:
+            s = s[:match.start()] + route + s[match.end():]
+        else:
+            fail("Cannot locate MainActivity screen dispatcher; refusing to ship a dead editor button.")
 p.write_text(s, encoding="utf-8")
 
 # Compile-time contract checks.
@@ -231,7 +236,7 @@ checks = [
     (UI / "AppViewModel.kt", "fun saveArticle("),
     (UI / "MyScreens.kt", "private fun StylesPage("),
     (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
-    (JAVA / "MainActivity.kt", "ArticleEditorScreen(vm)")
+    (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
 ]
 for path, token in checks:
     if token not in path.read_text(encoding="utf-8"):
