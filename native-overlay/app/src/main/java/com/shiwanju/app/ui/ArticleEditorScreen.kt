@@ -87,6 +87,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var mediaSearchText by remember { mutableStateOf("") }
     var showDeleteConfirm by remember { mutableStateOf<ArticleDocument?>(null) }
     var showRevisionList by remember { mutableStateOf(false) }
+    var revisionPreview by remember { mutableStateOf<ArticleRevision?>(null) }
     var showArticleInfo by remember { mutableStateOf(false) }
     var articleInfoSnapshot by remember { mutableStateOf(emptyList<String>()) }
     var fullTemplateConfirm by remember { mutableStateOf<StyleModule?>(null) }
@@ -1202,6 +1203,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 Text(revision.title.ifBlank { "未命名文章" }, fontSize = 13.sp, color = ink)
                                 Text("${formatArticleTimestamp(revision.createdAt)} · ${revision.html.replace(Regex("<[^>]*>"), "").length} 字 · ${revision.category.ifBlank { "未分类" }}", fontSize = 10.sp, color = Color.Gray)
                             }
+                            TextButton(onClick = { revisionPreview = revision }) { Text("预览", color = ink) }
                             TextButton(onClick = {
                                 vm.restoreArticleRevision(revision)
                                 title = revision.title; html = revision.html
@@ -1220,6 +1222,40 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             },
             confirmButton = { TextButton(onClick = { showRevisionList = false }) { Text("关闭") } }
         )
+    }
+    if (revisionPreview != null) {
+        val revision = revisionPreview!!
+        val previewHtml = "<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font:16px/1.9 sans-serif;padding:20px;color:#333}img{max-width:100%;height:auto}</style></head><body><h1>\${escapeMarkdownText(revision.title)}</h1><p>\${escapeMarkdownText(revision.subtitle)}</p><p style='color:#999;font-size:12px'>\${escapeMarkdownText(revision.author)} · \${escapeMarkdownText(revision.category)}</p>\${revision.html}</body></html>"
+        Dialog(onDismissRequest = { revisionPreview = null }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("历史版本预览 · \${formatArticleTimestamp(revision.createdAt)}", color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    AndroidView(
+                        modifier = Modifier.fillMaxWidth().height(400.dp),
+                        factory = { ctx -> WebView(ctx).apply {
+                            settings.javaScriptEnabled = false
+                            settings.domStorageEnabled = false
+                            setBackgroundColor(android.graphics.Color.WHITE)
+                            loadDataWithBaseURL("https://editor.local/", previewHtml, "text/html", "UTF-8", null)
+                        } },
+                        update = { view -> view.loadDataWithBaseURL("https://editor.local/", previewHtml, "text/html", "UTF-8", null) }
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { revisionPreview = null }) { Text("关闭", color = Color.Gray) }
+                        TextButton(onClick = {
+                            vm.restoreArticleRevision(revision)
+                            title = revision.title; html = revision.html
+                            subtitle = revision.subtitle; summary = revision.summary; author = revision.author
+                            coverAssetId = revision.coverAssetId; category = revision.category
+                            tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
+                            editor?.evaluateJavascript("setEditorHtml(\${JSONObject.quote(revision.html)});setEditable(true);", null)
+                            showRevisionList = false; revisionPreview = null; pendingSave++
+                            vm.toast("已恢复历史版本（含文章信息）")
+                        }) { Text("恢复此版本", color = accent) }
+                    }
+                }
+            }
+        }
     }
     if (fullTemplateConfirm != null) {
         val template = fullTemplateConfirm!!
