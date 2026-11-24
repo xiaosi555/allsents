@@ -3419,25 +3419,6 @@ if '"official" -> OfficialAccountPage' not in _my:
     if _route_anchor not in _my:
         raise SystemExit("Official account integration: MyScreen route anchor missing")
     _my = _my.replace(_route_anchor, '                "history_articles" -> HistoryArticlesPage { route = "home" }\n                "official" -> OfficialAccountPage { route = "home" }\n' + _route_anchor, 1)
-if "private fun HomeGroupRow(" not in _my:
-    _helper = """
-@Composable
-private fun HomeGroupRow(title: String, summary: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-            Text(summary, color = Color(0xFF9CA3AF), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-        }
-        Text("›", color = Color(0xFFB8B8B8), fontSize = 22.sp)
-    }
-}
-
-"""
-    _my = _my.replace("private fun HomePage", _helper + "private fun HomePage", 1)
-
 _home_start = _my.find("private fun HomePage")
 _home_end = _my.find("// ---------------------------------------------------------------------- 账号", _home_start)
 if _home_start < 0 or _home_end < 0:
@@ -3490,6 +3471,24 @@ if 'ListRow("历史文章"' not in _home:
         raise SystemExit("History articles integration: official account entry missing")
     _home = _home.replace(anchor, anchor + '\n    ListRow("历史文章", "使用 wechat_spider 测试历史文章采集") { go("history_articles") }', 1)
     _my = _my[:_home_start] + _home + _my[_home_end:]
+if "private fun HomeGroupRow(" not in _my:
+    _helper = """
+@Composable
+private fun HomeGroupRow(title: String, summary: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = AppColors.MyText, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text(summary, color = Color(0xFF9CA3AF), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+        Text("›", color = Color(0xFFB8B8B8), fontSize = 22.sp)
+    }
+}
+
+"""
+    _my = _my.replace("private fun HomePage", _helper + "private fun HomePage", 1)
 _my_path.write_text(_my, encoding="utf-8")
 
 # The spider dashboard/API defaults to HTTP on a local network address.
