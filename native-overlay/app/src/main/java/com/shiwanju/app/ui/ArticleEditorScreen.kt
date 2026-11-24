@@ -147,6 +147,64 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         saved = true
     }
 
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        uris.forEach { uri ->
+            runCatching {
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                val ext = when (mime.lowercase(Locale.ROOT)) { "image/png" -> "png"; "image/webp" -> "webp"; "image/gif" -> "gif"; "image/heic" -> "heic"; else -> "jpg" }
+                val id = vm.newId() + (0..999).random().toString()
+                val dir = File(context.filesDir, "article_media").apply { mkdirs() }
+                val target = File(dir, "$id.$ext")
+                context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } }
+                    ?: error("无法读取图片")
+                val relative = "article_media/\${target.name}"
+                vm.saveMediaAsset(MediaAsset(id, target.name, mime, relative, target.length(), System.currentTimeMillis().toString()))
+                insert("<p><img src='https://editor.local/assets/$id' alt='\${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
+            }.onFailure { vm.toast("图片导入失败：\${it.message ?: "未知错误"}") }
+        }
+    }
+    val htmlImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+            val safe = sanitizeArticleHtml(raw)
+            html = safe
+            editor?.evaluateJavascript("setEditorHtml(\${JSONObject.quote(safe)});", null)
+            pendingSave++
+            vm.toast("HTML 已导入")
+        }.onFailure { vm.toast("HTML 导入失败：\${it.message ?: "无法读取文件"}") }
+    }
+    val htmlExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/html")) { uri ->
+        if (uri != null) runCatching {
+            context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportHtml) }
+                ?: error("无法写入文件")
+            vm.toast("HTML 已导出")
+        }.onFailure { vm.toast("HTML 导出失败：\${it.message ?: "无法写入文件"}") }
+    }
+    fun copyRichHtml() {
+        val view = editor
+        if (view == null || !webReady) {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText(title, html.replace(Regex("<[^>]*>"), "")))
+            vm.toast("已复制纯文本")
+            return
+        }
+        view.evaluateJavascript("(function(){var h=document.getElementById('editor').innerHTML;var d=document.createElement('div');d.innerHTML=h;return JSON.stringify({html:h,text:d.innerText||d.textContent||''});})()") { raw ->
+            runCatching {
+                val jsonText = org.json.JSONTokener(raw ?: "null").nextValue() as String
+                val payload = JSONObject(jsonText)
+                val rich = payload.optString("html")
+                val plain = payload.optString("text")
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newHtmlText(title, plain, rich))
+                vm.toast("已复制富文本，可粘贴到支持 HTML 的编辑器")
+            }.onFailure {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText(title, html.replace(Regex("<[^>]*>"), "")))
+                vm.toast("富文本复制失败，已回退为纯文本")
+            }
+        }
+    }
+
     LaunchedEffect(title, html, articleId, pendingSave, webReady) {
         if (!webReady || showArticleList) return@LaunchedEffect
         saved = false
@@ -394,3 +452,18 @@ private fun EditorInputDialog(title: String, hint: String, value: String, onChan
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
     )
 }
+
+private fun sanitizeArticleHtml(source: String): String {
+    val doc = org.jsoup.Jsoup.parseBodyFragment(source)
+    doc.select("script,iframe,object,embed,form").remove()
+    doc.getAllElements().forEach { element ->
+        val attrs = element.attributes().asList().map { it.key }
+        attrs.filter { it.startsWith("on", true) }.forEach { element.removeAttr(it) }
+        listOf("href", "src", "xlink:href").forEach { key ->
+            val value = element.attr(key).trim().lowercase(Locale.ROOT)
+            if (value.startsWith("javascript:") || value.startsWith("data:text/html")) element.removeAttr(key)
+        }
+    }
+    return doc.body().html()
+}
+
