@@ -75,6 +75,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showDeleteConfirm by remember { mutableStateOf<ArticleDocument?>(null) }
     var showRevisionList by remember { mutableStateOf(false) }
     var showArticleInfo by remember { mutableStateOf(false) }
+    var fullTemplateConfirm by remember { mutableStateOf<StyleModule?>(null) }
     var subtitle by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
@@ -322,6 +323,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
                 EditorTool("文章信息") { showArticleInfo = true }
+                EditorTool("保存整篇模板") {
+                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        val fullHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                        if (fullHtml.isBlank()) vm.toast("文章内容为空，无法保存模板")
+                        else {
+                            vm.saveStyle(StyleModule(vm.newId(), title.ifBlank { "未命名整篇模板" }, "整篇模板", fullHtml, System.currentTimeMillis().toString()))
+                            vm.toast("已保存到模板中心")
+                        }
+                    }
+                }
                 EditorTool("插入链接") { dialogValue = ""; showLink = true }
                 EditorTool("模块上移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(-1)") }
                 EditorTool("模块下移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(1)") }
@@ -511,6 +522,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("简约文章开头") { insert("<h1 style='font-size:25px;line-height:1.5;margin:18px 0'>在这里输入文章标题</h1><p style='color:#999;font-size:12px;margin-bottom:24px'>作者 · 拾万句</p><p>从这里开始写正文……</p>") }
                             EditorTool("杂志风标题") { insert("<section style='margin:24px 0;padding:18px 12px;border-top:2px solid #222;border-bottom:1px solid #aaa'><p style='font-size:24px;font-weight:700;letter-spacing:2px;margin:0'>SECTION TITLE</p><p style='font-size:11px;color:#999;letter-spacing:2px;margin:5px 0 0'>VOL. 01 / EDITORIAL</p></section>") }
                             EditorTool("文艺引用") { insert("<blockquote style='margin:24px 0;padding:18px;background:#f7f4ef;border:0;color:#685f54;font-size:17px;line-height:1.9'><p>“在这里写下一段值得被记住的话。”</p><p style='text-align:right;font-size:12px;color:#aaa'>—— 摘录</p></blockquote>") }
+                            EditorTool("清单文章") { insert("<h2 style='font-size:22px;margin:24px 0 14px'>本期清单</h2><ol style='padding-left:22px;line-height:2'><li>第一项内容</li><li>第二项内容</li><li>第三项内容</li></ol>") }
+                            EditorTool("结尾段落") { insert("<section style='margin:28px 0 12px;padding-top:16px;border-top:1px solid #e4e8e5'><p style='margin:0;color:#666;line-height:1.9'>愿你在平凡的日子里，也能找到值得珍藏的片刻。</p></section>") }
+                            vm.data.styles.filter { it.category == "整篇模板" }.forEach { template ->
+                                EditorTool("模板·${template.name}") { fullTemplateConfirm = template }
+                            }
                         }
                     }
                 }
@@ -567,6 +583,22 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             },
             confirmButton = { TextButton(onClick = { showRevisionList = false }) { Text("关闭") } }
+        )
+    }
+    if (fullTemplateConfirm != null) {
+        val template = fullTemplateConfirm!!
+        AlertDialog(
+            onDismissRequest = { fullTemplateConfirm = null },
+            title = { Text("应用整篇模板？") },
+            text = { Text("将用「${template.name}」替换当前文章正文。建议先保存当前文章。") },
+            confirmButton = { TextButton(onClick = {
+                html = template.html
+                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(template.html)});", null)
+                pendingSave++
+                fullTemplateConfirm = null
+                vm.toast("整篇模板已应用")
+            }) { Text("替换正文", color = Color(0xFFCC5555)) } },
+            dismissButton = { TextButton(onClick = { fullTemplateConfirm = null }) { Text("取消") } }
         )
     }
     if (showArticleInfo) {
