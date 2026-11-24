@@ -255,7 +255,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             if (showArticleList) {
                 articleId = vm.newId()
                 title = "导入文章"
-                subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""
+                subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""; articleStatus = "draft"; coverAssetId = ""
                 showArticleList = false
             }
             html = safe
