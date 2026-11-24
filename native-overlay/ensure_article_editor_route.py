@@ -16,7 +16,7 @@ if "import com.shiwanju.app.ui.ArticleEditorScreen" not in main:
     anchor = "import com.shiwanju.app.ui.LayoutScreen"
     if anchor not in main:
         raise SystemExit("Cannot add ArticleEditorScreen import: LayoutScreen import anchor missing.")
-    main = main.replace(anchor, anchor + "\\nimport com.shiwanju.app.ui.ArticleEditorScreen", 1)
+    main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.ArticleEditorScreen", 1)
 
 route = """when (vm.screen) {
                         "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
@@ -25,8 +25,8 @@ route = """when (vm.screen) {
                     }"""
 if '"article_editor" -> ArticleEditorScreen(vm)' not in main:
     patterns = [
-        re.compile(r'if\\s*\\(vm\\.screen\\s*==\\s*"layout"\\)\\s*LayoutScreen\\(vm\\)\\s*else\\s*MyScreen\\(vm\\)'),
-        re.compile(r'if\\s*\\(vm\\.screen\\s*==\\s*"layout"\\)\\s*\\{\\s*LayoutScreen\\(vm\\)\\s*\\}\\s*else\\s*\\{\\s*MyScreen\\(vm\\)\\s*\\}', re.S),
+        re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)'),
+        re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*\{\s*LayoutScreen\(vm\)\s*\}\s*else\s*\{\s*MyScreen\(vm\)\s*\}', re.S),
     ]
     match = next((m for pattern in patterns if (m := pattern.search(main))), None)
     if not match:
