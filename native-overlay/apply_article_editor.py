@@ -409,6 +409,7 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "mediaSearchText"),
     (UI / "ArticleEditorScreen.kt", "articleFilter"),
     (UI / "ArticleEditorScreen.kt", "formatArticleTimestamp"),
+    (UI / "ArticleEditorScreen.kt", "revisionPreview"),
     (UI / "ArticleEditorScreen.kt", "filteredTemplates"),
     (UI / "ArticleEditorScreen.kt", "templatePreview"),
     (UI / "ArticleEditorScreen.kt", "stylePackageImporter"),
