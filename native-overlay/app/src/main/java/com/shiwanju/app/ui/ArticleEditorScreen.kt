@@ -215,7 +215,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             for (index in 0 until assets.length()) {
                 val item = assets.optJSONObject(index) ?: continue
                 val oldId = item.optString("id")
-                val newId = if (vm.data.mediaAssets.any { it.id == oldId }) vm.newId() + index else oldId
+                var newId = vm.newId() + "_" + index
+                while (vm.data.mediaAssets.any { it.id == newId }) newId = vm.newId() + (0..999).random()
                 val fileName = item.optString("fileName", "image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
                 val mime = item.optString("mimeType", "image/jpeg")
                 val ext = fileName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").ifBlank { "jpg" }
@@ -647,7 +648,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         val used = html.contains(asset.id) || vm.data.articles.any { it.id != articleId && it.html.contains(asset.id) }
                                         if (used) vm.toast("该图片仍被文章引用，不能删除")
                                         else {
-                                            File(context.filesDir, asset.relativePath).delete()
+                                            val mediaRoot = File(context.filesDir, "article_media").canonicalFile
+                                            val mediaFile = File(context.filesDir, asset.relativePath).canonicalFile
+                                            if (mediaFile.path.startsWith(mediaRoot.path + File.separator)) mediaFile.delete()
                                             vm.deleteMediaAsset(asset.id)
                                             vm.toast("图片已从素材库删除")
                                         }
