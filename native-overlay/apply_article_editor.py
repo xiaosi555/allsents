@@ -414,6 +414,7 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "savingIsFavorite"),
     (UI / "ArticleEditorScreen.kt", "formatArticleTimestamp"),
     (UI / "ArticleEditorScreen.kt", "revisionPreview"),
+    (UI / "ArticleEditorScreen.kt", "import com.shiwanju.app.data.ArticleRevision"),
     (UI / "ArticleEditorScreen.kt", "filteredTemplates"),
     (UI / "ArticleEditorScreen.kt", "templatePreview"),
     (UI / "ArticleEditorScreen.kt", "stylePackageImporter"),
