@@ -103,6 +103,7 @@ jobs:
           python3 native-overlay/apply_patches.py
           python3 native-overlay/apply_theme_colors.py
           python3 native-overlay/apply_ui_refinements.py
+          python3 native-overlay/apply_ui_refinements_v2.py
           python3 native-overlay/generate_icon_styles.py
           python3 native-overlay/apply_icon_styles.py
           python3 native-overlay/apply_splash.py
