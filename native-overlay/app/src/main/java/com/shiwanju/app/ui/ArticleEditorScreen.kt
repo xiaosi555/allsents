@@ -39,6 +39,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalContext
 import java.io.File
 import java.util.Locale
+import java.text.SimpleDateFormat
+import java.util.Date
 import com.shiwanju.app.data.ArticleDocument
 import com.shiwanju.app.data.MediaAsset
 import com.shiwanju.app.data.StyleModule
@@ -414,7 +416,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             ) {
                                 Column(Modifier.weight(1f)) {
                                     Text(item.title.ifBlank { "未命名文章" }, color = ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text("${if (item.status == "complete") "已完成" else "草稿"} · ${item.category.ifBlank { "未分类" }} · ${item.html.replace(Regex("<[^>]*>"), "").length} 字", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
+                                    Text("${if (item.status == "complete") "已完成" else "草稿"} · ${item.category.ifBlank { "未分类" }} · ${item.html.replace(Regex("<[^>]*>"), "").length} 字 · ${formatArticleTimestamp(item.updatedAt)}", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
                                     if (item.summary.isNotBlank()) Text(item.summary, color = Color(0xFF858B86), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
@@ -842,7 +844,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(revision.title.ifBlank { "未命名文章" }, fontSize = 13.sp, color = ink)
-                                Text("${revision.createdAt} · ${revision.html.replace(Regex("<[^>]*>"), "").length} 字", fontSize = 10.sp, color = Color.Gray)
+                                Text("${formatArticleTimestamp(revision.createdAt)} · ${revision.html.replace(Regex("<[^>]*>"), "").length} 字", fontSize = 10.sp, color = Color.Gray)
                             }
                             TextButton(onClick = {
                                 vm.restoreArticleRevision(revision)
@@ -994,6 +996,11 @@ private fun sanitizeArticleHtml(source: String): String {
     return doc.body().html()
 }
 
+
+private fun formatArticleTimestamp(raw: String): String = runCatching {
+    val millis = raw.toLong()
+    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(millis))
+}.getOrDefault(raw)
 
 private fun articleCompatibilityWarnings(html: String): List<String> {
     val warnings = mutableListOf<String>()
