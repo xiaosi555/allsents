@@ -404,6 +404,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
         } else {
+            if (previewMode) {
+                Row(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("阅读预览", color = ink, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    EditorTool("返回编辑") { previewMode = false; editor?.evaluateJavascript("setEditable(true);", null) }
+                }
+            } else {
             Row(
                 Modifier.fillMaxWidth().background(Color.White).horizontalScroll(rememberScrollState())
                     .padding(horizontal = 9.dp, vertical = 7.dp),
@@ -485,6 +491,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         vm.toast("已保存到「我的 - 样式」")
                     }
                 }
+            }
             }
 
             AndroidView(
@@ -585,6 +592,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 update = { editor = it }
             )
 
+            if (!previewMode) {
             Row(
                 Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 7.dp, vertical = 5.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
@@ -739,6 +747,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
+            }
             }
         }
     }
