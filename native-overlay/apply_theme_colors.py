@@ -57,18 +57,18 @@ theme_path.write_text(theme, encoding="utf-8")
 # Persist only this UI preference in SharedPreferences; business JSON remains untouched.
 store_path = java / "data/Store.kt"
 store = store_path.read_text(encoding="utf-8")
-store_anchor = "    var appearanceMode: String
-        get() = prefs.getString("appearance_mode", "system") ?: "system"
-        set(value) { if (value in listOf("system", "light", "dark")) prefs.edit().putString("appearance_mode", value).apply() }
-
-    // ---- 界面状态 ----"
-store_insert = """    // ---- 外观偏好：主题颜色（不写入业务数据文件） ----
+store_anchor = "    // ---- 界面状态 ----"
+store_insert = """    // ---- 外观偏好：主题颜色与模式（不写入业务数据文件） ----
     var themeColor: String
         get() = prefs.getString("theme_color", "#01CC7A") ?: "#01CC7A"
         set(value) {
-            if (Regex("^#[0-9A-Fa-f]{6}$").matches(value)) {
-                prefs.edit().putString("theme_color", value.uppercase()).apply()
-            }
+            if (Regex("^#[0-9A-Fa-f]{6}$").matches(value)) prefs.edit().putString("theme_color", value.uppercase()).apply()
+        }
+
+    var appearanceMode: String
+        get() = prefs.getString("appearance_mode", "system") ?: "system"
+        set(value) {
+            if (value in listOf("system", "light", "dark")) prefs.edit().putString("appearance_mode", value).apply()
         }
 
 """
