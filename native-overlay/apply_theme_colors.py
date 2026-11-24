@@ -109,8 +109,14 @@ if "AppColors.setThemeColor(themeColor)" not in vm:
     if not init_match:
         raise SystemExit("Required theme patch anchor missing (ViewModel init declaration): AppViewModel.kt")
     insert_at = init_match.end()
-    vm = vm[:insert_at] + "\n        if (themeColor.equals(\"#CCFF00\", ignoreCase = true)) {\n            store.themeColor = \"#01CC7A\"\n            themeColor = \"#01CC7A\"\n        }\n        AppColors.setThemeColor(themeColor)
-        AppColors.setAppearanceMode(appearanceMode, false)" + vm[insert_at:]
+    vm = vm[:insert_at] + """
+        if (themeColor.equals("#CCFF00", ignoreCase = true)) {
+            store.themeColor = "#01CC7A"
+            themeColor = "#01CC7A"
+        }
+        AppColors.setThemeColor(themeColor)
+        AppColors.setAppearanceMode(appearanceMode, false)
+""" + vm[insert_at:]
 if "fun selectThemeColor(hex: String)" not in vm:
     base_anchor = "    // ------------------------------------------------------------------ 基础\n"
     if base_anchor not in vm:
