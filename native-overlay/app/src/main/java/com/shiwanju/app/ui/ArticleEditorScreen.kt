@@ -442,6 +442,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function setSelectedImageWidth(v){if(!activeImage)return;activeImage.style.width=v;activeImage.style.maxWidth='100%';activeImage.style.height='auto';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function rotateSelectedImage(){if(!activeImage)return;const n=(parseInt(activeImage.dataset.rotation||'0')+90)%360;activeImage.dataset.rotation=n;activeImage.style.transform='rotate('+n+'deg)';commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageRadius(v){if(!activeImage)return;activeImage.style.borderRadius=v;commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function cropSelectedImage(ratio){if(!activeImage)return;const w=activeImage.parentElement.clientWidth||320;const h=ratio==='1:1'?w:ratio==='4:3'?w*0.75:w*0.5625;activeImage.style.width='100%';activeImage.style.height=Math.round(h)+'px';activeImage.style.objectFit='cover';activeImage.style.objectPosition='center';commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function resetSelectedImageCrop(){if(!activeImage)return;activeImage.style.height='auto';activeImage.style.objectFit='contain';commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function setSelectedImageBorder(v){if(!activeImage)return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageAlt(v){if(!activeImage)return;activeImage.alt=v;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -530,6 +533,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("圆角") { runJs("setSelectedImageRadius('10px')") }
                                 EditorTool("直角") { runJs("setSelectedImageRadius('0')") }
                                 EditorTool("旋转90°") { runJs("rotateSelectedImage()") }
+                                EditorTool("裁切1:1") { runJs("cropSelectedImage('1:1')") }
+                                EditorTool("裁切4:3") { runJs("cropSelectedImage('4:3')") }
+                                EditorTool("裁切16:9") { runJs("cropSelectedImage('16:9')") }
+                                EditorTool("原始比例") { runJs("resetSelectedImageCrop()") }
+                                EditorTool("细边框") { runJs("setSelectedImageBorder('1px solid #dfe5e1')") }
+                                EditorTool("无边框") { runJs("setSelectedImageBorder('0')") }
                                 EditorTool("替代文字") { dialogValue = ""; showImageAlt = true }
                             }
                         }
