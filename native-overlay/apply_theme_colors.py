@@ -140,10 +140,10 @@ my = my_path.read_text(encoding="utf-8")
 # Keep "follow system" synchronized at the app's main Compose entry, not only inside Settings.
 for _imp in ["import androidx.compose.foundation.isSystemInDarkTheme", "import androidx.compose.runtime.LaunchedEffect"]:
     if _imp not in my:
-        my = my.replace("import androidx.compose.runtime.Composable", "import androidx.compose.runtime.Composable\\n" + _imp, 1)
-_entry = re.search(r"(?m)^(@Composable\\s+fun\\s+\\w+\\([^)]*AppViewModel[^)]*\\)\\s*\\{)", my)
+        my = my.replace("import androidx.compose.runtime.Composable", "import androidx.compose.runtime.Composable\n" + _imp, 1)
+_entry = re.search(r"(?m)^(@Composable\s+fun\s+\w+\([^)]*AppViewModel[^)]*\)\s*\{)", my)
 if _entry and "AppColors.setAppearanceMode(vm.appearanceMode, systemDark)" not in my:
-    _body = _entry.group(1) + "\\n    val systemDark = isSystemInDarkTheme()\\n    LaunchedEffect(vm.appearanceMode, systemDark) { AppColors.setAppearanceMode(vm.appearanceMode, systemDark) }"
+    _body = _entry.group(1) + "\n    val systemDark = isSystemInDarkTheme()\n    LaunchedEffect(vm.appearanceMode, systemDark) { AppColors.setAppearanceMode(vm.appearanceMode, systemDark) }"
     my = my.replace(_entry.group(1), _body, 1)
 old_title = 'val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
 new_title = 'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
