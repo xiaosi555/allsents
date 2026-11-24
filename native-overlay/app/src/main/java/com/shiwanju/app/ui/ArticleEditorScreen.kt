@@ -455,13 +455,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 }
                 EditorTool("插入链接") { dialogValue = ""; linkInsertType = "link"; showLink = true }
-                EditorTool("模块上移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(-1)") }
-                EditorTool("模块下移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(1)") }
-                EditorTool("复制模块", selectedBlockHtml.isNotBlank()) { runJs("duplicateSelectedBlock()") }
-                EditorTool("删除模块", selectedBlockHtml.isNotBlank()) { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }
-                EditorTool("保存为样式", selectedBlockHtml.isNotBlank()) {
-                    vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
-                    vm.toast("已保存到「我的 - 样式」")
+                if (selectedBlockHtml.isNotBlank()) {
+                    EditorTool("模块上移") { runJs("moveSelectedBlock(-1)") }
+                    EditorTool("模块下移") { runJs("moveSelectedBlock(1)") }
+                    EditorTool("复制模块") { runJs("duplicateSelectedBlock()") }
+                    EditorTool("删除模块") { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }
+                    EditorTool("保存为样式") {
+                        vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
+                        vm.toast("已保存到「我的 - 样式」")
+                    }
                 }
             }
 
@@ -681,10 +683,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("作者简介") { insert("<section style='margin:22px 0;padding:14px;background:#f6f7f6'><p style='margin:0 0 5px;font-weight:700'>关于作者</p><p style='margin:0;font-size:13px;color:#777'>在这里填写作者简介</p></section>") }
                             EditorTool("视频链接卡") { dialogValue = ""; linkInsertType = "video"; showLink = true }
                             EditorTool("音频链接卡") { dialogValue = ""; linkInsertType = "audio"; showLink = true }
-                            EditorTool("表格加行", selectedBlockHtml.contains("<table", true)) { runJs("addTableRow()") }
-                            EditorTool("表格删行", selectedBlockHtml.contains("<table", true)) { runJs("removeTableRow()") }
-                            EditorTool("表格加列", selectedBlockHtml.contains("<table", true)) { runJs("addTableColumn()") }
-                            EditorTool("表格删列", selectedBlockHtml.contains("<table", true)) { runJs("removeTableColumn()") }
+                            if (selectedBlockHtml.contains("<table", true)) {
+                                EditorTool("表格加行") { runJs("addTableRow()") }
+                                EditorTool("表格删行") { runJs("removeTableRow()") }
+                                EditorTool("表格加列") { runJs("addTableColumn()") }
+                                EditorTool("表格删列") { runJs("removeTableColumn()") }
+                            }
                         }
                     }
                     EditorPanel.STYLE -> {
