@@ -342,11 +342,21 @@ checks = [
     (DATA / "Models.kt", "val styles: List<StyleModule>"),
     (DATA / "Models.kt", "val articles: List<ArticleDocument>"),
     (DATA / "Models.kt", "val styleSeedApplied: Boolean"),
+    (DATA / "Models.kt", "val mediaAssets: List<MediaAsset>"),
+    (DATA / "Models.kt", "val articleRevisions: List<ArticleRevision>"),
     (DATA / "Store.kt", "styles = fill(raw.styles"),
+    (DATA / "Store.kt", "mediaAssets = fill<MediaAsset>"),
+    (DATA / "Store.kt", "articleRevisions = fill<ArticleRevision>"),
     (DATA / "Store.kt", "styleSeedApplied = raw.styleSeedApplied"),
     (UI / "AppViewModel.kt", "fun saveArticle("),
+    (UI / "AppViewModel.kt", "fun deleteArticle("),
+    (UI / "AppViewModel.kt", "fun saveMediaAsset("),
     (UI / "MyScreens.kt", "private fun StylesPage("),
     (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
+    (UI / "ArticleEditorScreen.kt", "rememberLauncherForActivityResult"),
+    (UI / "ArticleEditorScreen.kt", "copyRichHtml"),
+    (UI / "ArticleEditorScreen.kt", "function duplicateSelectedBlock"),
+    (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
 ]
 for path, token in checks:
