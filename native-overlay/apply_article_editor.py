@@ -71,7 +71,14 @@ data class ArticleRevision(
     val title: String = "",
     val html: String = "",
     val createdAt: String = "",
-    val note: String = ""
+    val note: String = "",
+    val subtitle: String = "",
+    val summary: String = "",
+    val author: String = "",
+    val coverAssetId: String = "",
+    val category: String = "",
+    val tags: List<String> = emptyList(),
+    val status: String = "draft"
 )''', "style and article data classes")
 replace_once(p,
 '''    val emoji: List<EmojiItem> = emptyList(),
@@ -100,7 +107,7 @@ replace_once(p,
             mediaAssets = fill<MediaAsset>(raw.mediaAssets, "media", { asset: MediaAsset -> asset.id }, { asset: MediaAsset, i -> asset.copy(id = i) })
                 .map { asset: MediaAsset -> asset.copy(fileName = asset.fileName ?: "", mimeType = asset.mimeType ?: "", relativePath = asset.relativePath ?: "", createdAt = asset.createdAt ?: "") },
             articleRevisions = fill<ArticleRevision>(raw.articleRevisions, "revision", { revision: ArticleRevision -> revision.id }, { revision: ArticleRevision, i -> revision.copy(id = i) })
-                .map { revision: ArticleRevision -> revision.copy(articleId = revision.articleId ?: "", title = revision.title ?: "", html = revision.html ?: "", createdAt = revision.createdAt ?: "", note = revision.note ?: "") },
+                .map { revision: ArticleRevision -> revision.copy(articleId = revision.articleId ?: "", title = revision.title ?: "", html = revision.html ?: "", createdAt = revision.createdAt ?: "", note = revision.note ?: "", subtitle = revision.subtitle ?: "", summary = revision.summary ?: "", author = revision.author ?: "", coverAssetId = revision.coverAssetId ?: "", category = revision.category ?: "", tags = revision.tags ?: emptyList(), status = revision.status ?: "draft") },
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
     fail("Style/article fields are not normalized")
@@ -143,12 +150,18 @@ replace_once(p,
         val list = d.articles
         val i = list.indexOfFirst { it.id == x.id }
         val previous = list.getOrNull(i)
-        val changed = previous != null && (previous.html != x.html || previous.title != x.title)
+        val changed = previous != null && (
+            previous.html != x.html || previous.title != x.title || previous.subtitle != x.subtitle ||
+            previous.summary != x.summary || previous.author != x.author || previous.coverAssetId != x.coverAssetId ||
+            previous.category != x.category || previous.tags != x.tags || previous.status != x.status
+        )
         val now = System.currentTimeMillis().toString()
         val revisions = if (changed) {
             (d.articleRevisions + ArticleRevision(
-                id = newId(), articleId = previous!!.id, title = previous.title,
-                html = previous.html, createdAt = now, note = "自动保存快照"
+                id = newId(), articleId = previous!!.id, title = previous.title, html = previous.html,
+                createdAt = now, note = "自动保存快照", subtitle = previous.subtitle, summary = previous.summary,
+                author = previous.author, coverAssetId = previous.coverAssetId, category = previous.category,
+                tags = previous.tags, status = previous.status
             )).takeLast(30)
         } else d.articleRevisions
         d.copy(
@@ -161,7 +174,11 @@ replace_once(p,
     }
     fun restoreArticleRevision(revision: ArticleRevision) {
         val current = data.articles.firstOrNull { it.id == revision.articleId } ?: return
-        saveArticle(current.copy(title = revision.title, html = revision.html, updatedAt = System.currentTimeMillis().toString()))
+        saveArticle(current.copy(
+            title = revision.title, html = revision.html, subtitle = revision.subtitle, summary = revision.summary,
+            author = revision.author, coverAssetId = revision.coverAssetId, category = revision.category,
+            tags = revision.tags, status = revision.status, updatedAt = System.currentTimeMillis().toString()
+        ))
     }
     fun saveMediaAsset(asset: MediaAsset) = updateData { d ->
         val i = d.mediaAssets.indexOfFirst { it.id == asset.id }
