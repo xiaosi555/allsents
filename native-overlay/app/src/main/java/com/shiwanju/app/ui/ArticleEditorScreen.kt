@@ -1225,11 +1225,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
     if (revisionPreview != null) {
         val revision = revisionPreview!!
-        val previewHtml = "<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font:16px/1.9 sans-serif;padding:20px;color:#333}img{max-width:100%;height:auto}</style></head><body><h1>\${escapeMarkdownText(revision.title)}</h1><p>\${escapeMarkdownText(revision.subtitle)}</p><p style='color:#999;font-size:12px'>\${escapeMarkdownText(revision.author)} · \${escapeMarkdownText(revision.category)}</p>\${revision.html}</body></html>"
+        val previewHtml = "<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font:16px/1.9 sans-serif;padding:20px;color:#333}img{max-width:100%;height:auto}</style></head><body><h1>${escapeMarkdownText(revision.title)}</h1><p>${escapeMarkdownText(revision.subtitle)}</p><p style='color:#999;font-size:12px'>${escapeMarkdownText(revision.author)} · ${escapeMarkdownText(revision.category)}</p>${revision.html}</body></html>"
         Dialog(onDismissRequest = { revisionPreview = null }) {
             Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("历史版本预览 · \${formatArticleTimestamp(revision.createdAt)}", color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("历史版本预览 · ${formatArticleTimestamp(revision.createdAt)}", color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     AndroidView(
                         modifier = Modifier.fillMaxWidth().height(400.dp),
                         factory = { ctx -> WebView(ctx).apply {
@@ -1248,7 +1248,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             subtitle = revision.subtitle; summary = revision.summary; author = revision.author
                             coverAssetId = revision.coverAssetId; category = revision.category
                             tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
-                            editor?.evaluateJavascript("setEditorHtml(\${JSONObject.quote(revision.html)});setEditable(true);", null)
+                            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});setEditable(true);", null)
                             showRevisionList = false; revisionPreview = null; pendingSave++
                             vm.toast("已恢复历史版本（含文章信息）")
                         }) { Text("恢复此版本", color = accent) }
