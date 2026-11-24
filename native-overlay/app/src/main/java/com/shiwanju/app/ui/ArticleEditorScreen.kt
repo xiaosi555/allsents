@@ -899,14 +899,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(revision.title.ifBlank { "未命名文章" }, fontSize = 13.sp, color = ink)
-                                Text("${formatArticleTimestamp(revision.createdAt)} · ${revision.html.replace(Regex("<[^>]*>"), "").length} 字", fontSize = 10.sp, color = Color.Gray)
+                                Text("${formatArticleTimestamp(revision.createdAt)} · ${revision.html.replace(Regex("<[^>]*>"), "").length} 字 · ${revision.category.ifBlank { "未分类" }}", fontSize = 10.sp, color = Color.Gray)
                             }
                             TextButton(onClick = {
                                 vm.restoreArticleRevision(revision)
                                 title = revision.title; html = revision.html
-                                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});", null)
+                                subtitle = revision.subtitle; summary = revision.summary; author = revision.author
+                                coverAssetId = revision.coverAssetId; category = revision.category
+                                tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
+                                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});setEditable(true);", null)
                                 showRevisionList = false
-                                vm.toast("已恢复历史版本")
+                                pendingSave++
+                                vm.toast("已恢复历史版本（含文章信息）")
                             }) { Text("恢复", color = accent) }
                         }
                         HorizontalDivider(color = Color(0xFFE9ECE9))
