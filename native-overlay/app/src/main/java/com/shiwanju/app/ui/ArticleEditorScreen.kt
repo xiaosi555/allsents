@@ -716,7 +716,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         insert("<p><img src='https://editor.local/assets/${asset.id}' alt='${asset.fileName}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
                                     }
                                     EditorTool("删") {
-                                        val used = html.contains(asset.id) || vm.data.articles.any { it.id != articleId && it.html.contains(asset.id) }
+                                        val used = html.contains(asset.id) || coverAssetId == asset.id || vm.data.articles.any { it.id != articleId && (it.html.contains(asset.id) || it.coverAssetId == asset.id) }
                                         if (used) vm.toast("该图片仍被文章引用，不能删除")
                                         else {
                                             val mediaRoot = File(context.filesDir, "article_media").canonicalFile
