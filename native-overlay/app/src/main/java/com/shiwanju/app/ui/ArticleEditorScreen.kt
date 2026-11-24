@@ -52,7 +52,10 @@ import com.shiwanju.app.data.ArticleRevision
 import com.shiwanju.app.data.MediaAsset
 import com.shiwanju.app.data.StyleModule
 import org.json.JSONObject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
@@ -68,6 +71,7 @@ private enum class EditorPanel(val label: String) {
 @Composable
 fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var articleId by remember { mutableStateOf(vm.newId()) }
     var title by remember { mutableStateOf("未命名文章") }
     var html by remember { mutableStateOf("<p><br></p>") }
@@ -153,6 +157,35 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     fun insert(fragment: String) {
         runJs("restoreSelection();insertHtml(${JSONObject.quote(fragment)});saveSelection();document.getElementById('editor').focus();")
     }
+    fun cropSelectedImagePixels(targetRatio: Float) {
+        val match = Regex("""https://editor\\.local/assets/([A-Za-z0-9_-]+)""").find(selectedImageHtml)
+        val asset = match?.groupValues?.getOrNull(1)?.let { id -> vm.data.mediaAssets.firstOrNull { it.id == id } }
+        if (asset == null) {
+            vm.toast("像素裁切目前仅支持已导入素材库的本地图片")
+            return
+        }
+        coroutineScope.launch {
+            runCatching {
+                val mediaRoot = File(context.filesDir, "article_media").canonicalFile
+                val source = File(context.filesDir, asset.relativePath).canonicalFile
+                if (!source.path.startsWith(mediaRoot.path + File.separator) || !source.isFile) error("原图片文件不存在")
+                var newId = vm.newId()
+                while (vm.data.mediaAssets.any { it.id == newId }) newId = vm.newId()
+                val png = asset.mimeType.equals("image/png", true)
+                val ext = if (png) "png" else "jpg"
+                val newName = "crop_$newId.$ext"
+                val target = File(mediaRoot, newName)
+                val dimensions = withContext(Dispatchers.IO) { cropArticleImageFile(source, target, targetRatio, png) }
+                withContext(Dispatchers.Main) {
+                    val mime = if (png) "image/png" else "image/jpeg"
+                    vm.saveMediaAsset(MediaAsset(newId, newName, mime, "article_media/$newName", target.length(), System.currentTimeMillis().toString()))
+                    runJs("replaceSelectedImage('https://editor.local/assets/$newId',${JSONObject.quote(newName)})")
+                    vm.toast("已完成像素裁切：${dimensions.first} × ${dimensions.second}")
+                }
+            }.onFailure { withContext(Dispatchers.Main) { vm.toast("像素裁切失败：${it.message ?: "图片处理错误"}") } }
+        }
+    }
+
     fun saveDocument(showToast: Boolean = false, onComplete: (() -> Unit)? = null) {
         val savingId = articleId
         val savingTitle = title.ifBlank { "未命名文章" }
@@ -917,9 +950,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("圆角") { runJs("setSelectedImageRadius('10px')") }
                                 EditorTool("直角") { runJs("setSelectedImageRadius('0')") }
                                 EditorTool("旋转90°") { runJs("rotateSelectedImage()") }
-                                EditorTool("裁切1:1") { runJs("cropSelectedImage('1:1')") }
-                                EditorTool("裁切4:3") { runJs("cropSelectedImage('4:3')") }
-                                EditorTool("裁切16:9") { runJs("cropSelectedImage('16:9')") }
+                                EditorTool("预览裁切1:1") { runJs("cropSelectedImage('1:1')") }
+                                EditorTool("预览裁切4:3") { runJs("cropSelectedImage('4:3')") }
+                                EditorTool("预览裁切16:9") { runJs("cropSelectedImage('16:9')") }
+                                EditorTool("像素裁切1:1") { cropSelectedImagePixels(1f) }
+                                EditorTool("像素裁切4:3") { cropSelectedImagePixels(4f / 3f) }
+                                EditorTool("像素裁切16:9") { cropSelectedImagePixels(16f / 9f) }
                                 EditorTool("原始比例") { runJs("resetSelectedImageCrop()") }
                                 EditorTool("细边框") { runJs("setSelectedImageBorder('1px solid #dfe5e1')") }
                                 EditorTool("无边框") { runJs("setSelectedImageBorder('0')") }
@@ -1451,6 +1487,36 @@ private fun markdownToArticleHtml(markdown: String): String {
     closeList()
     return out.toString().ifBlank { "<p><br></p>" }
 }
+private fun cropArticleImageFile(source: File, target: File, ratio: Float, png: Boolean): Pair<Int, Int> {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(source.absolutePath, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) error("无法读取图片尺寸")
+    if (bounds.outWidth.toLong() * bounds.outHeight.toLong() > 80_000_000L) error("图片分辨率过高，请先压缩")
+    var sample = 1
+    while ((bounds.outWidth / sample).toLong() * (bounds.outHeight / sample).toLong() > 20_000_000L) sample *= 2
+    val bitmap = BitmapFactory.decodeFile(source.absolutePath, BitmapFactory.Options().apply { inSampleSize = sample }) ?: error("图片解码失败")
+    val currentRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
+    val cropWidth: Int
+    val cropHeight: Int
+    if (currentRatio > ratio) {
+        cropHeight = bitmap.height
+        cropWidth = (cropHeight * ratio).toInt().coerceIn(1, bitmap.width)
+    } else {
+        cropWidth = bitmap.width
+        cropHeight = (cropWidth / ratio).toInt().coerceIn(1, bitmap.height)
+    }
+    val left = (bitmap.width - cropWidth) / 2
+    val top = (bitmap.height - cropHeight) / 2
+    val cropped = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
+    target.outputStream().use { output ->
+        if (png) cropped.compress(Bitmap.CompressFormat.PNG, 100, output)
+        else cropped.compress(Bitmap.CompressFormat.JPEG, 92, output)
+    }
+    if (cropped !== bitmap) cropped.recycle()
+    bitmap.recycle()
+    return cropWidth to cropHeight
+}
+
 private fun decodeArticleAssetPreview(file: File): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.absolutePath, bounds)
