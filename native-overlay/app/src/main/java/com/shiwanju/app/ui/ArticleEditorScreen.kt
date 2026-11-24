@@ -67,6 +67,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var activeCategory by remember { mutableStateOf("") }
     var showArticleList by remember { mutableStateOf(false) }
     var showLink by remember { mutableStateOf(false) }
+    var linkInsertType by remember { mutableStateOf("link") }
     var showImage by remember { mutableStateOf(false) }
     var dialogValue by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
@@ -372,7 +373,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
-                EditorTool("插入链接") { dialogValue = ""; showLink = true }
+                EditorTool("插入链接") { dialogValue = ""; linkInsertType = "link"; showLink = true }
                 EditorTool("模块上移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(-1)") }
                 EditorTool("模块下移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(1)") }
                 EditorTool("复制模块", selectedBlockHtml.isNotBlank()) { runJs("duplicateSelectedBlock()") }
@@ -581,6 +582,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("代码块") { insert("<pre style='padding:12px;background:#f4f5f4;white-space:pre-wrap;font-family:monospace;font-size:13px'>在此输入代码或等宽文本</pre>") }
                             EditorTool("关注引导") { insert("<section style='margin:24px 0;padding:18px 14px;text-align:center;background:#f3f8f4;border:1px solid #dcebe1'><p style='margin:0 0 6px;font-weight:700;color:#28724e'>感谢阅读</p><p style='margin:0;font-size:13px;color:#77857c'>关注「拾万句」，查看更多内容</p></section>") }
                             EditorTool("作者简介") { insert("<section style='margin:22px 0;padding:14px;background:#f6f7f6'><p style='margin:0 0 5px;font-weight:700'>关于作者</p><p style='margin:0;font-size:13px;color:#777'>在这里填写作者简介</p></section>") }
+                            EditorTool("视频链接卡") { dialogValue = ""; linkInsertType = "video"; showLink = true }
+                            EditorTool("音频链接卡") { dialogValue = ""; linkInsertType = "audio"; showLink = true }
                             EditorTool("表格加行", selectedBlockHtml.contains("<table", true)) { runJs("addTableRow()") }
                             EditorTool("表格删行", selectedBlockHtml.contains("<table", true)) { runJs("removeTableRow()") }
                             EditorTool("表格加列", selectedBlockHtml.contains("<table", true)) { runJs("addTableColumn()") }
@@ -627,12 +630,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         else vm.toast("请输入有效的 http/https 图片地址")
         showImage = false
     }) { showImage = false }
-    if (showLink) EditorInputDialog("插入链接", "输入 https:// 开头的网址", dialogValue, { dialogValue = it }, {
-        val url = dialogValue.trim()
-        if (url.startsWith("https://") || url.startsWith("http://")) insert("<a href='${url.replace("'", "%27")}' target='_blank'>链接文字</a>")
-        else vm.toast("请输入有效的 http/https 网址")
+    if (showLink) EditorInputDialog(if (linkInsertType == "link") "插入链接" else if (linkInsertType == "video") "视频链接卡" else "音频链接卡", "输入 https:// 开头的网址", dialogValue, { dialogValue = it }, {
+        val url = dialogValue.trim().replace("'", "%27")
+        if (url.startsWith("https://") || url.startsWith("http://")) {
+            when (linkInsertType) {
+                "video" -> insert("<section style='margin:18px 0;padding:14px;background:#f3f6f4;border:1px solid #e0e8e2;border-radius:6px'><p style='margin:0 0 6px;font-weight:700;color:#2b6c4a'>视频内容</p><a href='${url}' target='_blank' style='color:#16865a'>点击打开视频</a><p style='margin:6px 0 0;color:#999;font-size:11px'>视频以外链卡片形式呈现，是否可访问取决于目标平台</p></section>")
+                "audio" -> insert("<section style='margin:18px 0;padding:14px;background:#f7f4ed;border-radius:6px'><p style='margin:0 0 6px;font-weight:700;color:#79623c'>音频内容</p><a href='${url}' target='_blank' style='color:#9a7435'>点击收听音频</a><p style='margin:6px 0 0;color:#999;font-size:11px'>音频以外链卡片形式呈现，不代表公众号可直接播放</p></section>")
+                else -> insert("<a href='${url}' target='_blank'>链接文字</a>")
+            }
+        } else vm.toast("请输入有效的 http/https 网址")
         showLink = false
-    }) { showLink = false }
+        linkInsertType = "link"
+    }) { showLink = false; linkInsertType = "link" }
     if (showDeleteConfirm != null) {
         val target = showDeleteConfirm!!
         AlertDialog(
