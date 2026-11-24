@@ -261,6 +261,7 @@ private fun StylesPage(vm: AppViewModel) = Page {
                     }) { Text("迁移/重命名") }
                     TextButton(onClick = {
                         if (categoryFrom.isBlank()) vm.toast("请先填写要删除的分类")
+                        else if (categoryFrom.trim() == "未分类") vm.toast("默认分类「未分类」不能删除")
                         else { vm.renameStyleCategory(categoryFrom.trim(), "未分类"); showCategoryManager = false; vm.toast("分类已删除，关联样式已迁移到未分类") }
                     }) { Text("删除并迁移") }
                 }
