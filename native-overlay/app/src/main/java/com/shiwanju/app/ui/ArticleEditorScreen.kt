@@ -251,35 +251,73 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }.onFailure { vm.toast("模板包导出失败：${it.message ?: "无法写入文件"}") }
     }
     val stylePackageImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) runCatching {
-            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
-            if (raw.length > 20 * 1024 * 1024) error("模板包超过 20 MB")
-            val pack = JSONObject(raw)
-            if (pack.optString("format") != "shiwanju.styles.v1") error("不是拾万句模板包")
-            val rows = pack.optJSONArray("styles") ?: error("模板列表缺失")
-            if (rows.length() > 100) error("单个模板包最多导入 100 个样式")
-            val importedStyles = mutableListOf<StyleModule>()
-            for (index in 0 until rows.length()) {
-                val row = rows.optJSONObject(index) ?: continue
-                val htmlValue = row.optString("html")
-                if (htmlValue.length > 2 * 1024 * 1024) error("第 ${index + 1} 个模板内容过大")
-                val tags = row.optJSONArray("tags") ?: org.json.JSONArray()
-                val safeTags = (0 until minOf(tags.length(), 30)).mapNotNull { tags.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
-                val type = row.optString("type").takeIf { it in listOf("full", "component", "combination") } ?: "component"
-                importedStyles += StyleModule(
-                    id = vm.newId(), name = row.optString("name", "导入样式").take(100).ifBlank { "导入样式" },
-                    category = row.optString("category", "导入模板").take(80).ifBlank { "导入模板" },
-                    html = sanitizeArticleHtml(htmlValue), updatedAt = System.currentTimeMillis().toString(),
-                    isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = row.optString("thumbnail").take(200),
-                    tags = safeTags
-                )
+        if (uri != null) {
+            val importedMedia = mutableListOf<MediaAsset>()
+            runCatching {
+                val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+                if (raw.length > 48 * 1024 * 1024) error("模板包超过 48 MB")
+                val pack = JSONObject(raw)
+                if (pack.optString("format") != "shiwanju.styles.v1") error("不是拾万句模板包")
+                val rows = pack.optJSONArray("styles") ?: error("模板列表缺失")
+                if (rows.length() > 100) error("单个模板包最多导入 100 个样式")
+                val idMap = mutableMapOf<String, String>()
+                val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
+                if (assets.length() > 40) error("模板包最多包含 40 张图片")
+                val mediaDir = File(context.filesDir, "article_media").apply { mkdirs() }
+                var totalBytes = 0L
+                for (index in 0 until assets.length()) {
+                    val row = assets.optJSONObject(index) ?: continue
+                    val oldId = row.optString("id")
+                    if (oldId.isBlank()) error("模板图片缺少资源 ID")
+                    val mime = row.optString("mimeType", "image/jpeg")
+                    if (!mime.startsWith("image/")) error("模板包含非图片资源")
+                    val encoded = row.optString("base64")
+                    if (encoded.length > 16 * 1024 * 1024) error("单张模板图片数据过大")
+                    val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                    if (bytes.size > 12 * 1024 * 1024) error("单张模板图片超过 12 MB")
+                    totalBytes += bytes.size
+                    if (totalBytes > 36L * 1024 * 1024) error("模板图片总大小超过 36 MB")
+                    var newId = vm.newId()
+                    while (vm.data.mediaAssets.any { it.id == newId } || importedMedia.any { it.id == newId }) newId = vm.newId()
+                    val rawName = row.optString("fileName", "template_image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
+                    val ext = rawName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").take(8).ifBlank { "jpg" }
+                    val target = File(mediaDir, "$newId.$ext")
+                    target.writeBytes(bytes)
+                    val asset = MediaAsset(newId, rawName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100), mime, "article_media/${target.name}", target.length(), System.currentTimeMillis().toString())
+                    vm.saveMediaAsset(asset); importedMedia.add(asset); idMap[oldId] = newId
+                }
+                val importedStyles = mutableListOf<StyleModule>()
+                for (index in 0 until rows.length()) {
+                    val row = rows.optJSONObject(index) ?: continue
+                    var htmlValue = row.optString("html")
+                    if (htmlValue.length > 2 * 1024 * 1024) error("第 ${index + 1} 个模板内容过大")
+                    idMap.forEach { (oldId, newId) -> htmlValue = htmlValue.replace("/assets/$oldId", "/assets/$newId") }
+                    val tags = row.optJSONArray("tags") ?: org.json.JSONArray()
+                    val safeTags = (0 until minOf(tags.length(), 30)).mapNotNull { tags.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
+                    val type = row.optString("type").takeIf { it in listOf("full", "component", "combination") } ?: "component"
+                    importedStyles += StyleModule(
+                        id = vm.newId(), name = row.optString("name", "导入样式").take(100).ifBlank { "导入样式" },
+                        category = row.optString("category", "导入模板").take(80).ifBlank { "导入模板" },
+                        html = sanitizeArticleHtml(htmlValue), updatedAt = System.currentTimeMillis().toString(),
+                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = row.optString("thumbnail").take(200), tags = safeTags
+                    )
+                }
+                if (importedStyles.isEmpty()) error("模板包中没有可导入的样式")
+                importedStyles.forEach { vm.saveStyle(it) }
+                vm.toast("已导入 ${importedStyles.size} 个样式模板及 ${importedMedia.size} 张图片")
+            }.onFailure { error ->
+                importedMedia.forEach { asset ->
+                    runCatching { File(context.filesDir, asset.relativePath).canonicalFile.let { file ->
+                        val root = File(context.filesDir, "article_media").canonicalFile
+                        if (file.path.startsWith(root.path + File.separator)) file.delete()
+                    } }
+                    vm.deleteMediaAsset(asset.id)
+                }
+                vm.toast("模板包导入失败：${error.message ?: "文件格式错误"}")
             }
-            if (importedStyles.isEmpty()) error("模板包中没有可导入的样式")
-            importedStyles.forEach { vm.saveStyle(it) }
-            vm.toast("已导入 ${importedStyles.size} 个样式模板")
-        }.onFailure { vm.toast("模板包导入失败：${it.message ?: "文件格式错误"}") }
+        }
     }
-    val articleJsonExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val articleJsonExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) runCatching {
             context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportArticleJson) }
                 ?: error("无法写入文件")
@@ -940,7 +978,20 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     .put("html", style.html).put("isFavorite", style.isFavorite).put("type", style.type)
                                     .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)))
                             }
-                            pack.put("styles", rows)
+                            val assets = org.json.JSONArray()
+                            var totalBytes = 0L
+                            vm.data.mediaAssets.filter { asset -> vm.data.styles.any { it.html.contains(asset.id) } }.forEach { asset ->
+                                val root = File(context.filesDir, "article_media").canonicalFile
+                                val file = File(context.filesDir, asset.relativePath).canonicalFile
+                                if (file.path.startsWith(root.path + File.separator) && file.isFile) {
+                                    val bytes = file.readBytes()
+                                    totalBytes += bytes.size
+                                    if (bytes.size > 12 * 1024 * 1024 || totalBytes > 36L * 1024 * 1024) error("模板引用图片超过导出容量限制")
+                                    assets.put(JSONObject().put("id", asset.id).put("fileName", asset.fileName)
+                                        .put("mimeType", asset.mimeType).put("base64", Base64.encodeToString(bytes, Base64.NO_WRAP)))
+                                }
+                            }
+                            pack.put("styles", rows).put("assets", assets)
                             pendingExportStyleJson = pack.toString(2)
                             stylePackageExporter.launch("拾万句-样式模板包.json")
                         }
