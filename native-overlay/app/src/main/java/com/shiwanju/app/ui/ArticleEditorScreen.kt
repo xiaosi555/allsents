@@ -94,6 +94,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportHtml by remember { mutableStateOf("") }
     var pendingExportMarkdown by remember { mutableStateOf("") }
     var pendingExportArticleJson by remember { mutableStateOf("") }
+    var pendingImageGroupCount by remember { mutableIntStateOf(2) }
     var selectedBlockHtml by remember { mutableStateOf("") }
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
@@ -247,6 +248,25 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             pendingSave++
             vm.toast("文章包已导入")
         }.onFailure { vm.toast("文章包导入失败：${it.message ?: "文件格式错误"}") }
+    }
+    val imageGroupPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        val chosen = uris.take(pendingImageGroupCount)
+        if (chosen.size < pendingImageGroupCount) vm.toast("请选择至少 ${pendingImageGroupCount} 张图片")
+        else runCatching {
+            val fragments = chosen.mapIndexed { index, uri ->
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                val ext = when (mime.lowercase(Locale.ROOT)) { "image/png" -> "png"; "image/webp" -> "webp"; "image/gif" -> "gif"; else -> "jpg" }
+                val id = vm.newId() + index.toString()
+                val dir = File(context.filesDir, "article_media").apply { mkdirs() }
+                val target = File(dir, "$id.$ext")
+                context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
+                vm.saveMediaAsset(MediaAsset(id, target.name, mime, "article_media/${target.name}", target.length(), System.currentTimeMillis().toString()))
+                "<td style='width:${100.0 / pendingImageGroupCount}%;padding:2px;vertical-align:top'><img src='https://editor.local/assets/$id' alt='图片 ${index + 1}' style='width:100%;height:auto;display:block'></td>"
+            }
+            val htmlGroup = "<table style='width:100%;table-layout:fixed;border-collapse:collapse'><tr>${fragments.joinToString("")}</tr></table><p><br></p>"
+            insert(htmlGroup)
+            vm.toast("已插入 ${pendingImageGroupCount} 图组")
+        }.onFailure { vm.toast("图组导入失败：${it.message ?: "未知错误"}") }
     }
     val htmlImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
@@ -617,6 +637,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Text("图片素材", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("本地图片/相册") { imagePicker.launch(arrayOf("image/*")) }
+                            EditorTool("双图组") { pendingImageGroupCount = 2; imageGroupPicker.launch(arrayOf("image/*")) }
+                            EditorTool("三图组") { pendingImageGroupCount = 3; imageGroupPicker.launch(arrayOf("image/*")) }
                             EditorTool("插入网络图片") { dialogValue = ""; showImage = true }
                             EditorTool("双图并排") { insert("<table style='width:100%;table-layout:fixed;border-collapse:collapse'><tr><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+1' style='width:100%'></td><td style='width:50%;padding:3px'><img src='https://placehold.co/600x600?text=Image+2' style='width:100%'></td></tr></table>") }
                             EditorTool("图片说明") { insert("<p style='text-align:center;color:#999;font-size:12px;margin-top:6px'>在此输入图片说明</p>") }
