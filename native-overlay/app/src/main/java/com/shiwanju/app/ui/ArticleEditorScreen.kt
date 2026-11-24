@@ -39,12 +39,14 @@ import java.io.File
 import java.util.Locale
 import com.shiwanju.app.data.ArticleDocument
 import com.shiwanju.app.data.MediaAsset
+import com.shiwanju.app.data.StyleModule
 import org.json.JSONObject
 import kotlinx.coroutines.delay
 
-private class ArticleEditorBridge(private val onChange: (String) -> Unit) {
+private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
+    @JavascriptInterface fun blockSelected(value: String) { main.post { onBlock(value) } }
 }
 
 private enum class EditorPanel(val label: String) {
@@ -78,6 +80,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var category by remember { mutableStateOf("") }
     var tagsText by remember { mutableStateOf("") }
     var pendingExportHtml by remember { mutableStateOf("") }
+    var selectedBlockHtml by remember { mutableStateOf("") }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val filteredArticles = vm.data.articles.filter { searchText.isBlank() || it.title.contains(searchText, true) || it.summary.contains(searchText, true) || it.tags.any { tag -> tag.contains(searchText, true) } }.sortedByDescending { it.updatedAt }
@@ -299,6 +302,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
                 EditorTool("文章信息") { showArticleInfo = true }
+                EditorTool("模块上移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(-1)") }
+                EditorTool("模块下移", selectedBlockHtml.isNotBlank()) { runJs("moveSelectedBlock(1)") }
+                EditorTool("复制模块", selectedBlockHtml.isNotBlank()) { runJs("duplicateSelectedBlock()") }
+                EditorTool("删除模块", selectedBlockHtml.isNotBlank()) { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }
+                EditorTool("保存为样式", selectedBlockHtml.isNotBlank()) {
+                    vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
+                    vm.toast("已保存到「我的 - 样式」")
+                }
             }
 
             AndroidView(
@@ -312,7 +323,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         settings.javaScriptCanOpenWindowsAutomatically = false
                         isVerticalScrollBarEnabled = true
                         setBackgroundColor(android.graphics.Color.WHITE)
-                        addJavascriptInterface(ArticleEditorBridge { value -> html = value; saved = false; pendingSave++ }, "NativeEditor")
+                        addJavascriptInterface(ArticleEditorBridge(
+                            { value -> html = value; saved = false; pendingSave++ },
+                            { value -> selectedBlockHtml = value }
+                        ), "NativeEditor")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
                             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
@@ -342,11 +356,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor img{max-width:100%;height:auto;display:block;margin:12px auto}
                             #editor table{width:100%;border-collapse:collapse;table-layout:fixed}#editor td,#editor th{border:1px solid #dfe4e0;padding:8px;min-width:24px;vertical-align:top}
                             #editor a{color:#16865a;text-decoration:underline}#editor hr{border:0;border-top:1px solid #e1e5e2;margin:22px 0}
+                            #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}
                             </style></head><body><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
                             const root=document.getElementById('editor');let savedRange=null;let timer=null;
                             function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';saveSelection();}
-                            function setEditable(v){root.contentEditable=!!v;}
+                            function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block').forEach(e=>e.classList.remove('selected-block'));}}
+                            function selectedBlock(){return root.querySelector('.selected-block');}
+                            function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);NativeEditor.changed(root.innerHTML);}
+                            function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');NativeEditor.changed(root.innerHTML);}
+                            function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);NativeEditor.changed(root.innerHTML);}
+                            root.addEventListener('click',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(e&&e!==root){root.querySelectorAll('.selected-block').forEach(x=>x.classList.remove('selected-block'));e.classList.add('selected-block');NativeEditor.blockSelected(e.outerHTML);}});
                             function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
                             function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);return;}
