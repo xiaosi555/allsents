@@ -62,7 +62,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
     fun saveDocument() {
         editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
-            val current = runCatching { org.json.JSONTokener(raw ?: "\"\\\"").nextValue() as? String }.getOrNull() ?: html
+            val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
             html = current
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == articleId }
