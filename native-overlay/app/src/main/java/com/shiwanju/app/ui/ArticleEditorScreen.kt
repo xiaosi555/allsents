@@ -92,6 +92,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var fullTemplateConfirm by remember { mutableStateOf<StyleModule?>(null) }
     var showCompatibilityReport by remember { mutableStateOf(false) }
     var showFindReplace by remember { mutableStateOf(false) }
+    var showHtmlImportPreview by remember { mutableStateOf(false) }
+    var pendingImportedHtml by remember { mutableStateOf("") }
     var findValue by remember { mutableStateOf("") }
     var replaceValue by remember { mutableStateOf("") }
     var compatibilityWarnings by remember { mutableStateOf(emptyList<String>()) }
@@ -420,17 +422,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     val htmlImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
             val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
-            val safe = sanitizeArticleHtml(raw)
-            if (showArticleList) {
-                articleId = vm.newId()
-                title = "导入文章"
-                subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""; articleStatus = "draft"; coverAssetId = ""
-                showArticleList = false
-            }
-            html = safe
-            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(safe)});", null)
-            pendingSave++
-            vm.toast("HTML 已导入")
+            if (raw.length > 12 * 1024 * 1024) error("HTML 文件超过 12 MB")
+            pendingImportedHtml = sanitizeArticleHtml(raw)
+            showHtmlImportPreview = true
         }.onFailure { vm.toast("HTML 导入失败：${it.message ?: "无法读取文件"}") }
     }
     val markdownExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
@@ -1018,6 +1012,47 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    if (showHtmlImportPreview) {
+        Dialog(onDismissRequest = { showHtmlImportPreview = false }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("HTML 导入预览", color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text("已清理脚本、事件属性和危险链接。请选择新建文章或替换当前正文。", color = Color.Gray, fontSize = 11.sp)
+                    AndroidView(
+                        modifier = Modifier.fillMaxWidth().height(360.dp),
+                        factory = { ctx -> WebView(ctx).apply {
+                            settings.javaScriptEnabled = false
+                            settings.domStorageEnabled = false
+                            setBackgroundColor(android.graphics.Color.WHITE)
+                            loadDataWithBaseURL("https://editor.local/", pendingImportedHtml, "text/html", "UTF-8", null)
+                        } },
+                        update = { view -> view.loadDataWithBaseURL("https://editor.local/", pendingImportedHtml, "text/html", "UTF-8", null) }
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showHtmlImportPreview = false }) { Text("取消", color = Color.Gray) }
+                        TextButton(onClick = {
+                            html = pendingImportedHtml
+                            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(pendingImportedHtml)});setEditable(true);", null)
+                            pendingSave++
+                            showHtmlImportPreview = false
+                            vm.toast("已替换当前文章正文")
+                        }) { Text("替换正文", color = accent) }
+                        TextButton(onClick = {
+                            newArticle()
+                            title = "导入文章"
+                            subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""
+                            articleStatus = "draft"; coverAssetId = ""
+                            html = pendingImportedHtml
+                            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(pendingImportedHtml)});setEditable(true);", null)
+                            pendingSave++
+                            showHtmlImportPreview = false
+                            vm.toast("HTML 已作为新文章导入")
+                        }) { Text("新建文章导入", color = accent) }
+                    }
+                }
+            }
+        }
+    }
     if (templatePreview != null) {
         val template = templatePreview!!
         Dialog(onDismissRequest = { templatePreview = null }) {
