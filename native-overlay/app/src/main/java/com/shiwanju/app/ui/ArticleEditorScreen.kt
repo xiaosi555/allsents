@@ -48,6 +48,7 @@ import java.util.Locale
 import java.text.SimpleDateFormat
 import java.util.Date
 import com.shiwanju.app.data.ArticleDocument
+import com.shiwanju.app.data.ArticleRevision
 import com.shiwanju.app.data.MediaAsset
 import com.shiwanju.app.data.StyleModule
 import org.json.JSONObject
