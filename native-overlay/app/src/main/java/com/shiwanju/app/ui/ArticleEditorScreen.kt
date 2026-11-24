@@ -247,51 +247,80 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }.onFailure { vm.toast("文章包导出失败：${it.message ?: "无法写入文件"}") }
     }
     val articleJsonImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) runCatching {
-            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
-            val pack = JSONObject(raw)
-            if (pack.optString("format") != "shiwanju.article.v1") error("不是拾万句文章包")
-            val now = System.currentTimeMillis().toString()
-            val idMap = mutableMapOf<String, String>()
-            val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
-            val mediaDir = File(context.filesDir, "article_media").apply { mkdirs() }
-            for (index in 0 until assets.length()) {
-                val item = assets.optJSONObject(index) ?: continue
-                val oldId = item.optString("id")
-                var newId = vm.newId() + "_" + index
-                while (vm.data.mediaAssets.any { it.id == newId }) newId = vm.newId() + (0..999).random()
-                val fileName = item.optString("fileName", "image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
-                val mime = item.optString("mimeType", "image/jpeg")
-                val ext = fileName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").ifBlank { "jpg" }
-                val target = File(mediaDir, "$newId.$ext")
-                val bytes = Base64.decode(item.optString("base64"), Base64.DEFAULT)
-                target.writeBytes(bytes)
-                vm.saveMediaAsset(MediaAsset(newId, fileName, mime, "article_media/${target.name}", target.length(), now))
-                idMap[oldId] = newId
+        if (uri != null) {
+            val importedMedia = mutableListOf<MediaAsset>()
+            runCatching {
+                val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+                if (raw.length > 40 * 1024 * 1024) error("文章包超过 40 MB，暂不支持导入")
+                val pack = JSONObject(raw)
+                if (pack.optString("format") != "shiwanju.article.v1") error("不是拾万句文章包")
+                val sourceHtml = pack.optString("html")
+                if (sourceHtml.length > 12 * 1024 * 1024) error("文章 HTML 内容过大")
+                val now = System.currentTimeMillis().toString()
+                val idMap = mutableMapOf<String, String>()
+                val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
+                if (assets.length() > 40) error("单篇文章最多导入 40 张图片")
+                val mediaDir = File(context.filesDir, "article_media").apply { mkdirs() }
+                var totalBytes = 0L
+                for (index in 0 until assets.length()) {
+                    val item = assets.optJSONObject(index) ?: continue
+                    val oldId = item.optString("id")
+                    if (oldId.isBlank()) error("文章包中存在缺少资源 ID 的图片")
+                    val mime = item.optString("mimeType", "image/jpeg")
+                    if (!mime.startsWith("image/")) error("文章包包含非图片媒体资源")
+                    val encoded = item.optString("base64")
+                    if (encoded.length > 16 * 1024 * 1024) error("单张图片数据过大")
+                    val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                    if (bytes.size > 12 * 1024 * 1024) error("单张图片超过 12 MB")
+                    totalBytes += bytes.size
+                    if (totalBytes > 36L * 1024 * 1024) error("图片总大小超过 36 MB")
+                    var newId = vm.newId() + "_" + index
+                    while (vm.data.mediaAssets.any { it.id == newId } || importedMedia.any { it.id == newId }) newId = vm.newId()
+                    val rawName = item.optString("fileName", "image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
+                    val ext = rawName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").take(8).ifBlank { "jpg" }
+                    val safeName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100).ifBlank { "image_$index.$ext" }
+                    val target = File(mediaDir, "$newId.$ext")
+                    target.writeBytes(bytes)
+                    val asset = MediaAsset(newId, safeName, mime, "article_media/${target.name}", target.length(), now)
+                    vm.saveMediaAsset(asset)
+                    importedMedia.add(asset)
+                    idMap[oldId] = newId
+                }
+                var importedHtml = sanitizeArticleHtml(sourceHtml.ifBlank { "<p><br></p>" })
+                idMap.forEach { (oldId, newId) -> importedHtml = importedHtml.replace("/assets/$oldId", "/assets/$newId") }
+                val tagsJson = pack.optJSONArray("tags") ?: org.json.JSONArray()
+                val importedTags = (0 until minOf(tagsJson.length(), 50)).mapNotNull { tagsJson.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
+                val imported = ArticleDocument(
+                    id = vm.newId(), title = pack.optString("title", "导入文章").take(120).ifBlank { "导入文章" }, html = importedHtml,
+                    createdAt = now, updatedAt = now, subtitle = pack.optString("subtitle").take(200),
+                    summary = pack.optString("summary").take(1000), author = pack.optString("author").take(100),
+                    category = pack.optString("category").take(100), tags = importedTags,
+                    coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty(),
+                    status = if (pack.optString("status") == "complete") "complete" else "draft",
+                    wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length
+                )
+                vm.saveArticle(imported)
+                articleId = imported.id; title = imported.title; html = imported.html
+                subtitle = imported.subtitle; summary = imported.summary; author = imported.author
+                category = imported.category; tagsText = imported.tags.joinToString(", ")
+                articleStatus = imported.status; coverAssetId = imported.coverAssetId
+                previewMode = false; showArticleList = false
+                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(imported.html)});setEditable(true);", null)
+                pendingSave++
+                vm.toast("文章包已导入")
+            }.onFailure { error ->
+                importedMedia.forEach { asset ->
+                    runCatching { File(context.filesDir, asset.relativePath).canonicalFile.let { file ->
+                        val root = File(context.filesDir, "article_media").canonicalFile
+                        if (file.path.startsWith(root.path + File.separator)) file.delete()
+                    } }
+                    vm.deleteMediaAsset(asset.id)
+                }
+                vm.toast("文章包导入失败：${error.message ?: "文件格式错误"}")
             }
-            var importedHtml = sanitizeArticleHtml(pack.optString("html"))
-            idMap.forEach { (oldId, newId) -> importedHtml = importedHtml.replace("/assets/$oldId", "/assets/$newId") }
-            val tagsJson = pack.optJSONArray("tags") ?: org.json.JSONArray()
-            val importedTags = (0 until tagsJson.length()).mapNotNull { tagsJson.optString(it).takeIf { tag -> tag.isNotBlank() } }
-            val imported = ArticleDocument(
-                id = vm.newId(), title = pack.optString("title", "导入文章"), html = importedHtml,
-                createdAt = now, updatedAt = now, subtitle = pack.optString("subtitle"),
-                summary = pack.optString("summary"), author = pack.optString("author"),
-                category = pack.optString("category"), tags = importedTags, coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty(),
-                status = pack.optString("status", "draft"), wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length
-            )
-            vm.saveArticle(imported)
-            articleId = imported.id; title = imported.title; html = imported.html
-            subtitle = imported.subtitle; summary = imported.summary; author = imported.author
-            category = imported.category; tagsText = imported.tags.joinToString(", ")
-            articleStatus = imported.status; coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty()
-            previewMode = false; showArticleList = false
-            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(imported.html)});setEditable(true);", null)
-            pendingSave++
-            vm.toast("文章包已导入")
-        }.onFailure { vm.toast("文章包导入失败：${it.message ?: "文件格式错误"}") }
+        }
     }
-    val imageGroupPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        val imageGroupPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val chosen = uris.take(pendingImageGroupCount)
         if (chosen.size < pendingImageGroupCount) vm.toast("请选择至少 ${pendingImageGroupCount} 张图片")
         else runCatching {
