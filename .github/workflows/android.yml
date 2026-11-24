@@ -98,19 +98,34 @@ jobs:
           print(f"Logo assets normalized: legacy/adaptive artwork ratio {66/108:.4f}; adaptive alpha bounds {bounds}")
           PY
           rm -f "$PROJECT/app/src/main/res/drawable-nodpi/app_logo.jpg"
-          # Apply Kotlin/engine/data fixes onto the untouched original native project.
-          # Do not overlay the previous HomeScreen/MainActivity experiment.
+
+      - name: Apply native project patches
+        if: steps.source.outputs.present == 'true'
+        run: |
           python3 native-overlay/apply_patches.py
+
+      - name: Apply theme and UI refinements
+        if: steps.source.outputs.present == 'true'
+        run: |
           python3 native-overlay/apply_theme_colors.py
           python3 native-overlay/apply_ui_refinements.py
+          python3 -m py_compile native-overlay/apply_ui_refinements_v2.py
           python3 native-overlay/apply_ui_refinements_v2.py
+
+      - name: Generate launcher icons and splash screen
+        if: steps.source.outputs.present == 'true'
+        run: |
           python3 native-overlay/generate_icon_styles.py
           python3 native-overlay/apply_icon_styles.py
           python3 native-overlay/apply_splash.py
-          # Icon generator supplies base adaptive and legacy resources from one full-bleed composition.
+
+      - name: Finalize Android resources and version
+        if: steps.source.outputs.present == 'true'
+        shell: bash
+        run: |
+          PROJECT="source/ShiWanJu-Android"
           rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_background.xml"
           rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml"
-          # Keep every APK build installable as an update: APP_VERSION is bumped in the repository per release.
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -126,7 +141,6 @@ jobs:
           print(f"APK version set to 1.0.{code} (versionCode {code})")
           PY
           sed -i 's/android:roundIcon="@mipmap\/ic_launcher"/android:roundIcon="@mipmap\/ic_launcher_round"/' "$PROJECT/app/src/main/AndroidManifest.xml"
-          # Kotlin property setter and custom method had the same JVM signature.
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
           sed -i 's/vm.setTextViewMode(/vm.updateTextViewMode(/g' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/MyScreens.kt"
 
