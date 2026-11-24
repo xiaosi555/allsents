@@ -168,7 +168,7 @@ replace_once(p,
         d.copy(mediaAssets = if (i >= 0) d.mediaAssets.toMutableList().also { it[i] = asset } else d.mediaAssets + asset)
     }
     fun deleteMediaAsset(id: String) = updateData { d ->
-        val used = d.articles.any { it.html.contains(id) }
+        val used = d.articles.any { it.html.contains(id) || it.coverAssetId == id }
         if (used) d else d.copy(mediaAssets = d.mediaAssets.filterNot { it.id == id })
     }
 
@@ -362,6 +362,10 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "function duplicateSelectedBlock"),
     (UI / "ArticleEditorScreen.kt", "function undoEditor"),
     (UI / "ArticleEditorScreen.kt", "function cropSelectedImage"),
+    (UI / "ArticleEditorScreen.kt", "function replaceSelectedImage"),
+    (UI / "ArticleEditorScreen.kt", "function deleteSelectedImage"),
+    (UI / "ArticleEditorScreen.kt", "articleFilter"),
+    (UI / "ArticleEditorScreen.kt", "formatArticleTimestamp"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
 ]
