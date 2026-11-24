@@ -185,6 +185,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (uri != null) runCatching {
             val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
             val safe = sanitizeArticleHtml(raw)
+            if (showArticleList) {
+                articleId = vm.newId()
+                title = "导入文章"
+                subtitle = ""; summary = ""; author = ""; category = ""; tagsText = ""
+                showArticleList = false
+            }
             html = safe
             editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(safe)});", null)
             pendingSave++
