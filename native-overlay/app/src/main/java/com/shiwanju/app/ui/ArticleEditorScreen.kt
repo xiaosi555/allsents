@@ -691,6 +691,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     else editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         runCatching {
                         val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                        if (current.length > 12 * 1024 * 1024) error("文章 HTML 超过文章包导出容量限制")
                         val pack = JSONObject()
                             .put("format", "shiwanju.article.v1")
                             .put("title", title).put("subtitle", subtitle).put("summary", summary)
