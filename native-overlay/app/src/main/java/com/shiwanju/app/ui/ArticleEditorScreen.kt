@@ -427,7 +427,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             showHtmlImportPreview = true
         }.onFailure { vm.toast("HTML 导入失败：${it.message ?: "无法读取文件"}") }
     }
-    val markdownExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+    val markdownImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+            if (raw.length > 4 * 1024 * 1024) error("Markdown 文件超过 4 MB")
+            pendingImportedHtml = sanitizeArticleHtml(markdownToArticleHtml(raw))
+            showHtmlImportPreview = true
+        }.onFailure { vm.toast("Markdown 导入失败：${it.message ?: "无法读取文件"}") }
+    }
+        val markdownExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
         if (uri != null) runCatching {
             context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingExportMarkdown) }
                 ?: error("无法写入文件")
@@ -602,6 +610,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 }
                 EditorTool("导入HTML") { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }
+                EditorTool("导入Markdown") { markdownImporter.launch(arrayOf("text/markdown", "text/plain")) }
                 EditorTool("导出HTML") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         pendingExportHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
@@ -1345,6 +1354,58 @@ private fun sanitizeArticleHtml(source: String): String {
 }
 
 
+private fun escapeMarkdownText(value: String): String = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+
+private fun markdownInlineToHtml(source: String): String {
+    var value = escapeMarkdownText(source)
+    value = Regex("""!\[([^\]]*)\]\((https?://[^\s)]+)\)""").replace(value) { m -> "<img src=\"${m.groupValues[2]}\" alt=\"${m.groupValues[1]}\" style=\"max-width:100%;height:auto\">" }
+    value = Regex("""\[([^\]]+)\]\((https?://[^\s)]+)\)""").replace(value) { m -> "<a href=\"${m.groupValues[2]}\">${m.groupValues[1]}</a>" }
+    value = Regex("""\*\*(.+?)\*\*""").replace(value, "<strong>$1</strong>")
+    value = Regex("""(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)""").replace(value, "<em>$1</em>")
+    value = Regex("""~~(.+?)~~""").replace(value, "<del>$1</del>")
+    return value
+}
+
+private fun markdownToArticleHtml(markdown: String): String {
+    val out = StringBuilder()
+    var listType = ""
+    var inCode = false
+    val code = StringBuilder()
+    fun closeList() {
+        if (listType == "ul") out.append("</ul>") else if (listType == "ol") out.append("</ol>")
+        listType = ""
+    }
+    markdown.lineSequence().forEach { raw ->
+        val line = raw.trimEnd()
+        val trimmed = line.trim()
+        if (trimmed.startsWith("```")) {
+            closeList()
+            if (!inCode) { out.append("<pre><code>"); code.clear(); inCode = true }
+            else { out.append(escapeMarkdownText(code.toString().trimEnd())).append("</code></pre>"); inCode = false }
+            return@forEach
+        }
+        if (inCode) { code.append(line).append("\n"); return@forEach }
+        if (trimmed.isEmpty()) { closeList(); return@forEach }
+        val heading = Regex("^(#{1,4})\\s+(.+)$").matchEntire(trimmed)
+        when {
+            heading != null -> { closeList(); val level = heading.groupValues[1].length; out.append("<h$level>").append(markdownInlineToHtml(heading.groupValues[2])).append("</h$level>") }
+            trimmed == "---" || trimmed == "***" -> { closeList(); out.append("<hr>") }
+            trimmed.startsWith(">") -> { closeList(); out.append("<blockquote><p>").append(markdownInlineToHtml(trimmed.removePrefix(">").trim())).append("</p></blockquote>") }
+            trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("+ ") -> {
+                if (listType != "ul") { closeList(); out.append("<ul>"); listType = "ul" }
+                out.append("<li>").append(markdownInlineToHtml(trimmed.drop(2))).append("</li>")
+            }
+            Regex("^\\d+\\.\\s+").containsMatchIn(trimmed) -> {
+                if (listType != "ol") { closeList(); out.append("<ol>"); listType = "ol" }
+                out.append("<li>").append(markdownInlineToHtml(trimmed.replaceFirst(Regex("^\\d+\\.\\s+"), ""))).append("</li>")
+            }
+            else -> { closeList(); out.append("<p>").append(markdownInlineToHtml(trimmed)).append("</p>") }
+        }
+    }
+    if (inCode) out.append(escapeMarkdownText(code.toString())).append("</code></pre>")
+    closeList()
+    return out.toString().ifBlank { "<p><br></p>" }
+}
 private fun decodeArticleAssetPreview(file: File): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeFile(file.absolutePath, bounds)
