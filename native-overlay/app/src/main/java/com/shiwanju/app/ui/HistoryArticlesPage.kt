@@ -1,21 +1,20 @@
 package com.shiwanju.app.ui
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +31,7 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -40,308 +40,206 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val HISTORY_AVATAR = "https://mmbiz.qpic.cn/sz_mmbiz_png/rpicN7OehSy7qNDoI9pnJMUbM2c9d38f0TpRibQ2icA6nOePn4buH2buUId7xfRLVGibkFtib7oIib7LCBcyXqHjOOMQ/640?wx_fmt=png&from=appmsg"
-private val HistoryGreen = Color(0xFF07C160)
+private val HistoryGreen = Color(0xFF01CC7A)
+private data class HistoryArticle(val id: String, val title: String, val link: String, val date: String, val cover: String, val digest: String = "")
+private data class HistoryResult(val articles: List<HistoryArticle>, val nextOffset: String, val ended: Boolean, val accountName: String = "")
 
-private data class SpiderProfile(
-    val id: String,
-    val title: String,
-    val msgBiz: String,
-    val headimg: String = "",
-    val totalPosts: Int = 0,
-    val newestAt: String = ""
-)
-
-private data class SpiderArticle(
-    val id: String,
-    val title: String,
-    val link: String,
-    val publishAt: String = "",
-    val readNum: Int = 0,
-    val likeNum: Int = 0,
-    val likeNum2: Int = 0,
-    val cover: String = "",
-    val digest: String = ""
-)
-
-private data class SpiderPage(
-    val items: List<SpiderArticle>,
-    val page: Int,
-    val totalPages: Int,
-    val total: Int
-)
-
-private object WechatSpiderApi {
-    private fun request(base: String, path: String): JSONObject {
-        val endpoint = URL(base.trimEnd('/') + path)
-        val connection = endpoint.openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-        connection.connectTimeout = 12000
-        connection.readTimeout = 18000
-        connection.setRequestProperty("Accept", "application/json")
-        connection.setRequestProperty("User-Agent", "ShiWanJu-Android/1.0")
-        try {
-            val code = connection.responseCode
-            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-            if (code !in 200..299) throw IllegalStateException("采集服务返回 HTTP $code：${body.take(180)}")
-            return JSONObject(body)
-        } finally {
-            connection.disconnect()
-        }
+private object OfficialHistoryApi {
+    private fun postJson(endpoint: String, payload: JSONObject): JSONObject {
+        val c = (URL(endpoint).openConnection() as HttpURLConnection)
+        c.requestMethod = "POST"; c.connectTimeout = 18000; c.readTimeout = 30000
+        c.doOutput = true
+        c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+        c.setRequestProperty("Accept", "application/json")
+        c.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
+        val code = c.responseCode
+        val body = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+        c.disconnect()
+        if (code !in 200..299) throw IllegalStateException("接口 HTTP $code：${body.take(160)}")
+        return JSONObject(body)
     }
 
-    fun profiles(base: String): List<SpiderProfile> {
-        val json = request(base, "/api/profiles?page=1&perPage=100")
-        val data = json.optJSONArray("data") ?: return emptyList()
-        return (0 until data.length()).mapNotNull { i ->
-            val p = data.optJSONObject(i) ?: return@mapNotNull null
-            SpiderProfile(
-                id = p.optString("id"),
-                title = p.optString("title", "未命名公众号"),
-                msgBiz = p.optString("msgBiz"),
-                headimg = p.optString("headimg"),
-                totalPosts = p.optInt("postsAllCount"),
-                newestAt = p.optString("newestPostTime")
-            )
-        }.filter { it.msgBiz.isNotBlank() }
+    private fun postForm(endpoint: String, fields: Map<String, String>): JSONObject {
+        val body = fields.entries.joinToString("&") { URLEncoder.encode(it.key, "UTF-8") + "=" + URLEncoder.encode(it.value, "UTF-8") }
+        val c = (URL(endpoint).openConnection() as HttpURLConnection)
+        c.requestMethod = "POST"; c.connectTimeout = 18000; c.readTimeout = 30000
+        c.doOutput = true
+        c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+        c.setRequestProperty("Accept", "application/json")
+        c.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+        val code = c.responseCode
+        val response = (if (code in 200..299) c.inputStream else c.errorStream)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+        c.disconnect()
+        if (code !in 200..299) throw IllegalStateException("JustOneAPI HTTP $code：${response.take(160)}")
+        return JSONObject(response)
     }
 
-    fun posts(base: String, biz: String, page: Int): SpiderPage {
-        val encodedBiz = URLEncoder.encode(biz, "UTF-8")
-        val json = request(base, "/api/posts?msgBiz=$encodedBiz&sortWay=-publishAt&page=$page&perPage=20")
-        val metadata = json.optJSONObject("metadata") ?: JSONObject()
-        val data = json.optJSONArray("data")
-        val items = if (data == null) emptyList() else (0 until data.length()).mapNotNull { i ->
+    fun dajiala(key: String, verify: String, account: String, sourceUrl: String, offset: String): HistoryResult {
+        val req = JSONObject().put("key", key).put("verifycode", verify).put("offset", offset)
+            .put("ghid", if (account.startsWith("gh_")) account else "")
+            .put("nickname", if (account.startsWith("gh_")) "" else account)
+            .put("url", sourceUrl)
+        val json = postJson("https://www.dajiala.com/fbmain/monitor/v3/post_history", req)
+        val code = json.optInt("code", -999)
+        if (code != 0) throw IllegalStateException("极致了 API 错误 $code：${json.optString("msg", json.optString("error_msg", "请检查 Key、附加码和账号信息"))}")
+        val data = json.optJSONArray("data") ?: JSONArray()
+        val result = (0 until data.length()).mapNotNull { i ->
             val p = data.optJSONObject(i) ?: return@mapNotNull null
-            val id = p.optString("id")
-            // Upstream list results omit cover and digest; the detail endpoint includes both.
-            val detail = if (id.isBlank()) null else runCatching {
-                request(base, "/api/posts/" + URLEncoder.encode(id, "UTF-8")).optJSONObject("data")
-            }.getOrNull()
-            SpiderArticle(
-                id = id,
-                title = p.optString("title", "未命名文章"),
-                link = p.optString("link"),
-                publishAt = p.optString("publishAt"),
-                readNum = p.optInt("readNum"),
-                likeNum = p.optInt("likeNum"),
-                likeNum2 = p.optInt("likeNum2"),
-                cover = detail?.optString("cover").orEmpty(),
-                digest = detail?.optString("digest").orEmpty()
+            val link = p.optString("url")
+            if (link.isBlank()) return@mapNotNull null
+            HistoryArticle(
+                p.optString("sn", link), p.optString("title", "未命名文章"), link,
+                p.optString("post_time_str").ifBlank { p.optLong("post_time").takeIf { it > 0 }?.let { formatEpoch(it) } ?: "" },
+                p.optString("pic_cdn_url_235_1").ifBlank { p.optString("cover_url") }.ifBlank { p.optString("pic_cdn_url_16_9") },
+                p.optString("digest")
             )
         }
-        return SpiderPage(items, metadata.optInt("currentPage", page), metadata.optInt("totalPages"), metadata.optInt("count"))
+        val next = json.optString("offset")
+        val ended = json.optInt("is_end", 0) == 1 || next.isBlank()
+        return HistoryResult(result, next, ended, json.optString("nickname"))
+    }
+
+    fun justOne(token: String, sourceUrl: String, ghid: String, offset: String): HistoryResult {
+        val params = linkedMapOf("token" to token, "offset" to offset)
+        if (sourceUrl.isNotBlank()) params["url"] = sourceUrl else params["ghid"] = ghid
+        val json = postForm("https://api.justoneapi.com/api/weixin/get-account-history-articles/v2", params)
+        if (json.optInt("code", -999) != 0) throw IllegalStateException("JustOneAPI 错误码：${json.opt("code")}")
+        val data = json.optJSONObject("data") ?: JSONObject()
+        val messages = data.optJSONObject("MsgList")?.optJSONArray("Msg") ?: JSONArray()
+        val out = mutableListOf<HistoryArticle>()
+        for (i in 0 until messages.length()) {
+            val detail = messages.optJSONObject(i)?.optJSONObject("AppMsg")?.optJSONArray("DetailInfo") ?: continue
+            for (j in 0 until detail.length()) {
+                val item = detail.optJSONObject(j) ?: continue
+                val link = item.optString("ContentUrl")
+                if (link.isBlank()) continue
+                out.add(HistoryArticle(
+                    link, item.optString("Title", "未命名文章"), link,
+                    item.optString("CreateTime").ifBlank { item.optString("CreateTimeStr") },
+                    item.optString("Cover").ifBlank { item.optString("CoverUrl") },
+                    item.optString("Digest")
+                ))
+            }
+        }
+        val paging = data.optJSONObject("PagingInfo") ?: JSONObject()
+        val next = paging.optString("Offset")
+        val ended = paging.opt("IsEnd")?.toString() in listOf("1", "true")
+        return HistoryResult(out, next, ended)
     }
 }
 
+private fun formatEpoch(seconds: Long): String = runCatching {
+    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(seconds * 1000))
+}.getOrDefault("")
+
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 fun HistoryArticlesPage(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val prefs = remember { context.getSharedPreferences("wechat_spider_settings", 0) }
-    var server by remember { mutableStateOf(prefs.getString("server", "") ?: "") }
-    var biz by remember { mutableStateOf(prefs.getString("biz", "") ?: "") }
-    var profiles by remember { mutableStateOf<List<SpiderProfile>>(emptyList()) }
-    var selectedProfile by remember { mutableStateOf<SpiderProfile?>(null) }
-    var articles by remember { mutableStateOf<List<SpiderArticle>>(emptyList()) }
-    var page by remember { mutableIntStateOf(1) }
-    var totalPages by remember { mutableIntStateOf(0) }
-    var total by remember { mutableIntStateOf(0) }
+    val prefs = remember { context.getSharedPreferences("official_history_api", Context.MODE_PRIVATE) }
+    var provider by remember { mutableStateOf(prefs.getString("provider", "dajiala") ?: "dajiala") }
+    var key by remember { mutableStateOf(prefs.getString("key", "") ?: "") }
+    var verify by remember { mutableStateOf(prefs.getString("verify", "") ?: "") }
+    var token by remember { mutableStateOf(prefs.getString("token", "") ?: "") }
+    var account by remember { mutableStateOf(prefs.getString("account", "") ?: "") }
+    var sourceUrl by remember { mutableStateOf(prefs.getString("source_url", "") ?: "") }
+    var offset by remember { mutableStateOf("") }
+    var articles by remember { mutableStateOf<List<HistoryArticle>>(emptyList()) }
+    var ended by remember { mutableStateOf(false) }
+    var accountName by remember { mutableStateOf("拾万句") }
     var busy by remember { mutableStateOf(false) }
-    var notice by remember { mutableStateOf("先配置 wechat_spider 服务地址，再读取已采集的公众号文章。") }
-    var settingsOpen by remember { mutableStateOf(server.isBlank()) }
-    var profilePickerOpen by remember { mutableStateOf(false) }
+    var notice by remember { mutableStateOf("配置 API 凭证后即可获取公众号历史文章。") }
+    var settingsOpen by remember { mutableStateOf(key.isBlank() && token.isBlank()) }
+    var menuOpen by remember { mutableStateOf(false) }
     var searching by remember { mutableStateOf(false) }
-    var searchText by remember { mutableStateOf("") }
-
-    suspend fun loadPosts(pageNumber: Int) {
-        if (server.isBlank() || biz.isBlank()) {
-            notice = "请先在设置中填写采集服务地址和公众号 msgBiz。"
-            return
-        }
-        busy = true
-        try {
-            val result = withContext(Dispatchers.IO) { WechatSpiderApi.posts(server, biz, pageNumber) }
-            articles = result.items
-            page = result.page
-            totalPages = result.totalPages
-            total = result.total
-            notice = if (result.items.isEmpty()) "服务连接正常，但当前公众号还没有采集到文章。请在微信中打开历史页并向下滚动触发采集。" else "已从 wechat_spider 读取第 " + result.page + " 页数据。"
-        } catch (e: Exception) {
-            notice = "读取失败：" + (e.message ?: "请检查服务地址、msgBiz 和网络")
-        } finally {
-            busy = false
-        }
-    }
+    var search by remember { mutableStateOf("") }
 
     BackHandler { onBack() }
 
-    fun persist() {
-        prefs.edit().putString("server", server.trim().trimEnd('/')).putString("biz", biz.trim()).apply()
+    fun saveSettings() {
+        prefs.edit().putString("provider", provider).putString("key", key.trim())
+            .putString("verify", verify.trim()).putString("token", token.trim())
+            .putString("account", account.trim()).putString("source_url", sourceUrl.trim()).apply()
     }
 
-    fun loadProfiles() {
-        if (server.isBlank()) { settingsOpen = true; return }
+    fun fetch(reset: Boolean) {
+        if (busy) return
+        if (provider == "dajiala" && (key.isBlank() || (account.isBlank() && sourceUrl.isBlank()))) {
+            settingsOpen = true; notice = "请填写极致了 API Key，以及公众号原始 ID、名称或文章链接。"; return
+        }
+        if (provider == "justone" && (token.isBlank() || (sourceUrl.isBlank() && account.isBlank()))) {
+            settingsOpen = true; notice = "请填写 JustOneAPI Token，以及公众号 ghid 或文章链接。"; return
+        }
+        if (reset) { offset = ""; articles = emptyList(); ended = false }
+        busy = true
         scope.launch {
-            busy = true
-            notice = "正在连接采集服务…"
             try {
-                val result = withContext(Dispatchers.IO) { WechatSpiderApi.profiles(server) }
-                profiles = result
-                notice = if (result.isEmpty()) "服务已连接，但尚无公众号记录。请先在微信中打开公众号历史页并通过代理采集。" else "已连接，识别到 ${result.size} 个公众号。"
-                if (biz.isBlank()) {
-                    val target = result.firstOrNull { it.title.contains("拾万句", true) } ?: result.singleOrNull()
-                    if (target != null) {
-                        biz = target.msgBiz
-                        selectedProfile = target
-                        persist()
-                    }
-                } else {
-                    selectedProfile = result.firstOrNull { it.msgBiz == biz } ?: selectedProfile
+                val cursor = if (reset) "" else offset
+                val result = withContext(Dispatchers.IO) {
+                    if (provider == "dajiala") OfficialHistoryApi.dajiala(key.trim(), verify.trim(), account.trim(), sourceUrl.trim(), cursor)
+                    else OfficialHistoryApi.justOne(token.trim(), sourceUrl.trim(), account.trim(), cursor)
                 }
-                if (biz.isNotBlank()) loadPosts(1)
+                val merged = (if (reset) emptyList() else articles) + result.articles
+                articles = merged.distinctBy { it.link }
+                offset = result.nextOffset
+                ended = result.ended
+                if (result.accountName.isNotBlank()) accountName = result.accountName
+                notice = if (result.articles.isEmpty()) "接口连接成功，但本页没有返回文章。" else "本次获取 ${result.articles.size} 篇，累计 ${articles.size} 篇。${if (ended) " 已到列表末尾。" else ""}"
             } catch (e: Exception) {
-                notice = "连接失败：${e.message ?: "请检查服务地址和网络"}"
+                notice = "获取失败：${e.message ?: "请检查网络和 API 凭证"}"
             } finally { busy = false }
         }
     }
 
-    fun openHistoryInWechat() {
-        val targetBiz = biz.trim()
-        if (targetBiz.isBlank()) {
-            notice = "首次采集请先在微信中搜索「拾万句」，进入公众号主页并打开「全部消息/历史消息」页面；请确认微信已设置代理并安装 HTTPS 证书。采集成功后点击“连接并读取”。"
-            return
-        }
-        val url = "https://mp.weixin.qq.com/mp/profile_ext?action=home&__biz=${targetBiz}&scene=124#wechat_redirect"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage("com.tencent.mm")
-        runCatching { context.startActivity(intent) }.onFailure {
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                .onFailure { Toast.makeText(context, "无法打开微信", Toast.LENGTH_SHORT).show() }
-        }
-        notice = "已打开公众号历史页。请确认手机微信使用采集服务所在电脑的代理（8101），并已安装其 HTTPS 证书。"
-    }
-
-    // Local function is intentionally declared before callbacks that use it.
-    fun refreshCurrent() {
-        if (server.isBlank() || biz.isBlank()) { settingsOpen = true; return }
-        scope.launch { loadPosts(1) }
-    }
-
-    // Keep requests on IO; the upstream spider itself captures pages through AnyProxy.
-    fun selectProfile(profile: SpiderProfile) {
-        selectedProfile = profile
-        biz = profile.msgBiz
-        persist()
-        profilePickerOpen = false
-        scope.launch { loadPosts(1) }
-    }
-
     Column(Modifier.fillMaxSize().background(Color(0xFFF6F6F6)).statusBarsPadding()) {
-        Row(
-            Modifier.fillMaxWidth().height(52.dp).background(Color.White).padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "返回", tint = Color(0xFFAAAAAA)) }
             Text("历史文章", Modifier.weight(1f), color = Color(0xFF222222), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-            IconButton(onClick = { searching = !searching; searchText = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFFAAAAAA)) }
-            IconButton(onClick = { settingsOpen = true }) { Icon(Icons.Default.Settings, "设置", tint = Color(0xFFAAAAAA)) }
+            IconButton(onClick = { searching = !searching; search = "" }) { Icon(Icons.Default.Search, "搜索", tint = Color(0xFFAAAAAA)) }
+            Box {
+                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.MoreHoriz, "更多", tint = Color(0xFFAAAAAA)) }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(text = { Text("API 设置") }, onClick = { menuOpen = false; settingsOpen = true })
+                    DropdownMenuItem(text = { Text("重新获取") }, onClick = { menuOpen = false; fetch(true) })
+                }
+            }
         }
-        if (searching) {
-            OutlinedTextField(searchText, { searchText = it }, Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 12.dp, vertical = 6.dp), singleLine = true, placeholder = { Text("搜索已采集文章标题") })
-        }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
-            item("profile") {
-                Row(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(model = selectedProfile?.headimg?.takeIf { it.isNotBlank() } ?: HISTORY_AVATAR, contentDescription = "公众号头像", modifier = Modifier.size(76.dp).clip(CircleShape))
-                    Column(Modifier.weight(1f).padding(start = 16.dp)) {
-                        Text(selectedProfile?.title ?: "历史文章采集", color = Color(0xFF191919), fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
-                        Text(if (biz.isBlank()) "尚未选择公众号" else "已绑定公众号 · ${biz.take(12)}", color = Color.Gray, fontSize = 13.sp)
-                    }
-                    TextButton(onClick = { profilePickerOpen = true; if (profiles.isEmpty()) loadProfiles() }) { Text("选择", color = HistoryGreen) }
+        if (searching) OutlinedTextField(search, { search = it }, Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 12.dp, vertical = 6.dp), singleLine = true, placeholder = { Text("搜索文章标题") })
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp)) {
+            item("account") {
+                Column(Modifier.fillMaxWidth().background(Color.White).padding(20.dp)) {
+                    Text(accountName, color = Color(0xFF202020), fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
+                    Text(if (provider == "dajiala") "极致了 API · 历史文章实时接口" else "JustOneAPI · 历史文章 V2", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp))
                 }
             }
-            item("description") {
-                Column(Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 20.dp, vertical = 4.dp)) {
-                    Text("通过 wechat_spider 采集并展示公众号历史文章", color = Color(0xFF333333), fontSize = 15.sp)
-                    Text("首次采集：先在微信搜索「拾万句」并打开历史消息页，再返回此处读取。", color = Color.Gray, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 5.dp))
-                    Spacer(Modifier.height(12.dp))
-                }
-            }
-            stickyHeader("profile-collapsed") {
-                Row(Modifier.fillMaxWidth().height(60.dp).background(Color.White).padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    AsyncImage(
-                        model = selectedProfile?.headimg?.takeIf { it.isNotBlank() } ?: HISTORY_AVATAR,
-                        contentDescription = "公众号头像",
-                        modifier = Modifier.size(40.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                    Text(
-                        selectedProfile?.title ?: "拾万句",
-                        Modifier.padding(start = 30.dp),
-                        color = Color(0xFF171717),
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-            item("article-heading") {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("全部文章", color = Color(0xFF777777), fontSize = 14.sp)
-                    Spacer(Modifier.weight(1f))
-                    Text(if (busy) "同步中…" else if (total > 0) "共 $total 篇" else "等待采集", color = Color.LightGray, fontSize = 12.sp)
-                    IconButton(onClick = { refreshCurrent() }, enabled = !busy) { Icon(Icons.Default.Refresh, "刷新", tint = Color(0xFFAAAAAA)) }
-                }
-            }
-            item("capture-help") {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-                    Text("采集入口", color = Color(0xFF888888), fontSize = 12.sp)
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Button(onClick = { openHistoryInWechat() }, colors = ButtonDefaults.buttonColors(containerColor = HistoryGreen), modifier = Modifier.weight(1f)) { Text("在微信中打开历史页") }
-                        OutlinedButton(onClick = { loadProfiles() }, modifier = Modifier.weight(1f)) { Text("连接并读取") }
-                    }
-                    if (notice.isNotBlank()) Text(notice, Modifier.padding(top = 8.dp), color = Color(0xFF8A8A8A), fontSize = 12.sp, lineHeight = 18.sp)
-                }
-            }
-            val shown = articles.filter { !searching || searchText.isBlank() || it.title.contains(searchText, true) }
-            if (shown.isEmpty()) {
-                item("empty") {
-                    Box(Modifier.fillMaxWidth().height(170.dp), contentAlignment = Alignment.Center) {
-                        Text(if (busy) "正在读取采集结果…" else "暂无历史文章记录", color = Color.Gray, fontSize = 14.sp)
-                    }
-                }
-            } else {
-                items(shown, key = { it.id.ifBlank { it.link } }) { article ->
-                    Column(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
-                            .background(Color.White, MaterialTheme.shapes.medium)
-                            .clickable { openArticle(context, article.link) }
-                            .padding(horizontal = 16.dp, vertical = 14.dp)
-                    ) {
-                        Text(formatSpiderDate(article.publishAt), color = Color.LightGray, fontSize = 12.sp)
-                        if (article.cover.isNotBlank()) {
-                            AsyncImage(model = article.cover, contentDescription = "文章封面", modifier = Modifier.fillMaxWidth().height(180.dp), contentScale = ContentScale.Crop)
-                        } else {
-                            Box(Modifier.fillMaxWidth().height(150.dp).background(Color(0xFFE8F3E8)), contentAlignment = Alignment.Center) { Text("封面暂不可用", color = Color(0xFF8AAB98), fontSize = 13.sp) }
+            item("tools") {
+                Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(onClick = { fetch(true) }, enabled = !busy, colors = ButtonDefaults.buttonColors(containerColor = HistoryGreen), modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text(if (busy) "获取中…" else "获取历史文章")
                         }
-                        Text(article.title.ifBlank { "未命名文章" }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), color = Color(0xFF202020), fontSize = 18.sp, lineHeight = 25.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        if (article.digest.isNotBlank()) Text(article.digest, Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 10.dp), color = Color.Gray, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                            Text("阅读 ${article.readNum}", color = Color(0xFFAAAAAA), fontSize = 11.sp)
-                            Text("点赞 ${article.likeNum}", color = Color(0xFFAAAAAA), fontSize = 11.sp)
-                            Text("在看 ${article.likeNum2}", color = Color(0xFFAAAAAA), fontSize = 11.sp)
-                        }
+                        OutlinedButton(onClick = { fetch(false) }, enabled = !busy && !ended && offset.isNotBlank(), modifier = Modifier.weight(1f)) { Text("继续获取") }
                     }
+                    Text(notice, color = Color.Gray, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 9.dp))
                 }
             }
-            if (totalPages > 1) {
-                item("pagination") {
-                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        TextButton(onClick = { if (page > 1) scope.launch { loadPosts(page - 1) } }, enabled = page > 1 && !busy) { Text("上一页") }
-                        Text("$page / $totalPages", color = Color.Gray, fontSize = 13.sp)
-                        TextButton(onClick = { if (page < totalPages) scope.launch { loadPosts(page + 1) } }, enabled = page < totalPages && !busy) { Text("下一页") }
-                    }
+            val shown = articles.filter { search.isBlank() || it.title.contains(search, true) }
+            items(shown, key = { it.id }) { article ->
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(12.dp)).background(Color.White)
+                        .clickable { openHistoryArticle(context, article.link) }
+                        .padding(14.dp)
+                ) {
+                    Text(article.date.ifBlank { "发布时间未知" }, color = Color.LightGray, fontSize = 12.sp)
+                    if (article.cover.isNotBlank()) AsyncImage(article.cover, null, Modifier.fillMaxWidth().height(170.dp).padding(top = 8.dp), contentScale = ContentScale.Crop)
+                    Text(article.title, Modifier.padding(top = 12.dp), color = Color(0xFF222222), fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (article.digest.isNotBlank()) Text(article.digest, Modifier.padding(top = 6.dp), color = Color.Gray, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            if (articles.isNotEmpty()) item("more") {
+                TextButton(onClick = { fetch(false) }, enabled = !busy && !ended && offset.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+                    Text(if (ended) "已获取到末尾" else if (busy) "正在获取…" else "加载更多历史文章")
                 }
             }
         }
@@ -350,54 +248,34 @@ fun HistoryArticlesPage(onBack: () -> Unit) {
     if (settingsOpen) {
         AlertDialog(
             onDismissRequest = { settingsOpen = false },
-            title = { Text("采集服务设置") },
+            title = { Text("历史文章 API 设置") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(server, { server = it }, Modifier.fillMaxWidth(), label = { Text("服务地址") }, placeholder = { Text("http://电脑局域网IP:8104") }, singleLine = true)
-                    OutlinedTextField(biz, { biz = it }, Modifier.fillMaxWidth(), label = { Text("公众号 msgBiz") }, placeholder = { Text("可从已采集公众号列表中选择") }, singleLine = true)
-                    Text("服务地址填写运行 wechat_spider 的电脑地址。手机和电脑需在同一网络；微信代理端口默认 8101。", color = Color.Gray, fontSize = 12.sp, lineHeight = 17.sp)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { persist(); settingsOpen = false; loadProfiles() }) { Text("保存并连接", color = HistoryGreen) }
-            },
-            dismissButton = { TextButton(onClick = { settingsOpen = false }) { Text("取消") } }
-        )
-    }
-
-    if (profilePickerOpen) {
-        AlertDialog(
-            onDismissRequest = { profilePickerOpen = false },
-            title = { Text("选择已采集公众号") },
-            text = {
-                Column(Modifier.heightIn(max = 360.dp)) {
-                    if (profiles.isEmpty()) Text("暂未获取到公众号记录。请先使用微信打开该公众号的历史文章页面，让代理捕获资料。", color = Color.Gray)
-                    else profiles.forEach { profile ->
-                        TextButton(onClick = { selectProfile(profile) }, modifier = Modifier.fillMaxWidth()) {
-                            Column(Modifier.fillMaxWidth()) {
-                                Text(profile.title, color = Color(0xFF222222))
-                                Text("文章 ${profile.totalPosts} 篇 · ${profile.msgBiz}", color = Color.Gray, fontSize = 11.sp)
-                            }
-                        }
+                Column(Modifier.heightIn(max = 520.dp).widthIn(max = 480.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("数据来源", fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = provider == "dajiala", onClick = { provider = "dajiala" }, label = { Text("极致了 API") })
+                        FilterChip(selected = provider == "justone", onClick = { provider = "justone" }, label = { Text("JustOneAPI") })
                     }
+                    OutlinedTextField(account, { account = it }, Modifier.fillMaxWidth(), label = { Text(if (provider == "dajiala") "公众号名称或 ghid" else "公众号 ghid（可留空）"), placeholder = { Text("例如 gh_...") }, singleLine = true)
+                    OutlinedTextField(sourceUrl, { sourceUrl = it }, Modifier.fillMaxWidth(), label = { Text("公众号文章链接（推荐）"), placeholder = { Text("https://mp.weixin.qq.com/s/...") }, singleLine = true)
+                    if (provider == "dajiala") {
+                        OutlinedTextField(key, { key = it }, Modifier.fillMaxWidth(), label = { Text("API Key") }, singleLine = true)
+                        OutlinedTextField(verify, { verify = it }, Modifier.fillMaxWidth(), label = { Text("附加码 verifycode（没有可留空）") }, singleLine = true)
+                    } else {
+                        OutlinedTextField(token, { token = it }, Modifier.fillMaxWidth(), label = { Text("JustOneAPI Token") }, singleLine = true)
+                    }
+                    Text("凭证仅保存在本机应用偏好设置中，不写入代码仓库。接口调用可能产生费用，获取范围受服务商权限和微信文章可见状态影响。", color = Color.Gray, fontSize = 11.sp, lineHeight = 16.sp)
                 }
             },
-            confirmButton = { TextButton(onClick = { profilePickerOpen = false }) { Text("关闭") } }
+            confirmButton = { TextButton(onClick = { saveSettings(); settingsOpen = false; fetch(true) }) { Text("保存并获取", color = HistoryGreen) } },
+            dismissButton = { TextButton(onClick = { settingsOpen = false }) { Text("取消") } }
         )
     }
 }
 
-private fun openArticle(context: android.content.Context, link: String) {
+private fun openHistoryArticle(context: Context, link: String) {
     if (link.isBlank()) return
     val uri = Uri.parse(link)
     val opened = runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri).setPackage("com.tencent.mm")) }.isSuccess
     if (!opened) runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-}
-
-private fun formatSpiderDate(value: String): String {
-    if (value.isBlank() || value == "null") return "发布时间未知"
-    return runCatching {
-        val normalized = value.substringBefore('.').replace("T", " ")
-        normalized.take(16)
-    }.getOrDefault(value)
 }
