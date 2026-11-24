@@ -53,6 +53,7 @@ replace_once(p,
 '''    val emoji: List<EmojiItem> = emptyList(),
     val styles: List<StyleModule> = emptyList(),
     val articles: List<ArticleDocument> = emptyList(),
+    val styleSeedApplied: Boolean = false,
     val files: Files = Files(),''', "AppData editor fields")
 
 # Keep old JSON backups compatible and preserve new fields on import/export.
@@ -65,11 +66,27 @@ replace_once(p,
                 .map { it.copy(name = it.name ?: "", content = it.content ?: "") },
             styles = fill(raw.styles, "style", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(name = it.name ?: "", category = it.category ?: "", html = it.html ?: "", updatedAt = it.updatedAt ?: "") },
-            articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(id = i) })
-                .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
+            articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
+            styleSeedApplied = raw.styleSeedApplied,
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
     fail("Style/article fields are not normalized")
+replace_once(p,
+'''        if (raw == null || data != loaded) saveData(data)
+        return data''',
+'''        val defaultStyle = StyleModule(
+            id = "style_default_green_title",
+            name = "清新绿标题",
+            category = "标题组件",
+            html = """<section style="margin:22px 0;padding:16px 18px;background:#f0faf4;border-left:4px solid #16a36a;border-radius:4px;"><p style="margin:0;color:#168653;font-size:20px;font-weight:700;line-height:1.5;">在这里输入标题</p><p style="margin:7px 0 0;color:#789487;font-size:12px;letter-spacing:1px;">A SIMPLE SECTION TITLE</p></section><p><br></p>""",
+            updatedAt = "seed"
+        )
+        val migrated = if (!data.styleSeedApplied) {
+            val styles = if (data.styles.any { it.id == defaultStyle.id }) data.styles else data.styles + defaultStyle
+            data.copy(styles = styles, styleSeedApplied = true)
+        } else data
+        if (raw == null || migrated != loaded || migrated != data) saveData(migrated)
+        return migrated''', "one-time default style migration")
 
 # Shared business actions.
 p = UI / "AppViewModel.kt"
@@ -232,7 +249,9 @@ p.write_text(s, encoding="utf-8")
 checks = [
     (DATA / "Models.kt", "val styles: List<StyleModule>"),
     (DATA / "Models.kt", "val articles: List<ArticleDocument>"),
+    (DATA / "Models.kt", "val styleSeedApplied: Boolean"),
     (DATA / "Store.kt", "styles = fill(raw.styles"),
+    (DATA / "Store.kt", "styleSeedApplied = raw.styleSeedApplied"),
     (UI / "AppViewModel.kt", "fun saveArticle("),
     (UI / "MyScreens.kt", "private fun StylesPage("),
     (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
