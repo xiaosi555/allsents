@@ -635,6 +635,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function pasteTextFormat(){if(!formatClipboard)return false;return applyInlineStyle(formatClipboard);}
 
                             function selectedBlock(){return root.querySelector('.selected-block');}
+                            function cleanBlockHtml(e){const c=e.cloneNode(true);c.classList.remove('selected-block');c.draggable=false;return c.outerHTML;}
+                            function replaceSelectedBlockWithHtml(v){const e=selectedBlock();if(!e)return;const box=document.createElement('div');box.innerHTML=v;const frag=document.createDocumentFragment();while(box.firstChild)frag.appendChild(box.firstChild);const first=frag.firstElementChild;e.replaceWith(frag);if(first){first.classList.add('selected-block');NativeEditor.blockSelected(cleanBlockHtml(first));}commitHistory();NativeEditor.changed(root.innerHTML);}
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
                             function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -648,8 +650,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                               if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}
                               let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;
                               if(e&&e!==root){
-                                if(multiSelectMode){e.classList.toggle('selected-block');e.draggable=false;NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>x.outerHTML).join(''));}
-                                else{root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(e.outerHTML);}
+                                if(multiSelectMode){e.classList.toggle('selected-block');e.draggable=false;NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>cleanBlockHtml(x)).join(''));}
+                                else{root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(cleanBlockHtml(e));}
                               }
                             });
                             root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(!e||e===root||!e.classList.contains('selected-block')){ev.preventDefault();return;}dragSource=e;ev.dataTransfer.effectAllowed='move';});
@@ -839,6 +841,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                             Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
+                            }
+                            if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
+                                Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    categoryStyles.forEach { style ->
+                                        EditorTool("替换·${style.name}") { runJs("replaceSelectedBlockWithHtml(${JSONObject.quote(style.html)})") }
+                                    }
+                                }
                             }
                         }
                     }
