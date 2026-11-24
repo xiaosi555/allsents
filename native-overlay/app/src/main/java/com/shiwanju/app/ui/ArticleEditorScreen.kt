@@ -78,6 +78,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showDeleteConfirm by remember { mutableStateOf<ArticleDocument?>(null) }
     var showRevisionList by remember { mutableStateOf(false) }
     var showArticleInfo by remember { mutableStateOf(false) }
+    var articleInfoSnapshot by remember { mutableStateOf(emptyList<String>()) }
     var fullTemplateConfirm by remember { mutableStateOf<StyleModule?>(null) }
     var showCompatibilityReport by remember { mutableStateOf(false) }
     var showFindReplace by remember { mutableStateOf(false) }
@@ -209,7 +210,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val target = File(dir, "$id.$ext")
             context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
             vm.saveMediaAsset(MediaAsset(id, target.name, mime, "article_media/${target.name}", target.length(), System.currentTimeMillis().toString()))
-            runJs("replaceSelectedImage('https://editor.local/assets/$id','${JSONObject.quote(target.name).removeSurrounding("\"")}')")
+            runJs("replaceSelectedImage('https://editor.local/assets/$id',${JSONObject.quote(target.name)})")
             vm.toast("图片已替换")
         }.onFailure { vm.toast("图片替换失败：${it.message ?: "未知错误"}") }
     }
@@ -462,7 +463,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
-                EditorTool("文章信息") { showArticleInfo = true }
+                EditorTool("文章信息") {
+                    articleInfoSnapshot = listOf(subtitle, author, category, tagsText, summary, articleStatus, coverAssetId)
+                    showArticleInfo = true
+                }
                 EditorTool("导入文章包") { articleJsonImporter.launch(arrayOf("application/json", "text/json")) }
                 EditorTool("导出文章包") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
@@ -901,7 +905,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
     if (showArticleInfo) {
         AlertDialog(
-            onDismissRequest = { showArticleInfo = false },
+            onDismissRequest = {
+                if (articleInfoSnapshot.size == 7) {
+                    subtitle = articleInfoSnapshot[0]; author = articleInfoSnapshot[1]; category = articleInfoSnapshot[2]
+                    tagsText = articleInfoSnapshot[3]; summary = articleInfoSnapshot[4]; articleStatus = articleInfoSnapshot[5]
+                    coverAssetId = articleInfoSnapshot[6]
+                }
+                showArticleInfo = false
+            },
             title = { Text("文章信息") },
             text = {
                 Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -923,7 +934,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             },
             confirmButton = { TextButton(onClick = { showArticleInfo = false; pendingSave++ }) { Text("完成", color = accent) } },
-            dismissButton = { TextButton(onClick = { showArticleInfo = false }) { Text("取消") } }
+            dismissButton = { TextButton(onClick = {
+                if (articleInfoSnapshot.size == 7) {
+                    subtitle = articleInfoSnapshot[0]; author = articleInfoSnapshot[1]; category = articleInfoSnapshot[2]
+                    tagsText = articleInfoSnapshot[3]; summary = articleInfoSnapshot[4]; articleStatus = articleInfoSnapshot[5]
+                    coverAssetId = articleInfoSnapshot[6]
+                }
+                showArticleInfo = false
+            }) { Text("取消") } }
         )
     }
 }
