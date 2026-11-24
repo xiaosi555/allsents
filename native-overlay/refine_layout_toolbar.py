@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 p=Path("source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/LayoutScreen.kt")
 s=p.read_text(encoding="utf-8")
+if "import androidx.compose.material.icons.outlined.Article\n" not in s:
+ s=s.replace("import androidx.compose.material.icons.Icons\n","import androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.outlined.Article\n")
 if "import androidx.compose.foundation.Image\n" not in s:
  s=s.replace("import androidx.compose.foundation.BorderStroke\n","import androidx.compose.foundation.BorderStroke\nimport androidx.compose.foundation.Image\n")
 if "import androidx.compose.ui.res.painterResource\n" not in s:
