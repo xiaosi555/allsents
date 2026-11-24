@@ -909,6 +909,14 @@ private fun articleCompatibilityWarnings(html: String): List<String> {
 }
 private fun articleHtmlToMarkdown(html: String): String {
     var value = html
+    value = value.replace(Regex("""(?is)<img[^>]*>""")) { tag ->
+        val src = Regex("""(?is)src=["']([^"']+)["']""").find(tag.value)?.groupValues?.get(1).orEmpty()
+        val alt = Regex("""(?is)alt=["']([^"']*)["']""").find(tag.value)?.groupValues?.get(1).orEmpty()
+        if (src.isBlank()) alt else "![$alt]($src)"
+    }
+    value = value.replace(Regex("""(?is)<a[^>]*href=["']([^"']+)["'][^>]*>(.*?)</a>""")) { link ->
+        "[${link.groupValues[2].replace(Regex("<[^>]*>"), "").trim()}](${link.groupValues[1]})"
+    }
     value = value.replace(Regex("""(?is)<h1[^>]*>(.*?)</h1>""")) { "\n# ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
     value = value.replace(Regex("""(?is)<h2[^>]*>(.*?)</h2>""")) { "\n## ${it.groupValues[1].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
     value = value.replace(Regex("""(?is)<h([34])[^>]*>(.*?)</h[34]>""")) { "\n### ${it.groupValues[2].replace(Regex("<[^>]*>"), "").trim()}\n\n" }
