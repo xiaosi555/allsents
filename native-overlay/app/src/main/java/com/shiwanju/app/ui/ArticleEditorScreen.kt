@@ -612,6 +612,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function selectedParagraph(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|BLOCKQUOTE|LI|PRE)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
                             function styleSelectedParagraph(prop,value){const e=selectedParagraph();if(!e)return;e.style[prop]=value;commitHistory();NativeEditor.changed(root.innerHTML);}
                             function replaceAllText(search,replacement){if(!search)return 0;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,count=0;while(node=walker.nextNode()){if(node.nodeValue.includes(search)){const parts=node.nodeValue.split(search);count+=parts.length-1;node.nodeValue=parts.join(replacement);}}if(count){commitHistory();NativeEditor.changed(root.innerHTML);}return count;}
+                            let formatClipboard=null;
+                            function selectedTextElement(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|SPAN|STRONG|B|EM|I|U)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
+                            function applyInlineStyle(styles){const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return false;const r=sel.getRangeAt(0);const span=document.createElement('span');Object.assign(span.style,styles);span.appendChild(r.extractContents());r.insertNode(span);r.setStartAfter(span);r.collapse(true);sel.removeAllRanges();sel.addRange(r);saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);return true;}
+                            function setSelectionFontSize(px){applyInlineStyle({fontSize:px+'px'});}
+                            function copyTextFormat(){const e=selectedTextElement();if(!e)return false;const c=getComputedStyle(e);formatClipboard={fontFamily:c.fontFamily,fontSize:c.fontSize,fontWeight:c.fontWeight,fontStyle:c.fontStyle,color:c.color,backgroundColor:c.backgroundColor,textDecoration:c.textDecoration};return true;}
+                            function pasteTextFormat(){if(!formatClipboard)return false;return applyInlineStyle(formatClipboard);}
+
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -670,13 +677,22 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("左对齐") { command("justifyLeft") }; EditorTool("居中") { command("justifyCenter") }; EditorTool("右对齐") { command("justifyRight") }
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("14" to "小", "16" to "标准", "18" to "大", "22" to "特大").forEach { (size, label) -> EditorTool("字号$label") { runJs("restoreSelection();document.execCommand('fontSize',false,'$size');saveSelection();") } }
-                            EditorTool("文字色") { runJs("restoreSelection();document.execCommand('foreColor',false,'#159765');saveSelection();") }
-                            EditorTool("高亮") { runJs("restoreSelection();document.execCommand('hiliteColor',false,'#FFF1B8');saveSelection();") }
+                            listOf("14" to "小", "16" to "标准", "18" to "大", "22" to "特大", "26" to "标题").forEach { (size, label) -> EditorTool("字号$label") { runJs("restoreSelection();setSelectionFontSize('$size');saveSelection();") } }
+                            EditorTool("文字绿") { runJs("restoreSelection();document.execCommand('foreColor',false,'#159765');saveSelection();") }
+                            EditorTool("文字黑") { runJs("restoreSelection();document.execCommand('foreColor',false,'#333333');saveSelection();") }
+                            EditorTool("文字红") { runJs("restoreSelection();document.execCommand('foreColor',false,'#C84B4B');saveSelection();") }
+                            EditorTool("文字蓝") { runJs("restoreSelection();document.execCommand('foreColor',false,'#3978B7');saveSelection();") }
+                            EditorTool("黄色高亮") { runJs("restoreSelection();document.execCommand('hiliteColor',false,'#FFF1B8');saveSelection();") }
+                            EditorTool("绿色高亮") { runJs("restoreSelection();document.execCommand('hiliteColor',false,'#DDF3E5');saveSelection();") }
+                            EditorTool("格式刷·复制") { runJs("restoreSelection();copyTextFormat();saveSelection();") }
+                            EditorTool("格式刷·应用") { runJs("restoreSelection();pasteTextFormat();saveSelection();") }
                             EditorTool("无序列表") { command("insertUnorderedList") }; EditorTool("编号列表") { command("insertOrderedList") }
                             EditorTool("缩进") { command("indent") }; EditorTool("减缩进") { command("outdent") }
                             EditorTool("代码段") { command("formatBlock", "pre") }
+                            EditorTool("H4") { command("formatBlock", "h4") }
+                            EditorTool("任务清单") { insert("<ul style='list-style:none;padding-left:0'><li>□ 第一项任务</li><li>□ 第二项任务</li><li>□ 第三项任务</li></ul>") }
                             EditorTool("日期") { insert("<span>${java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())}</span>") }
+                            EditorTool("时间") { insert("<span>${java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())}</span>") }
                             EditorTool("分隔线") { insert("<hr style='border:0;border-top:1px solid #ddd;margin:22px 0'><p><br></p>") }
                             EditorTool("Emoji") { insert("✨") }
                             EditorTool("特殊符号") { insert("「」『』· — … ★ ✓ → ※") }
