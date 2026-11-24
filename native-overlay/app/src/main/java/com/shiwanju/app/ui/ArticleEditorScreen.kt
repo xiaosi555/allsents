@@ -868,8 +868,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("行距2.0") { runJs("styleSelectedParagraph('lineHeight','2')") }
                             EditorTool("首行缩进") { runJs("styleSelectedParagraph('textIndent','2em')") }
                             EditorTool("取消缩进") { runJs("styleSelectedParagraph('textIndent','0')") }
-                            EditorTool("段距12") { runJs("styleSelectedParagraph('marginBottom','12px')") }
-                            EditorTool("段距24") { runJs("styleSelectedParagraph('marginBottom','24px')") }
+                            EditorTool("段前12") { runJs("styleSelectedParagraph('marginTop','12px')") }
+                            EditorTool("段前24") { runJs("styleSelectedParagraph('marginTop','24px')") }
+                            EditorTool("段后12") { runJs("styleSelectedParagraph('marginBottom','12px')") }
+                            EditorTool("段后24") { runJs("styleSelectedParagraph('marginBottom','24px')") }
+                            EditorTool("左缩进") { runJs("styleSelectedParagraph('marginLeft','1em')") }
+                            EditorTool("右缩进") { runJs("styleSelectedParagraph('marginRight','1em')") }
                             EditorTool("字距1px") { runJs("styleSelectedParagraph('letterSpacing','1px')") }
                             EditorTool("查找替换") { showFindReplace = true }
                             EditorTool("宋体") { runJs("restoreSelection();document.execCommand('fontName',false,'SimSun');saveSelection();") }
