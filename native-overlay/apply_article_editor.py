@@ -189,7 +189,7 @@ replace_once(p,
         d.copy(mediaAssets = if (i >= 0) d.mediaAssets.toMutableList().also { it[i] = asset } else d.mediaAssets + asset)
     }
     fun deleteMediaAsset(id: String) = updateData { d ->
-        val used = d.articles.any { it.html.contains(id) || it.coverAssetId == id }
+        val used = d.articles.any { it.html.contains(id) || it.coverAssetId == id } || d.styles.any { it.html.contains(id) }
         if (used) d else d.copy(mediaAssets = d.mediaAssets.filterNot { it.id == id })
     }
 
