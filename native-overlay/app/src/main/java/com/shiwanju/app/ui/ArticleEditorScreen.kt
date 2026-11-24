@@ -80,6 +80,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportHtml by remember { mutableStateOf("") }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
+    val filteredArticles = vm.data.articles.filter { searchText.isBlank() || it.title.contains(searchText, true) || it.summary.contains(searchText, true) || it.tags.any { tag -> tag.contains(searchText, true) } }.sortedByDescending { it.updatedAt }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val pageBg = Color(0xFFF5F6F5)
     val ink = Color(0xFF252A27)
@@ -237,8 +238,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (showArticleList) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("我的文章", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = ink, modifier = Modifier.weight(1f))
+                TextButton(onClick = { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }) { Text("导入", color = ink) }
                 TextButton(onClick = { newArticle() }) { Text("+ 新建文章", color = accent) }
             }
+            OutlinedTextField(searchText, { searchText = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp), singleLine = true, placeholder = { Text("搜索文章标题、摘要或标签") })
             if (vm.data.articles.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("还没有保存的文章，点击「新建文章」开始创作", color = Color.Gray, fontSize = 13.sp)
@@ -248,8 +251,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Modifier.fillMaxSize().padding(horizontal = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(vm.data.articles.size, key = { vm.data.articles[it].id }) { index ->
-                        val item = vm.data.articles.sortedByDescending { it.updatedAt }.getOrNull(index)
+                    items(filteredArticles.size, key = { filteredArticles[it].id }) { index ->
+                        val item = filteredArticles.getOrNull(index)
                         if (item != null) {
                             Row(
                                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White)
@@ -260,10 +263,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     Text(item.title.ifBlank { "未命名文章" }, color = ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text("最近编辑：${item.updatedAt.take(10)} · ${item.html.replace(Regex("<[^>]*>"), "").length} 字", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
                                 }
-                                TextButton(onClick = {
-                                    val copy = item.copy(id = vm.newId(), title = item.title + "（副本）", createdAt = System.currentTimeMillis().toString(), updatedAt = System.currentTimeMillis().toString())
-                                    vm.saveArticle(copy)
-                                }) { Text("复制", color = accent) }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    TextButton(onClick = {
+                                        val now = System.currentTimeMillis().toString()
+                                        val copy = item.copy(id = vm.newId(), title = item.title + "（副本）", createdAt = now, updatedAt = now)
+                                        vm.saveArticle(copy)
+                                    }) { Text("复制", color = accent) }
+                                    TextButton(onClick = { showDeleteConfirm = item }) { Text("删除", color = Color(0xFFCC5555)) }
+                                }
                             }
                         }
                     }
@@ -449,6 +456,63 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         else vm.toast("请输入有效的 http/https 网址")
         showLink = false
     }) { showLink = false }
+}    if (showDeleteConfirm != null) {
+        val target = showDeleteConfirm!!
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = null },
+            title = { Text("删除文章？") },
+            text = { Text("将删除「${target.title}」及其版本快照。此操作不可撤销。") },
+            confirmButton = { TextButton(onClick = { vm.deleteArticle(target.id); showDeleteConfirm = null; if (target.id == articleId) newArticle() }) { Text("删除", color = Color(0xFFCC5555)) } },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = null }) { Text("取消") } }
+        )
+    }
+    if (showRevisionList) {
+        val revisions = vm.data.articleRevisions.filter { it.articleId == articleId }.sortedByDescending { it.createdAt }
+        AlertDialog(
+            onDismissRequest = { showRevisionList = false },
+            title = { Text("历史版本（最近 30 个）") },
+            text = {
+                Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    if (revisions.isEmpty()) Text("暂无历史快照。文章内容发生变化并自动保存后会生成快照。", color = Color.Gray, fontSize = 12.sp)
+                    revisions.forEach { revision ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(revision.title.ifBlank { "未命名文章" }, fontSize = 13.sp, color = ink)
+                                Text("${revision.createdAt} · ${revision.html.replace(Regex("<[^>]*>"), "").length} 字", fontSize = 10.sp, color = Color.Gray)
+                            }
+                            TextButton(onClick = {
+                                vm.restoreArticleRevision(revision)
+                                title = revision.title; html = revision.html
+                                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});", null)
+                                showRevisionList = false
+                                vm.toast("已恢复历史版本")
+                            }) { Text("恢复", color = accent) }
+                        }
+                        HorizontalDivider(color = Color(0xFFE9ECE9))
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showRevisionList = false }) { Text("关闭") } }
+        )
+    }
+    if (showArticleInfo) {
+        AlertDialog(
+            onDismissRequest = { showArticleInfo = false },
+            title = { Text("文章信息") },
+            text = {
+                Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(subtitle, { subtitle = it }, label = { Text("副标题") }, singleLine = true)
+                    OutlinedTextField(author, { author = it }, label = { Text("作者") }, singleLine = true)
+                    OutlinedTextField(category, { category = it }, label = { Text("分类") }, singleLine = true)
+                    OutlinedTextField(tagsText, { tagsText = it }, label = { Text("标签（逗号分隔）") }, singleLine = true)
+                    OutlinedTextField(summary, { summary = it }, label = { Text("文章摘要") }, minLines = 3)
+                    Text("信息会随文章自动保存；封面管理将在素材与文章信息后续完善。", color = Color.Gray, fontSize = 11.sp)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showArticleInfo = false; pendingSave++ }) { Text("完成", color = accent) } },
+            dismissButton = { TextButton(onClick = { showArticleInfo = false }) { Text("取消") } }
+        )
+    }
 }
 
 @Composable
