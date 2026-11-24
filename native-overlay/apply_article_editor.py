@@ -388,6 +388,8 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "copyRichHtml"),
     (UI / "ArticleEditorScreen.kt", "articleJsonImporter"),
     (UI / "ArticleEditorScreen.kt", "showHtmlImportPreview"),
+    (UI / "ArticleEditorScreen.kt", "markdownImporter"),
+    (UI / "ArticleEditorScreen.kt", "markdownToArticleHtml"),
     (UI / "ArticleEditorScreen.kt", "imageGroupPicker"),
     (UI / "ArticleEditorScreen.kt", "articleHtmlToMarkdown"),
     (UI / "ArticleEditorScreen.kt", "articleCompatibilityWarnings"),
