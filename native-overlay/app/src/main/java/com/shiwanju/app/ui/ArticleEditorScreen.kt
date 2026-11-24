@@ -111,6 +111,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
     var previewAsset by remember { mutableStateOf<MediaAsset?>(null) }
+    var templateSearchText by remember { mutableStateOf("") }
+    var favoriteTemplatesOnly by remember { mutableStateOf(false) }
+    var templatePreview by remember { mutableStateOf<StyleModule?>(null) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val filteredArticles = vm.data.articles.filter { article ->
@@ -118,6 +121,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
     }.sortedByDescending { it.updatedAt }
     val filteredMediaAssets = vm.data.mediaAssets.filter { mediaSearchText.isBlank() || it.fileName.contains(mediaSearchText, true) || it.mimeType.contains(mediaSearchText, true) }.sortedByDescending { it.createdAt }
+    val filteredTemplates = vm.data.styles.filter { it.category == "整篇模板" && (!favoriteTemplatesOnly || it.isFavorite) && (templateSearchText.isBlank() || it.name.contains(templateSearchText, true) || it.tags.any { tag -> tag.contains(templateSearchText, true) }) }.sortedByDescending { it.isFavorite }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val previewBitmap = remember(previewAsset?.id) {
         previewAsset?.let { asset ->
@@ -555,7 +559,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         val fullHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
                         if (fullHtml.isBlank()) vm.toast("文章内容为空，无法保存模板")
                         else {
-                            vm.saveStyle(StyleModule(vm.newId(), title.ifBlank { "未命名整篇模板" }, "整篇模板", fullHtml, System.currentTimeMillis().toString()))
+                            vm.saveStyle(StyleModule(vm.newId(), title.ifBlank { "未命名整篇模板" }, "整篇模板", fullHtml, System.currentTimeMillis().toString(), type = "full"))
                             vm.toast("已保存到模板中心")
                         }
                     }
@@ -568,7 +572,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 if (multiSelectMode && selectedBlockHtml.isNotBlank()) {
                     EditorTool("保存组合样式") {
-                        vm.saveStyle(StyleModule(vm.newId(), "组合组件", "组合组件", selectedBlockHtml, System.currentTimeMillis().toString()))
+                        vm.saveStyle(StyleModule(vm.newId(), "组合组件", "组合组件", selectedBlockHtml, System.currentTimeMillis().toString(), type = "combination"))
                         vm.toast("已保存组合组件到「我的 - 样式」")
                         multiSelectMode = false
                         runJs("setMultiSelectMode(false)")
@@ -861,6 +865,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
+                    Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板") })
+                        EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
+                    }
+                    if (filteredTemplates.isEmpty()) Text("暂无匹配模板，可将当前文章保存为整篇模板", color = Color.Gray, fontSize = 11.sp)
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        filteredTemplates.forEach { template ->
+                            EditorTool("预览·${template.name}") { templatePreview = template }
+                            EditorTool(if (template.isFavorite) "★" else "☆") { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) }
+                            EditorTool("应用·${template.name}") { fullTemplateConfirm = template }
+                        }
+                    }
                     EditorPanel.STYLE -> {
                         Text("我的样式 · 选择分类后插入已保存模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         if (categories.isEmpty()) Text("暂无样式分类，请在「我的 - 样式」中创建", color = Color.Gray, fontSize = 11.sp)
@@ -888,9 +905,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("文艺引用") { insert("<blockquote style='margin:24px 0;padding:18px;background:#f7f4ef;border:0;color:#685f54;font-size:17px;line-height:1.9'><p>“在这里写下一段值得被记住的话。”</p><p style='text-align:right;font-size:12px;color:#aaa'>—— 摘录</p></blockquote>") }
                             EditorTool("清单文章") { insert("<h2 style='font-size:22px;margin:24px 0 14px'>本期清单</h2><ol style='padding-left:22px;line-height:2'><li>第一项内容</li><li>第二项内容</li><li>第三项内容</li></ol>") }
                             EditorTool("结尾段落") { insert("<section style='margin:28px 0 12px;padding-top:16px;border-top:1px solid #e4e8e5'><p style='margin:0;color:#666;line-height:1.9'>愿你在平凡的日子里，也能找到值得珍藏的片刻。</p></section>") }
-                            vm.data.styles.filter { it.category == "整篇模板" }.forEach { template ->
-                                EditorTool("模板·${template.name}") { fullTemplateConfirm = template }
-                            }
+
                         }
                     }
                 }
@@ -899,6 +914,30 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    if (templatePreview != null) {
+        val template = templatePreview!!
+        Dialog(onDismissRequest = { templatePreview = null }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(template.name, color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    AndroidView(
+                        modifier = Modifier.fillMaxWidth().height(380.dp),
+                        factory = { ctx -> WebView(ctx).apply {
+                            settings.javaScriptEnabled = false
+                            settings.domStorageEnabled = false
+                            setBackgroundColor(android.graphics.Color.WHITE)
+                            loadDataWithBaseURL("https://editor.local/", template.html, "text/html", "UTF-8", null)
+                        } },
+                        update = { view -> view.loadDataWithBaseURL("https://editor.local/", template.html, "text/html", "UTF-8", null) }
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { templatePreview = null }) { Text("关闭", color = accent) }
+                        TextButton(onClick = { fullTemplateConfirm = template; templatePreview = null }) { Text("应用模板", color = accent) }
+                    }
+                }
+            }
+        }
+    }
     if (previewAsset != null) {
         Dialog(onDismissRequest = { previewAsset = null }) {
             Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
