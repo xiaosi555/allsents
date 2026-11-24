@@ -355,7 +355,13 @@ checks = [
     (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
     (UI / "ArticleEditorScreen.kt", "rememberLauncherForActivityResult"),
     (UI / "ArticleEditorScreen.kt", "copyRichHtml"),
+    (UI / "ArticleEditorScreen.kt", "articleJsonImporter"),
+    (UI / "ArticleEditorScreen.kt", "imageGroupPicker"),
+    (UI / "ArticleEditorScreen.kt", "articleHtmlToMarkdown"),
+    (UI / "ArticleEditorScreen.kt", "articleCompatibilityWarnings"),
     (UI / "ArticleEditorScreen.kt", "function duplicateSelectedBlock"),
+    (UI / "ArticleEditorScreen.kt", "function undoEditor"),
+    (UI / "ArticleEditorScreen.kt", "function cropSelectedImage"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
 ]
