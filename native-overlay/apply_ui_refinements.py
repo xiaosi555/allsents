@@ -246,4 +246,65 @@ s = s.replace('Icons.Default.ArrowBack, "返回", tint = Color(0xFFAAAAAA)',
               'Icons.Outlined.ArrowBack, "返回", tint = Color(0xFFB8B8B8), modifier = Modifier.size(19.dp)')
 write(p, s)
 
+
+# Additional native pages and dialogs must not retain light-only white surfaces.
+p, s = read('ui/MyScreens.kt')
+s = s.replace('.background(Color.White)', '.background(AppColors.MyCard)')
+s = s.replace('focusedContainerColor = Color.White, unfocusedContainerColor = Color.White',
+              'focusedContainerColor = AppColors.MyCard, unfocusedContainerColor = AppColors.MyCard')
+s = s.replace('color = Color(0xFF111827)', 'color = AppColors.MyText')
+s = s.replace('color = Color(0xFF9CA3AF)', 'color = AppColors.MyDim')
+s = s.replace('Color(0xFFF3F4F6)', 'AppColors.Field')
+s = s.replace('color = Color(0xFF6B7280)', 'color = AppColors.MyDim')
+s = s.replace('shape = RoundedCornerShape(18.dp),\n            color = Color.White,', 'shape = RoundedCornerShape(18.dp),\n            color = AppColors.MyCard,')
+write(p, s)
+
+# History-article screen is also part of the app-wide appearance preference.
+p, s = read('ui/HistoryArticlesPage.kt')
+s = s.replace('background(Color(0xFFF6F6F6))', 'background(AppColors.MyBg)')
+s = s.replace('background(Color.White)', 'background(AppColors.MyCard)')
+s = s.replace('color = Color(0xFF222222)', 'color = AppColors.MyText')
+s = s.replace('color = Color(0xFF202020)', 'color = AppColors.MyText')
+s = s.replace('color = Color.Gray', 'color = AppColors.MyDim')
+s = s.replace('color = Color.LightGray', 'color = AppColors.MyDim')
+s = s.replace('DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false })',
+              'DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, containerColor = AppColors.MyCard)')
+s = replace_once(s,
+'''        AlertDialog(
+            onDismissRequest = { settingsOpen = false },''',
+'''        AlertDialog(
+            onDismissRequest = { settingsOpen = false },
+            containerColor = AppColors.MyCard,
+            titleContentColor = AppColors.MyText,
+            textContentColor = AppColors.MyText,''', 'history API dialog palette')
+write(p, s)
+
+# Theme preview follows the same surfaces as the rest of Settings.
+p, s = read('ui/ThemeSettings.kt')
+s = s.replace('.background(Color.White)', '.background(AppColors.MyCard)')
+write(p, s)
+
+# Keep the original dark editorial canvas on the Layout tab; the account/settings surfaces
+# switch between light and dark using the shared semantic palette.
+p, s = read('ui/Theme.kt')
+s = s.replace('val Bg: Color get() = if (darkAppearance) Color(0xFF111315) else Color(0xFFF7F8F9)',
+              'val Bg = Color(0xFF121212)')
+s = s.replace('val Panel: Color get() = if (darkAppearance) Color(0xFF1C2023) else Color(0xFFFFFFFF)',
+              'val Panel = Color(0xFF1B1B1B)')
+s = s.replace('val Field: Color get() = if (darkAppearance) Color(0xFF252A2E) else Color(0xFFF1F3F5)',
+              'val Field = Color(0xFF222222)')
+s = s.replace('val Line: Color get() = if (darkAppearance) Color(0xFF353B40) else Color(0xFFE2E6E9)',
+              'val Line = Color(0xFF333333)')
+s = s.replace('val TextMain: Color get() = if (darkAppearance) Color(0xFFF1F3F4) else Color(0xFF17191B)',
+              'val TextMain = Color(0xFFDDDDDD)')
+s = s.replace('val TextDim: Color get() = if (darkAppearance) Color(0xFFA8B0B6) else Color(0xFF737B82)',
+              'val TextDim = Color(0xFF888888)')
+s = s.replace('val MyBg: Color get() = Bg', 'val MyBg: Color get() = if (darkAppearance) Color(0xFF111315) else Color(0xFFF7F7F7)')
+s = s.replace('val MyCard: Color get() = Panel', 'val MyCard: Color get() = if (darkAppearance) Color(0xFF1C2023) else Color(0xFFFFFFFF)')
+s = s.replace('val MyText: Color get() = TextMain', 'val MyText: Color get() = if (darkAppearance) Color(0xFFF1F3F4) else Color(0xFF111827)')
+s = s.replace('val MyDim: Color get() = TextDim', 'val MyDim: Color get() = if (darkAppearance) Color(0xFFA8B0B6) else Color(0xFF6B7280)')
+s = s.replace('val MySubText: Color get() = TextDim', 'val MySubText: Color get() = MyDim')
+s = s.replace('val MyLine: Color get() = Line', 'val MyLine: Color get() = if (darkAppearance) Color(0xFF353B40) else Color(0xFFE5E7EB)')
+write(p, s)
+
 print('UI refinements passed: global dark palette, right-aligned hints, shared back icon, official dialogs, ordered image selection and directional folder label.')
