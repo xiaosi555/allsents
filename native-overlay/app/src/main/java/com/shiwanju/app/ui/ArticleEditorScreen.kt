@@ -655,9 +655,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 EditorTool("导入HTML") { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }
                 EditorTool("导入Markdown") { markdownImporter.launch(arrayOf("text/markdown", "text/plain")) }
                 EditorTool("导出HTML") {
-                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
-                        pendingExportHtml = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
-                        htmlExporter.launch("${title.ifBlank { "文章" }}.html")
+                    if (editor == null || !webReady) vm.toast("编辑器尚未准备好，请稍后重试")
+                    else editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        runCatching {
+                            val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                            val safeTitle = escapeMarkdownText(title.ifBlank { "未命名文章" })
+                            val safeSubtitle = subtitle.takeIf { it.isNotBlank() }?.let { "<p class='subtitle'>${escapeMarkdownText(it)}</p>" }.orEmpty()
+                            val safeMeta = listOf(author, summary).filter { it.isNotBlank() }.joinToString(" · ") { escapeMarkdownText(it) }
+                            pendingExportHtml = "<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>$safeTitle</title><style>body{max-width:680px;margin:0 auto;padding:22px 18px;font:16px/1.9 sans-serif;color:#333}img{max-width:100%;height:auto}table{max-width:100%;border-collapse:collapse}h1{font-size:25px;line-height:1.45;margin:0 0 12px}.subtitle{color:#777;font-size:16px}.meta{color:#999;font-size:12px;margin-bottom:20px}</style></head><body><header><h1>$safeTitle</h1>$safeSubtitle<p class=\"meta\">$safeMeta</p></header><main>$current</main></body></html>"
+                            htmlExporter.launch("${title.ifBlank { "文章" }}.html")
+                        }.onFailure { vm.toast("HTML 导出失败：${it.message ?: "内容处理错误"}") }
                     }
                 }
                 EditorTool("导出Markdown") {
