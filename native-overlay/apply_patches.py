@@ -3493,7 +3493,7 @@ private fun HomeGroupRow(title: String, summary: String, onClick: () -> Unit) {
 }
 
 """
-    _my = _my.replace("@Composable\\nprivate fun HomePage", _helper + "@Composable\\nprivate fun HomePage", 1)
+    _my = _my.replace("@Composable\nprivate fun HomePage", _helper + "@Composable\nprivate fun HomePage", 1)
 _my_path.write_text(_my, encoding="utf-8")
 
 # The spider dashboard/API defaults to HTTP on a local network address.
