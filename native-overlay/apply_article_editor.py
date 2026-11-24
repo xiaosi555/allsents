@@ -66,7 +66,8 @@ replace_once(p,
                 .map { it.copy(name = it.name ?: "", content = it.content ?: "") },
             styles = fill(raw.styles, "style", { it.id }, { x, i -> x.copy(id = i) })
                 .map { it.copy(name = it.name ?: "", category = it.category ?: "", html = it.html ?: "", updatedAt = it.updatedAt ?: "") },
-            articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
+            articles = fill(raw.articles, "article", { it.id }, { x, i -> x.copy(id = i) })
+                .map { it.copy(title = it.title ?: "", html = it.html ?: "", createdAt = it.createdAt ?: "", updatedAt = it.updatedAt ?: "") },
             styleSeedApplied = raw.styleSeedApplied,
             files = Files(''', "Store normalization")
 if "styles = fill(raw.styles" not in p.read_text(encoding="utf-8"):
