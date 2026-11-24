@@ -796,6 +796,11 @@ import androidx.compose.ui.draw.shadow'''),
     ('''        Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {''',
      '''        Row(Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {'''),
     ('''    ListRow("账号", "已配置 ${d.accounts.size} 个账号") { go("accounts") }
+    ListRow("文案", "共 ${d.files.text.size} 个文案模块") { go("texts") }
+    ListRow("版式", "已保存 ${d.layout.size} 个版式") { go("layouts") }
+    ListRow("更多", "共 ${d.emoji.size + d.history.size + d.files.gif.size + d.files.image.size} 个数据模块") { go("more") }
+    ListRow("备份", "导出 / 导入全部数据") { go("backup") }''',
+     '''    ListRow("账号", "已配置 ${d.accounts.size} 个账号") { go("accounts") }
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(AppColors.MyCard).padding(horizontal = 16.dp, vertical = 5.dp)) {
         HomeGroupRow("文章", "共 ${d.files.text.size} 个文案模块") { go("texts") }
         Spacer(Modifier.height(8.dp))
