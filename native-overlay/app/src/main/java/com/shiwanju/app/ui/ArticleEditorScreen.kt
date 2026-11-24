@@ -76,6 +76,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showRevisionList by remember { mutableStateOf(false) }
     var showArticleInfo by remember { mutableStateOf(false) }
     var fullTemplateConfirm by remember { mutableStateOf<StyleModule?>(null) }
+    var showCompatibilityReport by remember { mutableStateOf(false) }
+    var compatibilityWarnings by remember { mutableStateOf(emptyList<String>()) }
     var subtitle by remember { mutableStateOf("") }
     var summary by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
@@ -205,6 +207,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             vm.toast("HTML 已导出")
         }.onFailure { vm.toast("HTML 导出失败：${it.message ?: "无法写入文件"}") }
     }
+    fun copyPlainText() {
+        editor?.evaluateJavascript("document.getElementById('editor').innerText") { raw ->
+            val plain = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull()
+                ?: html.replace(Regex("<[^>]*>"), "")
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText(title, plain))
+            vm.toast("已复制纯文本")
+        }
+    }
     fun copyRichHtml() {
         val view = editor
         if (view == null || !webReady) {
@@ -314,6 +325,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 EditorTool("全选") { runJs("document.getElementById('editor').focus();document.execCommand('selectAll');saveSelection();") }
                 EditorTool("复制富文本") { copyRichHtml() }
+                EditorTool("复制纯文本") { copyPlainText() }
+                EditorTool("兼容检查") {
+                    editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                        val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                        compatibilityWarnings = articleCompatibilityWarnings(current)
+                        showCompatibilityReport = true
+                    }
+                }
                 EditorTool("导入HTML") { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }
                 EditorTool("导出HTML") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
@@ -610,6 +629,22 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { fullTemplateConfirm = null }) { Text("取消") } }
         )
     }
+    if (showCompatibilityReport) {
+        AlertDialog(
+            onDismissRequest = { showCompatibilityReport = false },
+            title = { Text("公众号兼容性检查") },
+            text = {
+                Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    if (compatibilityWarnings.isEmpty()) Text("未发现常见风险项。实际发布效果仍以微信公众号编辑器的粘贴与预览为准。", color = Color(0xFF168653), fontSize = 13.sp)
+                    compatibilityWarnings.forEachIndexed { index, warning ->
+                        Text("${index + 1}. ${warning}", color = ink, fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                    Text("检查仅基于 HTML 结构做静态提示，不代表平台审核或发布保证。", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+            },
+            confirmButton = { TextButton(onClick = { showCompatibilityReport = false }) { Text("知道了") } }
+        )
+    }
     if (showArticleInfo) {
         AlertDialog(
             onDismissRequest = { showArticleInfo = false },
@@ -675,5 +710,18 @@ private fun sanitizeArticleHtml(source: String): String {
         }
     }
     return doc.body().html()
+}
+
+
+private fun articleCompatibilityWarnings(html: String): List<String> {
+    val warnings = mutableListOf<String>()
+    if (Regex("(?is)<img[^>]+src=[\\"']https?://").containsMatchIn(html)) warnings += "包含外链图片：复制到公众号后可能需要重新上传或替换为公众号素材。"
+    if (Regex("(?is)<table\\\\b").containsMatchIn(html)) warnings += "包含表格：请检查手机端是否出现横向溢出或列宽挤压。"
+    if (Regex("(?is)@font-face|https?://[^\\\\s\\"']+\\\\.(?:woff2?|ttf|otf)").containsMatchIn(html)) warnings += "可能依赖外部字体文件，公众号环境不一定能加载。"
+    if (Regex("(?is)<(?:iframe|video|audio|object|embed)\\\\b").containsMatchIn(html)) warnings += "包含音视频或嵌入式媒体标签，公众号正文不一定支持直接承载，建议改用平台素材或链接卡片。"
+    if (Regex("(?is)<p[^>]*>\\\\s*(?:<br\\\\s*/?>)?\\\\s*</p>").findAll(html).count() > 5) warnings += "空段落较多，可能造成阅读间距过大。"
+    if (Regex("(?is)style=[\\"'][^\\\\"']*(?:position\\\\s*:\\\\s*fixed|display\\\\s*:\\\\s*flex|grid)").containsMatchIn(html)) warnings += "包含复杂布局 CSS，公众号可能清理或改变其显示效果。"
+    if (Regex("(?is)href=[\\"'](?:javascript:|#)").containsMatchIn(html)) warnings += "存在脚本链接或空锚点，请检查链接是否有效。"
+    return warnings
 }
 
