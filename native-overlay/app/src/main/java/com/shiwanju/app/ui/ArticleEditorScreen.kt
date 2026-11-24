@@ -121,7 +121,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val filteredArticles = vm.data.articles.filter { article ->
-        (articleFilter == "全部" || (articleFilter == "草稿" && article.status != "complete") || (articleFilter == "已完成" && article.status == "complete")) &&
+        (articleFilter == "全部" || (articleFilter == "草稿" && article.status != "complete") || (articleFilter == "已完成" && article.status == "complete") || (articleFilter == "收藏" && article.isFavorite)) &&
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
     }.sortedByDescending { it.updatedAt }
     val filteredMediaAssets = vm.data.mediaAssets.filter { mediaSearchText.isBlank() || it.fileName.contains(mediaSearchText, true) || it.mimeType.contains(mediaSearchText, true) }.sortedByDescending { it.createdAt }
@@ -162,13 +162,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         val savingTags = tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         val savingStatus = articleStatus
         val savingCoverAssetId = coverAssetId
+        val savingIsFavorite = vm.data.articles.firstOrNull { it.id == articleId }?.isFavorite ?: false
         val view = editor
         if (view == null || !webReady) {
             val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == savingId }
             vm.saveArticle(ArticleDocument(savingId, savingTitle, html, old?.createdAt ?: now, now,
                 savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
-                savingStatus, html.replace(Regex("<[^>]*>"), "").length))
+                savingStatus, html.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
             saved = true
             if (showToast) vm.toast("文章已保存")
             onComplete?.invoke()
@@ -181,7 +182,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             val old = vm.data.articles.firstOrNull { it.id == savingId }
             vm.saveArticle(ArticleDocument(savingId, savingTitle, current, old?.createdAt ?: now, now,
                 savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
-                savingStatus, current.replace(Regex("<[^>]*>"), "").length))
+                savingStatus, current.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
             saved = true
             if (showToast) vm.toast("文章已保存")
             onComplete?.invoke()
@@ -378,7 +379,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     category = pack.optString("category").take(100), tags = importedTags,
                     coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty(),
                     status = if (pack.optString("status") == "complete") "complete" else "draft",
-                    wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length
+                    wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length, isFavorite = pack.optBoolean("isFavorite", false)
                 )
                 vm.saveArticle(imported)
                 articleId = imported.id; title = imported.title; html = imported.html
@@ -542,7 +543,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             OutlinedTextField(searchText, { searchText = it }, modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp), singleLine = true, placeholder = { Text("搜索文章标题、摘要、分类或标签") })
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                listOf("全部", "草稿", "已完成").forEach { filter ->
+                listOf("全部", "草稿", "已完成", "收藏").forEach { filter ->
                     EditorTool(filter, articleFilter == filter) { articleFilter = filter }
                 }
                 Text("${filteredArticles.size} 篇", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterVertically))
@@ -572,7 +573,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 Column(horizontalAlignment = Alignment.End) {
                                     TextButton(onClick = {
                                         val now = System.currentTimeMillis().toString()
-                                        val copy = item.copy(id = vm.newId(), title = item.title + "（副本）", createdAt = now, updatedAt = now)
+                                        vm.saveArticle(item.copy(isFavorite = !item.isFavorite, updatedAt = now))
+                                    }) { Text(if (item.isFavorite) "★" else "☆", color = accent) }
+                                    TextButton(onClick = {
+                                        val now = System.currentTimeMillis().toString()
+                                        val copy = item.copy(id = vm.newId(), title = item.title + "（副本）", createdAt = now, updatedAt = now, isFavorite = false)
                                         vm.saveArticle(copy)
                                     }) { Text("复制", color = accent) }
                                     TextButton(onClick = { showDeleteConfirm = item }) { Text("删除", color = Color(0xFFCC5555)) }
@@ -640,7 +645,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             .put("format", "shiwanju.article.v1")
                             .put("title", title).put("subtitle", subtitle).put("summary", summary)
                             .put("author", author).put("category", category).put("tags", org.json.JSONArray(tagsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }))
-                            .put("status", articleStatus).put("coverAssetId", coverAssetId).put("html", current)
+                            .put("status", articleStatus).put("isFavorite", currentArticle?.isFavorite ?: false).put("coverAssetId", coverAssetId).put("html", current)
                         val assets = org.json.JSONArray()
                         var packageImageBytes = 0L
                         vm.data.mediaAssets.filter { current.contains(it.id) || coverAssetId == it.id }.forEach { asset ->
