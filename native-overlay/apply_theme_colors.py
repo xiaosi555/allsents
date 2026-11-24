@@ -151,8 +151,8 @@ _entry = re.search(r"(?m)^(@Composable\s+fun\s+\w+\([^)]*AppViewModel[^)]*\)\s*\
 if _entry and "AppColors.setAppearanceMode(vm.appearanceMode, systemDark)" not in my:
     _body = _entry.group(1) + "\n    val systemDark = isSystemInDarkTheme()\n    LaunchedEffect(vm.appearanceMode, systemDark) { AppColors.setAppearanceMode(vm.appearanceMode, systemDark) }"
     my = my.replace(_entry.group(1), _body, 1)
-old_title = 'val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
-new_title = 'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
+old_title = 'val title = when (route) { "accounts" -> "账号"; "texts" -> "文案"; "styles" -> "样式"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
+new_title = 'val title = when (route) { "settings" -> "设置"; "accounts" -> "账号"; "texts" -> "文案"; "styles" -> "样式"; "layouts" -> "版式"; "more" -> "更多"; "backup" -> "备份"; "official" -> "公众号"; "history_articles" -> "历史文章"; else -> "我的" }'
 if '"settings" -> ThemeSettingsPage(vm)' not in my:
     if old_title not in my:
         raise SystemExit("Required theme patch anchor missing (My page title): MyScreens.kt")
