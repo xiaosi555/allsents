@@ -59,18 +59,18 @@ fun XiumiArticleLayoutScreen(vm:AppViewModel,onBack:()->Unit) {
   dirty=false
  }
  fun changeBody(value:String) { if(value!=body) { undo=(undo+body).takeLast(50); redo=emptyList(); body=value; dirty=true } }
- fun insert(value:String) { changeBody(if(body.isBlank()) value else body.trimEnd()+"\\n\\n"+value) }
+ fun insert(value:String) { changeBody(if(body.isBlank()) value else body.trimEnd()+"\n\n"+value) }
  BackHandler { if(dirty) save(); onBack() }
  val materials=remember(dock,vm.data.styles) {
   when(dock) {
    XiumiDock.TITLE -> listOf(XiumiMaterial("大标题","醒目章节标题","【大标题】"),XiumiMaterial("编号标题","序号标题","01  【章节标题】"),XiumiMaterial("色块标题","带底色标题","▰  【标题文字】"))
-   XiumiDock.TEXT -> listOf(XiumiMaterial("正文段落","标准文字段落","在这里输入正文内容。"),XiumiMaterial("引用","引用与出处","“在这里输入引用内容。”\\n—— 来源"),XiumiMaterial("分割线","段落分隔","━━━━━━━━━━━━"),XiumiMaterial("注释","小字说明","注：补充说明。"))
-   XiumiDock.IMAGE -> listOf(XiumiMaterial("单图","图片占位","［图片：点击替换］"),XiumiMaterial("双图","左右双图","［图片 1］　　　［图片 2］"),XiumiMaterial("图文混排","图文组合","［图片］\\n图片说明文字。"))
-   XiumiDock.LAYOUT -> listOf(XiumiMaterial("双栏布局","两列内容","［左栏内容］　　　［右栏内容］"),XiumiMaterial("三栏布局","三列内容","［一］　［二］　［三］"),XiumiMaterial("图文卡片","图文组合卡片","［图片］\\n【卡片标题】\\n卡片正文"),XiumiMaterial("留白","段落留白","\\n\\n"))
-   XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
-   XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\\n02  第二步\\n03  第三步"))
+   XiumiDock.TEXT -> listOf(XiumiMaterial("正文段落","标准文字段落","在这里输入正文内容。"),XiumiMaterial("引用","引用与出处","“在这里输入引用内容。”\n—— 来源"),XiumiMaterial("分割线","段落分隔","━━━━━━━━━━━━"),XiumiMaterial("注释","小字说明","注：补充说明。"))
+   XiumiDock.IMAGE -> listOf(XiumiMaterial("单图","图片占位","［图片：点击替换］"),XiumiMaterial("双图","左右双图","［图片 1］　　　［图片 2］"),XiumiMaterial("图文混排","图文组合","［图片］\n图片说明文字。"))
+   XiumiDock.LAYOUT -> listOf(XiumiMaterial("双栏布局","两列内容","［左栏内容］　　　［右栏内容］"),XiumiMaterial("三栏布局","三列内容","［一］　［二］　［三］"),XiumiMaterial("图文卡片","图文组合卡片","［图片］\n【卡片标题】\n卡片正文"),XiumiMaterial("留白","段落留白","\n\n"))
+   XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
+   XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\n02  第二步\n03  第三步"))
    XiumiDock.COMPONENT -> listOf(XiumiMaterial("关注引导","公众号关注提示","关注公众号｜拾万句"),XiumiMaterial("作者信息","作者署名","文 / 拾万句"),XiumiMaterial("二维码","二维码占位","［二维码图片］"))
-   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\\n\\n导语内容\\n\\n正文内容\\n\\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\\n［封面图片］\\n\\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\\n知识点解释"))
+   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释"))
    XiumiDock.THEME -> listOf(XiumiMaterial("薄荷绿","清新绿色","mint"),XiumiMaterial("暖阳橙","温暖橙色","orange"),XiumiMaterial("海盐蓝","清爽蓝色","blue"))
    XiumiDock.FAVORITE -> vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) }
   }
@@ -122,7 +122,7 @@ fun XiumiArticleLayoutScreen(vm:AppViewModel,onBack:()->Unit) {
        BasicTextField(author,{author=it;dirty=true},Modifier.weight(1f),textStyle=LocalTextStyle.current.copy(fontSize=12.sp,color=Color.DarkGray))
        Text("封面 ＋",fontSize=11.sp,color=accent,modifier=Modifier.clickable { dock=XiumiDock.IMAGE })
       }
-      HorizontalDivider(Modifier.padding(vertical=12.dp)); Text("正文内容",fontSize=10.sp,color=Color.LightGray)
+      Divider(Modifier.padding(vertical=12.dp)); Text("正文内容",fontSize=10.sp,color=Color.LightGray)
       OutlinedTextField(body,{changeBody(it)},Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp),placeholder={Text("从左侧选择标题、文字、图片、布局或组件添加到文章，也可直接输入。")},
        textStyle=LocalTextStyle.current.copy(fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,fontWeight=if(bold) FontWeight.Bold else FontWeight.Normal,
         textAlign=when(align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start }),minLines=14)
@@ -136,7 +136,7 @@ fun XiumiArticleLayoutScreen(vm:AppViewModel,onBack:()->Unit) {
     }
    }
    if(properties) Column(Modifier.width(148.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(9.dp)) {
-    Text("属性设置",fontSize=14.sp,fontWeight=FontWeight.Bold); Text("选中：$selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=8.dp)); HorizontalDivider()
+    Text("属性设置",fontSize=14.sp,fontWeight=FontWeight.Bold); Text("选中：$selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=8.dp)); Divider()
     Text("字号 \${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
     Text("行间距 \${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
     FilterChip(bold,{bold=!bold},{Text("粗体",fontSize=10.sp)})
