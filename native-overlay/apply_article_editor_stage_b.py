@@ -177,6 +177,7 @@ s = replace_once(
 s = replace_once(
     s,
     '''                              }
+                              reportSelection();
                             });
                             function clearDragTarget(){''',
     '''                               }
