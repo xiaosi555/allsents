@@ -270,6 +270,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         }
     }
+    LaunchedEffect(activePanel, webReady) {
+        if (activePanel == EditorPanel.LAYER && webReady) refreshLayerItems()
+    }
     fun runJs(script: String) {
         editor?.evaluateJavascript(script, null)
         saved = false
