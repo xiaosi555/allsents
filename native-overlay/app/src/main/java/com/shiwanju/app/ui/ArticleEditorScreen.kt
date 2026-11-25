@@ -342,15 +342,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 old.subtitle != savingSubtitle || old.summary != savingSummary || old.author != savingAuthor ||
                 old.coverAssetId != savingCoverAssetId || old.category != savingCategory || old.tags != savingTags ||
                 old.status != savingStatus || old.isFavorite != savingIsFavorite
-            if (changed) {
+            val persisted = if (changed) {
                 val now = System.currentTimeMillis().toString()
                 vm.saveArticle(ArticleDocument(savingId, savingTitle, html, old?.createdAt ?: now, now,
                     savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
                     savingStatus, html.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
-            }
-            saved = true
-            if (showToast) vm.toast("文章已保存")
-            onComplete?.invoke()
+            } else true
+            saved = persisted
+            if (persisted && showToast) vm.toast("文章已保存")
+            if (persisted) onComplete?.invoke()
             return
         }
         view.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
@@ -361,15 +361,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 old.subtitle != savingSubtitle || old.summary != savingSummary || old.author != savingAuthor ||
                 old.coverAssetId != savingCoverAssetId || old.category != savingCategory || old.tags != savingTags ||
                 old.status != savingStatus || old.isFavorite != savingIsFavorite
-            if (changed) {
+            val persisted = if (changed) {
                 val now = System.currentTimeMillis().toString()
                 vm.saveArticle(ArticleDocument(savingId, savingTitle, current, old?.createdAt ?: now, now,
                     savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
                     savingStatus, current.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
-            }
-            saved = true
-            if (showToast) vm.toast("文章已保存")
-            onComplete?.invoke()
+            } else true
+            saved = persisted
+            if (persisted && showToast) vm.toast("文章已保存")
+            if (persisted) onComplete?.invoke()
         }
     }
     fun newArticle() {
