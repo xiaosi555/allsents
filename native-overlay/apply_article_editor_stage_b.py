@@ -176,21 +176,21 @@ s = replace_once(
 s = replace_once(
     s,
     '''                            function applyInlineStyle(styles){const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return false;''',
-    '''                             function applyInlineStyle(styles){restoreSelection();const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return false;''',
+    '''                            function applyInlineStyle(styles){restoreSelection();const sel=window.getSelection();if(!sel||!sel.rangeCount||sel.isCollapsed)return false;''',
     "restore selection before inline formatting"
 )
 
 s = replace_once(
     s,
     '''                            function styleSelectionOrParagraph(prop,value){const sel=window.getSelection();if(sel&&!sel.isCollapsed){const styles={};styles[prop]=value;applyInlineStyle(styles);}else styleSelectedParagraph(prop,value);}''',
-    '''                             function styleSelectionOrParagraph(prop,value){restoreSelection();const sel=window.getSelection();if(sel&&!sel.isCollapsed){const styles={};styles[prop]=value;applyInlineStyle(styles);}else styleSelectedParagraph(prop,value);}''',
+    '''                            function styleSelectionOrParagraph(prop,value){restoreSelection();const sel=window.getSelection();if(sel&&!sel.isCollapsed){const styles={};styles[prop]=value;applyInlineStyle(styles);}else styleSelectedParagraph(prop,value);}''',
     "restore selection before selection or paragraph styling"
 )
 
 s = replace_once(
     s,
     '''                            document.addEventListener('selectionchange',()=>{if(document.activeElement===root)saveSelection();});''',
-    '''                             document.addEventListener('selectionchange',()=>{if(document.activeElement===root){saveSelection();reportSelection();}});''',
+    '''                            document.addEventListener('selectionchange',()=>{if(document.activeElement===root){saveSelection();reportSelection();}});''',
     "selectionchange bridge updates"
 )
 
