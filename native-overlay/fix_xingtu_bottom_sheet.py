@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Correct the Xingtu editor's non-modal expandable bottom tool sheet."""
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 EDITOR = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt"
@@ -11,34 +12,42 @@ if not EDITOR.is_file():
 
 s = EDITOR.read_text(encoding="utf-8")
 
-# The primary dock is already rendered outside the Popup. Remove the accidental
-# second copy from the Popup so the sheet overlays that dock without containing it.
+# The primary dock is rendered once in the editor's main layout. Remove only
+# the duplicate Row itself; keep the three surrounding scope-closing braces.
 dock_marker = "                // Fixed primary navigation dock, as a sibling of the expandable sheet."
 handle_marker = "                    Box(\n                        Modifier.fillMaxWidth().height(26.dp)"
+row_tail = "\n                }\n\n                    }\n                    }\n                    }\n                    Box(\n                        Modifier.fillMaxWidth().height(26.dp)"
+
 dock_count = s.count(dock_marker)
 if dock_count == 1:
-    start = s.index(dock_marker)
-    end = s.find(handle_marker, start)
-    if end < 0:
-        raise SystemExit("Could not locate the sheet's bottom-center drag handle")
-    s = s[:start] + s[end:]
+    dock_start = s.index(dock_marker)
+    row_start = s.find("Row(", dock_start)
+    anchor = s.find("height(50.dp)", row_start)
 elif dock_count == 0:
-    import re
     dock_heights = [m.start() for m in re.finditer(r"height\(50\.dp\)", s)]
     if len(dock_heights) == 2:
-        second = dock_heights[1]
-        row_start = s.rfind("Row(", 0, second)
-        start = s.rfind("\n", 0, row_start) + 1
-        end = s.find(handle_marker, second)
-        if row_start < 0 or end < 0:
-            raise SystemExit("Could not safely locate the duplicate primary dock without its comment")
-        s = s[:start] + s[end:]
+        anchor = dock_heights[1]
+        row_start = s.rfind("Row(", 0, anchor)
+        dock_start = s.rfind("\n", 0, row_start) + 1
     elif len(dock_heights) == 1:
-        pass  # The extracted source already has one independent primary dock.
+        anchor = -1
+        row_start = -1
+        dock_start = -1
     else:
         raise SystemExit(f"Unexpected dock structure without marker: {len(dock_heights)} height anchors")
 else:
     raise SystemExit(f"Expected at most one duplicate dock marker, found {dock_count}")
+
+if dock_start >= 0:
+    if row_start < 0 or anchor < 0:
+        raise SystemExit("Could not safely locate the duplicate primary dock")
+    tail_start = s.find(row_tail, anchor)
+    if tail_start < 0:
+        raise SystemExit("Could not locate the end of the duplicate dock Row without consuming surrounding scope braces")
+    # row_tail begins with the outer Row's closing brace. Keep the following
+    # three scope braces and the drag handle exactly where they were.
+    end = tail_start + len("\n                }")
+    s = s[:dock_start] + s[end:]
 
 # Preserve the established 100dp collapsed/initial height whenever a different
 # primary tool is opened. 350dp remains only the maximum expanded height.
@@ -58,8 +67,6 @@ if "toolPanelHeightDp = 100f" not in s:
         raise SystemExit(f"Expected one primary navigation open handler, found {s.count(old)}")
     s = s.replace(old, new, 1)
 
-# Fail the build if future edits accidentally reintroduce a dock inside the sheet,
-# a modal/overlay configuration, or remove the bounded animated drag behavior.
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "non-modal popup": "PopupProperties(focusable = false" in s,
