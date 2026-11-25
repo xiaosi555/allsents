@@ -176,7 +176,7 @@ private fun Text2EditorPanel(
             Text(value.toInt().toString() + suffix, Modifier.width(42.dp), color = Color(0xFF333333), fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
         }
     }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth().heightIn(min = 280.dp).background(Color.White), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
             BasicTextField(value = textValue, onValueChange = { textValue = it }, singleLine = true, modifier = Modifier.weight(1f).padding(start = 4.dp),
                 textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF222222), fontSize = 14.sp),
@@ -1529,7 +1529,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
-                        Column(Modifier.fillMaxWidth().weight(1f).then(if (activePanel == EditorPanel.TEXT2) Modifier.background(Color.White) else Modifier).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
+                        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
