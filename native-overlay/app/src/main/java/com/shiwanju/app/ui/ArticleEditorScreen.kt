@@ -43,6 +43,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Undo
 import androidx.compose.material.icons.outlined.Redo
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -130,7 +132,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var editor by remember { mutableStateOf<WebView?>(null) }
     var webReady by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
-    var canvasWindowOffset by remember { mutableStateOf(Offset.Zero) }
+    var showToolPopup by remember { mutableStateOf(false) }
+    var showCanvasPopup by remember { mutableStateOf(false) }
+    var toolPopupOffset by remember { mutableStateOf(Offset.Zero) }
     var activeCategory by remember { mutableStateOf("") }
     var showArticleList by remember { mutableStateOf(false) }
     var showLink by remember { mutableStateOf(false) }
@@ -967,41 +971,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
 
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(pageBg)) {
-            val density = LocalDensity.current
-            val canvasWindowWidth = maxWidth * 0.86f
-            val canvasWindowHeight = maxHeight * 0.88f
-            val canvasDragLimitX = with(density) { (maxWidth - canvasWindowWidth).toPx() / 2f }
-            val canvasDragLimitY = with(density) { (maxHeight - canvasWindowHeight).toPx() / 2f }
-            Surface(
-                modifier = Modifier.width(canvasWindowWidth).height(canvasWindowHeight)
-                    .align(Alignment.Center)
-                    .offset { IntOffset(canvasWindowOffset.x.toInt(), canvasWindowOffset.y.toInt()) },
-                shape = RoundedCornerShape(14.dp),
-                color = Color.White,
-                shadowElevation = 12.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)
-            ) {
-                Column(Modifier.fillMaxSize()) {
-                    Row(
-                        Modifier.fillMaxWidth().height(34.dp)
-                            .background(Color(0xFF1B1B1B))
-                            .pointerInput(canvasDragLimitX, canvasDragLimitY) {
-                                detectDragGestures { change, dragAmount ->
-                                    change.consume()
-                                    canvasWindowOffset = Offset(
-                                        (canvasWindowOffset.x + dragAmount.x).coerceIn(-canvasDragLimitX, canvasDragLimitX),
-                                        (canvasWindowOffset.y + dragAmount.y).coerceIn(-canvasDragLimitY, canvasDragLimitY)
-                                    )
-                                }
-                            }
-                            .padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("⠿", color = AppColors.Theme, fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
-                        Text("文章画布", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.weight(1f))
-                        Text("按住标题栏拖动", color = Color(0xFF999999), fontSize = 10.sp)
-                    }
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -1209,7 +1178,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         tag = "article-editor"
                     }
                 },
-                modifier = Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
+                modifier = Modifier.fillMaxSize(),
                 update = { editor = it }
             )
                 }
@@ -1341,39 +1310,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
 
-            if (!previewMode && selectedImageHtml.isBlank() && !selectedTextActive) {
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(Color(0xFF181818))
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .navigationBarsPadding()
-            ) {
-                CompositionLocalProvider(LocalEditorToolDark provides true) {
-                Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 9.dp, bottom = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("编辑工具", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            when {
-                                selectedImageHtml.isNotBlank() -> "已选中图片 · 可调整尺寸、裁切与替换"
-                                selectedBlockHtml.isNotBlank() -> "已选中内容模块 · 可移动、复制或调整样式"
-                                multiSelectMode -> "多选模式 · 点选多个模块后可组合拖动"
-                                else -> "选择分类，快速调整文章画布"
-                            },
-                            color = Color(0xFF888888), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
+            if (!previewMode) {
+            if (showToolPopup && selectedImageHtml.isBlank() && !selectedTextActive && activePanel != EditorPanel.CANVAS) {
+                Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 300.dp).background(Color(0xFF181818)).navigationBarsPadding()) {
+                    Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
+                        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                            Text("全部", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
-                    TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) {
-                        Text("全部工具", color = AppColors.Theme, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
-                Column(
-                    Modifier.fillMaxWidth().height(115.dp)
-                        .verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 8.dp)
-                ) {
+                    CompositionLocalProvider(LocalEditorToolDark provides true) {
+                        Column(Modifier.fillMaxWidth().heightIn(min = 40.dp, max = 250.dp).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
@@ -1839,16 +1787,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     }
                                 }
                                 if (rowTemplates.size == 1) Spacer(Modifier.weight(1f))
-                            }
                         }
                     }
-                    }
                 }
-                }
+            }
                 Row(
                     Modifier.fillMaxWidth().height(50.dp)
-                        .background(Color(0xFF181818))
-                        .border(width = 0.5.dp, color = Color.White.copy(alpha = 0.08f)),
+                        .background(Color(0xFF181818)),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
@@ -1859,12 +1804,24 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     ) {
                         EditorPanel.values().forEach { panel ->
                             TextButton(
-                                onClick = { activePanel = panel; floatingMenu = ""; if (panel == EditorPanel.LAYER) refreshLayerItems() },
+                                onClick = {
+                                    activePanel = panel
+                                    floatingMenu = ""
+                                    if (panel == EditorPanel.CANVAS) {
+                                        showToolPopup = false
+                                        showCanvasPopup = true
+                                        toolPopupOffset = Offset.Zero
+                                    } else {
+                                        showCanvasPopup = false
+                                        showToolPopup = true
+                                    }
+                                    if (panel == EditorPanel.LAYER) refreshLayerItems()
+                                },
                                 contentPadding = PaddingValues(horizontal = 9.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     panel.label,
-                                    color = if (activePanel == panel) Color.White else Color(0xFF777777),
+                                    color = if (activePanel == panel && (showToolPopup || showCanvasPopup)) Color.White else Color(0xFF777777),
                                     fontSize = if (activePanel == panel) 15.sp else 13.sp,
                                     fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
                                     maxLines = 1
@@ -1879,6 +1836,50 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    if (showCanvasPopup && !previewMode) {
+        Dialog(onDismissRequest = { showCanvasPopup = false }) {
+            var dragOffset by remember { mutableStateOf(Offset.Zero) }
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.92f).offset { IntOffset(dragOffset.x.toInt(), dragOffset.y.toInt()) },
+                shape = RoundedCornerShape(14.dp), color = Color(0xFF181818), shadowElevation = 18.dp
+            ) {
+                Column {
+                    Row(
+                        Modifier.fillMaxWidth().height(44.dp).background(Color(0xFF222222))
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, drag ->
+                                    change.consume()
+                                    dragOffset = Offset(dragOffset.x + drag.x, dragOffset.y + drag.y)
+                                }
+                            }.padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("⠿", color = AppColors.Theme, fontSize = 17.sp)
+                        Text("画布工具", color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                        IconButton(onClick = { showCanvasPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭画布工具", tint = Color.White) }
+                        IconButton(onClick = { showCanvasPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定画布设置", tint = AppColors.Theme) }
+                    }
+                    CompositionLocalProvider(LocalEditorToolDark provides true) {
+                        Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 250.dp).verticalScroll(rememberScrollState()).padding(12.dp)) {
+                            Text("内容宽度", color = Color(0xFFBBBBBB), fontSize = 11.sp)
+                            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                EditorTool("全宽") { runJs("root.style.width='100%';root.style.maxWidth='100%';root.style.margin='0 auto';") }
+                                EditorTool("92%") { runJs("root.style.width='92%';root.style.maxWidth='680px';root.style.margin='0 auto';") }
+                                EditorTool("680px") { runJs("root.style.width='100%';root.style.maxWidth='680px';root.style.margin='0 auto';") }
+                                EditorTool("重置宽度") { runJs("root.style.width='';root.style.maxWidth='';root.style.margin='';") }
+                            }
+                            Text("画布留白", color = Color(0xFFBBBBBB), fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp))
+                            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                EditorTool("默认") { runJs("root.style.padding='30px 22px 120px';") }
+                                EditorTool("紧凑") { runJs("root.style.padding='18px 14px 80px';") }
+                                EditorTool("宽松") { runJs("root.style.padding='42px 28px 140px';") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     if (showHtmlImportPreview) {
         Dialog(onDismissRequest = { showHtmlImportPreview = false }) {
             Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
