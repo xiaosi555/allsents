@@ -1492,8 +1492,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                                     cropHeight = bottom - cropTop
                                                 }
                                                 3 -> {
-                                                    cropWidth = (cropWidth + dx).coerceIn(minSide, 1f - latestCropLeft)
-                                                    cropHeight = (cropHeight + dy).coerceIn(minSide, 1f - latestCropTop)
+                                                    cropWidth = (latestCropWidth + dx).coerceIn(minSide, 1f - latestCropLeft)
+                                                    cropHeight = (latestCropHeight + dy).coerceIn(minSide, 1f - latestCropTop)
                                                 }
                                                 4 -> {
                                                     cropLeft = (latestCropLeft + dx).coerceIn(0f, 1f - latestCropWidth)
