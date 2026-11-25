@@ -1437,6 +1437,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
             }
+            }
         }
     }
 
