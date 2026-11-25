@@ -108,6 +108,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_article_editor.py
 
+      - name: Add persistent style category IDs and template origin
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_style_categories.py
+
       - name: Upload article editor patch diagnostic
         if: always()
         uses: actions/upload-artifact@v4
