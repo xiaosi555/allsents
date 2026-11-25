@@ -55,6 +55,16 @@ s = replace_once(
     "keep selection toolbar inside canvas and above the keyboard"
 )
 
+s = replace_once(
+    s,
+    """                    Modifier.fillMaxWidth().height(50.dp)
+                        .background(Color(0xFF181818)),""",
+    """                    Modifier.fillMaxWidth().height(50.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color(0xFF181818)),""",
+    "anchor bottom-level category dock to the canvas bottom"
+)
+
 required = [
     "modifier = Modifier.fillMaxSize()",
     "Dialog(onDismissRequest = { showCanvasPopup = false })",
