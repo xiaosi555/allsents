@@ -2104,23 +2104,34 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     if (showBlockProperties) {
         Dialog(onDismissRequest = { showBlockProperties = false }) {
             Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("模块属性", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text("调整当前选中模块的内边距、背景、边框和圆角。", color = Color.Gray, fontSize = 11.sp)
+                    Text("可设置尺寸、间距、背景、边框、圆角、阴影、对齐和透明度。", color = Color.Gray, fontSize = 11.sp)
+                    OutlinedTextField(blockWidth, { blockWidth = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("宽度（例如 100%、320px）") })
                     OutlinedTextField(blockPadding, { blockPadding = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("内边距（例如 14px）") })
+                    OutlinedTextField(blockMargin, { blockMargin = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("上下间距（例如 12px）") })
                     OutlinedTextField(blockBackground, { blockBackground = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("背景色（HEX 或 transparent）") })
                     OutlinedTextField(blockBorder, { blockBorder = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框颜色（HEX）") })
                     OutlinedTextField(blockRadius, { blockRadius = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("圆角（例如 8px）") })
+                    OutlinedTextField(blockShadow, { blockShadow = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("阴影（none / 0 2px 8px #0002）") })
+                    OutlinedTextField(blockAlign, { blockAlign = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("内容对齐（left / center / right / justify）") })
+                    OutlinedTextField(blockOpacity, { blockOpacity = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("透明度（0–100）") })
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showBlockProperties = false }) { Text("取消", color = Color.Gray) }
                         TextButton(onClick = {
                             val dimension = Regex("""^\d{1,3}(?:\.\d{1,2})?(?:px|%)$""")
+                            val widthValue = Regex("""^(?:auto|\d{1,3}(?:\.\d{1,2})?(?:px|%))$""")
                             val colorValue = Regex("""^#[0-9a-fA-F]{6}$""")
+                            val shadowValue = Regex("""^(?:none|0(?:px)?\s+\d{1,3}px\s+\d{1,3}px\s+#[0-9a-fA-F]{3,8})$""")
                             val bgValid = blockBackground == "transparent" || colorValue.matches(blockBackground)
-                            if (!dimension.matches(blockPadding) || !dimension.matches(blockRadius) || !colorValue.matches(blockBorder) || !bgValid) {
-                                vm.toast("请检查尺寸格式和颜色格式")
+                            val alignValid = blockAlign in listOf("left", "center", "right", "justify")
+                            val opacityValid = blockOpacity.toIntOrNull()?.let { it in 0..100 } == true
+                            if (!dimension.matches(blockPadding) || !dimension.matches(blockMargin) || !widthValue.matches(blockWidth) ||
+                                !dimension.matches(blockRadius) || !colorValue.matches(blockBorder) || !bgValid ||
+                                !shadowValue.matches(blockShadow) || !alignValid || !opacityValid) {
+                                vm.toast("请检查宽度、间距、阴影、对齐和颜色格式")
                             } else {
-                                runJs("applySelectedBlockStyle(${JSONObject.quote(blockPadding)},${JSONObject.quote(blockBackground)},${JSONObject.quote(blockBorder)},${JSONObject.quote(blockRadius)})")
+                                runJs("applySelectedBlockStyle(${JSONObject.quote(blockPadding)},${JSONObject.quote(blockMargin)},${JSONObject.quote(blockWidth)},${JSONObject.quote(blockBackground)},${JSONObject.quote(blockBorder)},${JSONObject.quote(blockRadius)},${JSONObject.quote(blockShadow)},${JSONObject.quote(blockAlign)},${JSONObject.quote(blockOpacity)})")
                                 showBlockProperties = false
                                 vm.toast("模块样式已更新")
                             }
