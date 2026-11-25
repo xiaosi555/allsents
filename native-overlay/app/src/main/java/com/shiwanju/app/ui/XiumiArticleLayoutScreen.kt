@@ -82,11 +82,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    IconButton(onClick={if(dirty) save();onBack()}) { Icon(Icons.Outlined.ArrowBack,contentDescription="返回") }
    Column(Modifier.weight(1f)) { Text("秀米式图文排版",fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
-   TextButton(onClick={save}) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
+   TextButton(onClick={ { save() } }) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
    TextButton(onClick={properties=!properties}) { Text("属性") }
   }
   Row(Modifier.weight(1f).fillMaxWidth()) {
-   Column(Modifier.width(if(compact) 48.dp else 60.dp).fillMaxHeight().background(Color(0xFFFAFAFA)).verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally) {
+   Column(Modifier.width(if(compact) 48.dp else 64.dp).fillMaxHeight().background(Color(0xFFFAFAFA)).verticalScroll(rememberScrollState()).padding(horizontal=4.dp, vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally) {
     XiumiDock.entries.forEach { item ->
      val active=dock==item
      Column(Modifier.fillMaxWidth().padding(horizontal=4.dp,vertical=2.dp).clip(RoundedCornerShape(8.dp)).background(if(active) accent.copy(alpha=.12f) else Color.Transparent)
@@ -95,9 +95,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      }
     }
    }
-   Column(Modifier.width(if(compact) 128.dp else 168.dp).fillMaxHeight().background(Color.White).padding(9.dp)) {
-    Text(dock.label,fontSize=15.sp,fontWeight=FontWeight.Bold)
-    OutlinedTextField(search,{search=it},Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("搜索素材",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=12.sp))
+   Column(Modifier.width(if(compact) 116.dp else 224.dp).fillMaxHeight().background(Color.White).padding(horizontal=if(compact) 7.dp else 12.dp, vertical=12.dp)) {
+    Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31)); Text(dock.label,fontSize=10.sp,color=accent,modifier=Modifier.padding(top=3.dp,bottom=8.dp))
+    OutlinedTextField(search,{search=it},Modifier.fillMaxWidth().heightIn(min=42.dp),singleLine=true,placeholder={Text("搜索",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=11.sp),shape=RoundedCornerShape(7.dp))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
      materials.filter { search.isBlank() || it.name.contains(search) || it.detail.contains(search) }.forEach { material ->
       Column(Modifier.fillMaxWidth().padding(bottom=7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F6)).clickable {
@@ -110,11 +110,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      if(materials.isEmpty()) Text("暂无收藏素材",fontSize=11.sp,color=Color.Gray)
     }
    }
-   Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally) {
-    Row(Modifier.fillMaxWidth().height(38.dp).background(Color(0xFFF8F8F8)).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically) {
-     Text("画布",fontSize=11.sp,color=Color.Gray); Spacer(Modifier.weight(1f)); Text("100%",fontSize=10.sp,color=Color.Gray)
+   Column(Modifier.weight(1f).fillMaxHeight().background(Color(0xFFEDEFF1)).verticalScroll(rememberScrollState()).padding(horizontal=if(compact) 6.dp else 18.dp, vertical=10.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+    Row(Modifier.fillMaxWidth().height(42.dp).background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
+     Text("正文画布",fontSize=12.sp,fontWeight=FontWeight.SemiBold,color=Color(0xFF42464A)); Spacer(Modifier.weight(1f)); Text("−",fontSize=18.sp,color=Color.Gray); Text(" 100% ",fontSize=10.sp,color=Color.Gray); Text("＋",fontSize=18.sp,color=Color.Gray); Text(" 适宽 ",fontSize=10.sp,color=accent)
     }
-    Column(Modifier.fillMaxWidth(.96f).padding(vertical=10.dp).background(Color.White).border(1.dp,Color(0xFFE6E6E6)).padding(14.dp)) {
+    Column(Modifier.fillMaxWidth(if(compact) .98f else .88f).widthIn(max=760.dp).padding(vertical=8.dp).background(Color.White, RoundedCornerShape(3.dp)).border(1.dp,Color(0xFFE1E3E5),RoundedCornerShape(3.dp)).padding(if(compact) 12.dp else 28.dp)) {
      if(!preview) {
       Text("文章信息",fontSize=10.sp,color=Color.LightGray)
       OutlinedTextField(title,{title=it;dirty=true},Modifier.fillMaxWidth(),placeholder={Text("请输入文章标题")},textStyle=LocalTextStyle.current.copy(fontSize=21.sp,fontWeight=FontWeight.Bold))
@@ -137,8 +137,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      Spacer(Modifier.height(32.dp))
     }
    }
-   if(properties && !compact) Column(Modifier.width(148.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(9.dp)) {
-    Text("属性设置",fontSize=14.sp,fontWeight=FontWeight.Bold); Text("选中：$selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=8.dp)); Divider()
+   if(properties && !compact) Column(Modifier.width(if(LocalConfiguration.current.screenWidthDp < 900) 184.dp else 224.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(horizontal=14.dp, vertical=14.dp)) {
+    Text("属性面板",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31)); Text("当前对象 · $selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=10.dp)); Divider()
     Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
     Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
     FilterChip(bold,{bold=!bold},{Text("粗体",fontSize=10.sp)})
@@ -158,9 +158,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
    }
   }
-  Row(Modifier.fillMaxWidth().height(52.dp).background(Color.White),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
-   Text("↶",fontSize=23.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.isNotEmpty()) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true} })
-   Text("↷",fontSize=23.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true} })
+  Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
+   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.isNotEmpty()) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true} })
+   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true} })
    listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable { selected=label;dock=when(label) { "文字"->XiumiDock.TEXT;"图片"->XiumiDock.IMAGE;"布局"->XiumiDock.LAYOUT;else->XiumiDock.COMPONENT } }.padding(6.dp)) }
   }
  }
