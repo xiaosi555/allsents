@@ -846,10 +846,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor table{width:100%;border-collapse:collapse;table-layout:fixed}#editor td,#editor th{border:1px solid #dfe4e0;padding:8px;min-width:24px;vertical-align:top}
                             #editor a{color:#16865a;text-decoration:underline}#editor hr{border:0;border-top:1px solid #e1e5e2;margin:22px 0}
                             #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}
+                            #editor .drop-before{position:relative}
+                            #editor .drop-before::before{content:"";display:block;height:3px;background:#159765;border-radius:3px;margin:0 0 5px}
+                            #editor .drop-after{position:relative}
+                            #editor .drop-after::after{content:"";display:block;height:3px;background:#159765;border-radius:3px;margin:5px 0 0}
                             #editor img.selected-image{outline:2px solid #159765;outline-offset:2px}
                             </style></head><body><header id="previewHeader"></header><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
-                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;let activeImage=null;
+                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;let dragTarget=null;let activeImage=null;
                             function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshots.push(value);if(snapshots.length>60)snapshots.shift();historyIndex=snapshots.length-1;}
                             function restoreHistoryCaret(){root.focus();const r=document.createRange();r.selectNodeContents(root);r.collapse(false);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);saveSelection();}
                             function undoEditor(){commitHistory();if(historyIndex<=0)return;historyIndex--;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
@@ -898,10 +902,25 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 else{root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(cleanBlockHtml(e));}
                               }
                             });
+                            function clearDragTarget(){if(dragTarget){dragTarget.classList.remove('drop-before','drop-after');dragTarget=null;}}
                             root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(!e||e===root||!e.classList.contains('selected-block')){ev.preventDefault();return;}dragSource=e;ev.dataTransfer.effectAllowed='move';});
-                            root.addEventListener('dragover',function(ev){if(dragSource)ev.preventDefault();});
-                            root.addEventListener('drop',function(ev){if(!dragSource)return;ev.preventDefault();let target=ev.target;while(target&&target!==root&&target.parentElement!==root)target=target.parentElement;if(target&&target!==root&&target!==dragSource){const rect=target.getBoundingClientRect();if(ev.clientY<rect.top+rect.height/2)target.parentNode.insertBefore(dragSource,target);else target.parentNode.insertBefore(dragSource,target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(dragSource.outerHTML);}dragSource=null;});
-                            root.addEventListener('dragend',function(){dragSource=null;});
+                            root.addEventListener('dragover',function(ev){
+                              if(!dragSource){clearDragTarget();return;}
+                              const target=topLevelAt(ev.target);
+                              if(!target||target===dragSource){clearDragTarget();return;}
+                              ev.preventDefault();
+                              const rect=target.getBoundingClientRect(),before=ev.clientY<rect.top+rect.height/2;
+                              const cls=before?'drop-before':'drop-after';
+                              if(dragTarget!==target||!target.classList.contains(cls)){clearDragTarget();target.classList.add(cls);dragTarget=target;}
+                            });
+                            root.addEventListener('drop',function(ev){
+                              if(!dragSource){clearDragTarget();return;}
+                              ev.preventDefault();
+                              const target=topLevelAt(ev.target);
+                              if(target&&target!==dragSource&&target.parentElement===root){const rect=target.getBoundingClientRect();if(ev.clientY<rect.top+rect.height/2)root.insertBefore(dragSource,target);else root.insertBefore(dragSource,target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(cleanBlockHtml(dragSource));}
+                              clearDragTarget();dragSource=null;
+                            });
+                            root.addEventListener('dragend',function(){clearDragTarget();dragSource=null;});
 
                             // Touch fallback for phones: long-press a selected block or image-group cell, then drag to a visible drop target.
                             let touchDrag=null,touchDrop=null;
