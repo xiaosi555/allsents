@@ -199,11 +199,22 @@ replace_once(p,
         d.copy(mediaAssets = if (i >= 0) d.mediaAssets.toMutableList().also { it[i] = asset } else d.mediaAssets + asset)
     }
     fun deleteMediaAsset(id: String) = updateData { d ->
-        val used = d.articles.any { it.html.contains(id) || it.coverAssetId == id } || d.styles.any { it.html.contains(id) }
-        if (used) d else d.copy(mediaAssets = d.mediaAssets.filterNot { it.id == id })
+        // Keep assets referenced by live articles, article revisions (restore depends on them),
+        // style HTML, and style thumbnails. A revision must remain restorable after editing.
+        val usedByArticles = d.articles.any { it.html.contains(id) || it.coverAssetId == id }
+        val usedByRevisions = d.articleRevisions.any { it.html.contains(id) || it.coverAssetId == id }
+        val usedByStyles = d.styles.any { it.html.contains(id) || it.thumbnail == id }
+        if (usedByArticles || usedByRevisions || usedByStyles) d
+        else d.copy(mediaAssets = d.mediaAssets.filterNot { it.id == id })
     }
 
     fun saveEmoji(x: EmojiItem) = updateData { d ->''', "AppViewModel style/article actions")
+
+# Generate collision-resistant IDs for rapid consecutive article/media creation.
+replace_once(UI / "AppViewModel.kt",
+'''    fun newId(): String = System.currentTimeMillis().toString()''',
+'''    fun newId(): String = java.util.UUID.randomUUID().toString()''',
+"collision-resistant editor IDs")
 
 # Add the style manager route to My and a home-page entry.
 p = UI / "MyScreens.kt"
@@ -392,7 +403,9 @@ checks = [
     (UI / "AppViewModel.kt", "fun saveMediaAsset("),
     (UI / "AppViewModel.kt", "previous.coverAssetId != x.coverAssetId"),
     (UI / "AppViewModel.kt", "previous.isFavorite != x.isFavorite"),
-    (UI / "AppViewModel.kt", "d.styles.any { it.html.contains(id) }"),
+    (UI / "AppViewModel.kt", "d.articleRevisions.any { it.html.contains(id) || it.coverAssetId == id }"),
+    (UI / "AppViewModel.kt", "d.styles.any { it.html.contains(id) || it.thumbnail == id }"),
+    (UI / "AppViewModel.kt", "java.util.UUID.randomUUID().toString()"),
     (UI / "AppViewModel.kt", "revision.subtitle"),
     (UI / "MyScreens.kt", "private fun StylesPage("),
     (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
