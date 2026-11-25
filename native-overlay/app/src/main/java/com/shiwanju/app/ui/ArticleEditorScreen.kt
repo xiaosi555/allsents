@@ -2413,11 +2413,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             val widthValue = Regex("""^(?:auto|\d{1,3}(?:\.\d{1,2})?(?:px|%))$""")
                             val colorValue = Regex("""^#[0-9a-fA-F]{6}$""")
                             val shadowValue = Regex("""^(?:none|0(?:px)?\s+\d{1,3}px\s+\d{1,3}px\s+#[0-9a-fA-F]{3,8})$""")
-                            val gradientValue = Regex("""^linear-gradient\\((?:45|90|135|180)deg,\\s*#[0-9a-fA-F]{6}\\s+\\d{1,3}%,\\s*#[0-9a-fA-F]{6}\\s+\\d{1,3}%\\)$""")
+                            val gradientValue = Regex("""^linear-gradient\((?:45|90|135|180)deg,\s*#[0-9a-fA-F]{6}\s+\d{1,3}%,\s*#[0-9a-fA-F]{6}\s+\d{1,3}%\)$""")
                             val bgValid = blockBackground == "transparent" || colorValue.matches(blockBackground) || gradientValue.matches(blockBackground)
                             val borderWidthValue = blockBorderWidth.toIntOrNull()?.let { it in 0..8 } == true
                             val borderStyleValid = blockBorderStyle in listOf("solid", "dashed", "dotted")
-                            val radiusValue = Regex("""^\\d{1,3}(?:\\.\\d{1,2})?(?:px|%)(?:\\s+\\d{1,3}(?:\\.\\d{1,2})?(?:px|%)){0,3}$""")
+                            val radiusValue = Regex("""^\d{1,3}(?:\.\d{1,2})?(?:px|%)(?:\s+\d{1,3}(?:\.\d{1,2})?(?:px|%)){0,3}$""")
                             val alignValid = blockAlign in listOf("left", "center", "right", "justify")
                             val opacityValid = blockOpacity.toIntOrNull()?.let { it in 0..100 } == true
                             if (!dimension.matches(blockPadding) || !dimension.matches(blockMargin) || !widthValue.matches(blockWidth) ||
