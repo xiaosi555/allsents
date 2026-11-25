@@ -1061,7 +1061,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             root.addEventListener('keyup',saveSelection);root.addEventListener('mouseup',saveSelection);root.addEventListener('touchend',saveSelection);
                             root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},300);});
                             document.addEventListener('selectionchange',()=>{if(document.activeElement===root)saveSelection();});
-                            window.addEventListener('scroll',()=>{if(activeImage||root.querySelector('.selected-block'))reportSelection();},{passive:true});
+                            window.addEventListener('scroll',()=>{saveSelection();reportSelection();},{passive:true});window.addEventListener('resize',()=>{reportSelection();},{passive:true});
                             </script></body></html>
                         """.trimIndent()
                             .replace("#159765", accentHex)
