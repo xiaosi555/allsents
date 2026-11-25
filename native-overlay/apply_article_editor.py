@@ -134,6 +134,60 @@ replace_once(p,
         if (raw == null || migrated != loaded || migrated != data) saveData(migrated)
         return migrated''', "one-time default style migration")
 
+# Make business-data writes fail visibly and avoid truncating the previous JSON on interrupted writes.
+p = DATA / "Store.kt"
+if "import java.io.FileOutputStream" not in p.read_text(encoding="utf-8"):
+    replace_once(p, "import java.io.File\\n", "import java.io.File\\nimport java.io.FileOutputStream\\nimport java.io.IOException\\n", "Store atomic-write imports")
+replace_once(p,
+'''    fun saveData(d: AppData) {
+        runCatching { dataFile.writeText(gson.toJson(d), Charsets.UTF_8) }
+    }''',
+'''    fun saveData(d: AppData): Boolean {
+        val temp = File(ctx.filesDir, "app_data.json.tmp")
+        val backup = File(ctx.filesDir, "app_data.json.bak")
+        return try {
+            FileOutputStream(temp).use { output ->
+                output.write(gson.toJson(d).toByteArray(Charsets.UTF_8))
+                output.fd.sync()
+            }
+            if (backup.exists()) backup.delete()
+            val hadOriginal = dataFile.exists()
+            if (hadOriginal && !dataFile.renameTo(backup)) throw IOException("无法备份原数据文件")
+            if (!temp.renameTo(dataFile)) {
+                if (hadOriginal && backup.exists()) backup.renameTo(dataFile)
+                throw IOException("无法提交新数据文件")
+            }
+            if (backup.exists()) backup.delete()
+            true
+        } catch (error: Exception) {
+            temp.delete()
+            if (!dataFile.exists() && backup.exists()) backup.renameTo(dataFile)
+            android.util.Log.e("ShiWanJuStore", "保存数据失败", error)
+            false
+        }
+    }''', "atomic data persistence")
+
+p = UI / "AppViewModel.kt"
+replace_once(p,
+'''    fun updateData(block: (AppData) -> AppData) {
+        data = block(data)
+        store.saveData(data)
+        validateSelections()
+        if (!ui.mediaInit) applyDefaultMediaOnce()
+        rebuild()
+    }''',
+'''    fun updateData(block: (AppData) -> AppData) {
+        val updated = block(data)
+        if (!store.saveData(updated)) {
+            toast("数据保存失败，原有数据未被覆盖，请检查设备存储空间后重试")
+            return
+        }
+        data = updated
+        validateSelections()
+        if (!ui.mediaInit) applyDefaultMediaOnce()
+        rebuild()
+    }''', "transactional data updates")
+
 # Shared business actions.
 p = UI / "AppViewModel.kt"
 replace_once(p,
@@ -398,6 +452,9 @@ checks = [
     (DATA / "Store.kt", "mediaAssets = fill<MediaAsset>"),
     (DATA / "Store.kt", "articleRevisions = fill<ArticleRevision>"),
     (DATA / "Store.kt", "styleSeedApplied = raw.styleSeedApplied"),
+    (DATA / "Store.kt", "fun saveData(d: AppData): Boolean"),
+    (DATA / "Store.kt", "output.fd.sync()"),
+    (UI / "AppViewModel.kt", "if (!store.saveData(updated))"),
     (UI / "AppViewModel.kt", "fun saveArticle("),
     (UI / "AppViewModel.kt", "fun deleteArticle("),
     (UI / "AppViewModel.kt", "fun saveMediaAsset("),
