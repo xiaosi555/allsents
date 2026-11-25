@@ -455,16 +455,16 @@ p.write_text(s, encoding="utf-8")
 # Route the new page from the activity. Do not infer routing from imports or comments.
 p = JAVA / "MainActivity.kt"
 s = p.read_text(encoding="utf-8")
-if "import com.shiwanju.app.ui.ArticleEditorScreen" not in s:
+if "import com.shiwanju.app.ui.XiumiArticleEditorScreen" not in s:
     s = s.replace("import com.shiwanju.app.ui.LayoutScreen",
-                  "import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.ArticleEditorScreen", 1)
+                  "import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.XiumiArticleEditorScreen", 1)
 
 route = '''when (vm.screen) {
-                          "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
+                          "article_editor" -> XiumiArticleEditorScreen(vm) { vm.screen = "layout" }
                           "layout" -> LayoutScreen(vm)
                           else -> MyScreen(vm)
                       }'''
-if '"article_editor" -> ArticleEditorScreen(vm)' not in s:
+if '"article_editor" -> XiumiArticleEditorScreen(vm)' not in s:
     pattern = re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)')
     match = pattern.search(s)
     if match:
@@ -547,7 +547,8 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "shiwanju.styles.v1"),
     (UI / "ArticleEditorScreen.kt", "multiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
-    (JAVA / "MainActivity.kt", '"article_editor" -> ArticleEditorScreen(vm)')
+    (UI / "ArticleEditorScreen.kt", "fun XiumiArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit)"),
+    (JAVA / "MainActivity.kt", '"article_editor" -> XiumiArticleEditorScreen(vm)')
 ]
 for path, token in checks:
     if token not in path.read_text(encoding="utf-8"):
