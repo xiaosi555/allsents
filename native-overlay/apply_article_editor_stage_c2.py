@@ -53,12 +53,13 @@ s = replace_once(
                 } else {
                     (selectedTop + selectionState.height.dp + 10.dp).coerceAtMost((maxHeight - toolbarHeight).coerceAtLeast(8.dp))
                 }''',
-    '''                // WebView reports getBoundingClientRect() in CSS pixels. Convert to dp
-                // before positioning the Compose overlay, and reserve the IME-covered area.
+    '''                // With the editor viewport set to device-width, WebView CSS px map to
+                // Compose dp. Do not divide by display density a second time.
+                // WindowInsets.ime is physical px, so only the inset is converted.
                 val density = LocalDensity.current
                 val toolbarHeight = 96.dp
-                val selectionTopDp = with(density) { selectionState.y.toDp() }
-                val selectionHeightDp = with(density) { selectionState.height.toDp() }
+                val selectionTopDp = selectionState.y.dp
+                val selectionHeightDp = selectionState.height.dp
                 val imeBottomDp = with(density) { WindowInsets.ime.getBottom(this).toDp() }
                 val safeCanvasBottom = (maxHeight - imeBottomDp).coerceAtLeast(0.dp)
                 val maxToolbarTop = (safeCanvasBottom - toolbarHeight - 8.dp).coerceAtLeast(8.dp)
