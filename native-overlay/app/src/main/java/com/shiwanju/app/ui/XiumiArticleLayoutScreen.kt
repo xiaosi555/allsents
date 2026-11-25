@@ -146,13 +146,15 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    val match=old.firstOrNull { it.content==chunk }
    if(match!=null) { old.remove(match); match } else XiumiBlock(vm.newId(),classifyXiumiBlock(chunk),chunk)
   }
+  undo=(undo+body).takeLast(50); redo=emptyList()
   blocks=next; body=value; selectedSnippet=next.firstOrNull { it.id==selectedBlockId }?.content.orEmpty()
-  dirty=true; undo=(undo+body).takeLast(50); redo=emptyList()
+  dirty=true
  }
  fun syncBlocks(next:List<XiumiBlock>) {
+  undo=(undo+body).takeLast(50); redo=emptyList()
   blocks=next; body=next.joinToString("\n\n") { it.content }
   selectedSnippet=next.firstOrNull { it.id==selectedBlockId }?.content.orEmpty()
-  dirty=true; undo=(undo+body).takeLast(50); redo=emptyList()
+  dirty=true
  }
  fun insert(value:String) {
   val block=XiumiBlock(vm.newId(),classifyXiumiBlock(value),value)
