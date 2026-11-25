@@ -860,6 +860,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 }
             }
+                        }
+                    }
+                }
+            }
             }
 
             AndroidView(
