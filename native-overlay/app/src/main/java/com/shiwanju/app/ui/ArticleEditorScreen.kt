@@ -2273,19 +2273,76 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 }
 }
 
+private fun editorToolGlyph(label: String): String {
+    val key = label.trim()
+    return when {
+        key in listOf("撤销", "上一步") -> "↶"
+        key in listOf("重做", "下一步") -> "↷"
+        key.contains("保存") -> "▣"
+        key.contains("预览") || key.contains("阅读") -> "◉"
+        key.contains("返回") || key.contains("关闭") || key.contains("取消") -> "‹"
+        key.contains("文字") || key.contains("字体") -> "Aa"
+        key.contains("图片") || key.contains("相册") || key.contains("封面") -> "▧"
+        key.contains("组件") || key.contains("布局") || key.contains("分栏") -> "▦"
+        key.contains("图层") || key.contains("层级") -> "▤"
+        key.contains("模板") -> "▩"
+        key.contains("收藏") || key.contains("喜欢") -> "☆"
+        key.contains("文档") || key.contains("文章") -> "▤"
+        key.contains("加粗") || key == "粗体" -> "B"
+        key.contains("斜体") -> "I"
+        key.contains("下划线") -> "U̲"
+        key.contains("删除线") -> "S̶"
+        key.contains("颜色") || key.contains("背景") -> "◒"
+        key.contains("对齐") || key.contains("居中") -> "≡"
+        key.contains("链接") -> "↗"
+        key.contains("裁切") || key.contains("裁剪") -> "⌗"
+        key.contains("旋转") -> "⟳"
+        key.contains("替换") -> "⇄"
+        key.contains("删除") -> "⌫"
+        key.contains("复制") -> "▢"
+        key.contains("插入") || key.contains("添加") || key.contains("新建") -> "+"
+        key.contains("搜索") || key.contains("查找") -> "⌕"
+        key.contains("表格") -> "▦"
+        key.contains("列表") || key.contains("编号") -> "☷"
+        key.contains("引用") -> "❞"
+        key.contains("分割") -> "┄"
+        key.contains("收藏") -> "☆"
+        key.contains("导入") -> "⇧"
+        key.contains("导出") -> "⇩"
+        key.contains("设置") || key.contains("属性") -> "⚙"
+        key.contains("完成") || key.contains("确定") -> "✓"
+        key.contains("全部") || key.contains("草稿") || key.contains("已完成") -> "◉"
+        else -> "◈"
+    }
+}
+
 @Composable
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
-    Box(
-        Modifier.clip(RoundedCornerShape(11.dp))
-            .background(if (selected) AppColors.Theme.copy(alpha = 0.16f) else AppColors.Field)
-            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.46f) else AppColors.Line, RoundedCornerShape(11.dp))
+    Column(
+        modifier = Modifier
+            .widthIn(min = 54.dp)
+            .heightIn(min = 54.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else AppColors.Field)
+            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.48f) else AppColors.Line, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 7.dp, vertical = 5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text(label, color = if (selected) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
+        Text(editorToolGlyph(label), color = if (selected) AppColors.Theme else AppColors.TextMain,
+            fontSize = 19.sp, fontWeight = FontWeight.Medium, lineHeight = 21.sp)
+        Text(label, color = if (selected) AppColors.Theme else AppColors.TextMain,
+            fontSize = 9.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
+}
+
+
+// 独立秀米式文章编辑页面入口：复用已经验收过静态调用链的文章数据、WebView 画布与对象工具逻辑，避免复制第二套编辑引擎。
+@Composable
+fun XiumiArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
+    ArticleEditorScreen(vm = vm, onBack = onBack)
 }
 
 @Composable
