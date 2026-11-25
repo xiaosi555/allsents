@@ -968,8 +968,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(pageBg)) {
             val density = LocalDensity.current
-            val canvasWindowWidth = maxWidth * 0.92f
-            val canvasWindowHeight = maxHeight * 0.92f
+            val canvasWindowWidth = maxWidth * 0.86f
+            val canvasWindowHeight = maxHeight * 0.88f
             val canvasDragLimitX = with(density) { (maxWidth - canvasWindowWidth).toPx() / 2f }
             val canvasDragLimitY = with(density) { (maxHeight - canvasWindowHeight).toPx() / 2f }
             Surface(
