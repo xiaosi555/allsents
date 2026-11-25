@@ -172,6 +172,7 @@ jobs:
       - name: Enforce separate Xingtu and Xiumi editor routes
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/ensure_article_editor_route.py
+      # Validate that camera/Edit/palette entries resolve to different Compose screens.
 
       # Run last because route enforcement rewrites MainActivity; verify the final source.
       - name: Apply and verify status bar icon contrast
