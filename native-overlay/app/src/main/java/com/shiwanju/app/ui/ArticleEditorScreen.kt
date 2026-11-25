@@ -311,11 +311,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         val savingIsFavorite = vm.data.articles.firstOrNull { it.id == articleId }?.isFavorite ?: false
         val view = editor
         if (view == null || !webReady) {
-            val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == savingId }
-            vm.saveArticle(ArticleDocument(savingId, savingTitle, html, old?.createdAt ?: now, now,
-                savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
-                savingStatus, html.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
+            val changed = old == null || old.title != savingTitle || old.html != html ||
+                old.subtitle != savingSubtitle || old.summary != savingSummary || old.author != savingAuthor ||
+                old.coverAssetId != savingCoverAssetId || old.category != savingCategory || old.tags != savingTags ||
+                old.status != savingStatus || old.isFavorite != savingIsFavorite
+            if (changed) {
+                val now = System.currentTimeMillis().toString()
+                vm.saveArticle(ArticleDocument(savingId, savingTitle, html, old?.createdAt ?: now, now,
+                    savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
+                    savingStatus, html.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
+            }
             saved = true
             if (showToast) vm.toast("文章已保存")
             onComplete?.invoke()
@@ -324,11 +330,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         view.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
             val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
             html = current
-            val now = System.currentTimeMillis().toString()
             val old = vm.data.articles.firstOrNull { it.id == savingId }
-            vm.saveArticle(ArticleDocument(savingId, savingTitle, current, old?.createdAt ?: now, now,
-                savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
-                savingStatus, current.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
+            val changed = old == null || old.title != savingTitle || old.html != current ||
+                old.subtitle != savingSubtitle || old.summary != savingSummary || old.author != savingAuthor ||
+                old.coverAssetId != savingCoverAssetId || old.category != savingCategory || old.tags != savingTags ||
+                old.status != savingStatus || old.isFavorite != savingIsFavorite
+            if (changed) {
+                val now = System.currentTimeMillis().toString()
+                vm.saveArticle(ArticleDocument(savingId, savingTitle, current, old?.createdAt ?: now, now,
+                    savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
+                    savingStatus, current.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
+            }
             saved = true
             if (showToast) vm.toast("文章已保存")
             onComplete?.invoke()
