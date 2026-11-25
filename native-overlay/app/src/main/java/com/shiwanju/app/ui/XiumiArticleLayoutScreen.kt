@@ -34,6 +34,7 @@ private data class XiumiMaterial(val name:String,val detail:String,val value:Str
 fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  val compact = LocalConfiguration.current.screenWidthDp < 600
  val initial=remember { vm.data.articles.maxByOrNull { it.updatedAt } }
+ var currentArticle by remember { mutableStateOf(initial) }
  var id by remember { mutableStateOf(initial?.id ?: vm.newId()) }
  var title by remember { mutableStateOf(initial?.title.orEmpty()) }
  var subtitle by remember { mutableStateOf(initial?.subtitle.orEmpty()) }
@@ -44,6 +45,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var search by remember { mutableStateOf("") }
  var preview by remember { mutableStateOf(false) }
  var properties by remember { mutableStateOf(!compact) }
+ var zoom by remember { mutableFloatStateOf(1f) }
+ var showArticlePicker by remember { mutableStateOf(false) }
+ var showImageInsert by remember { mutableStateOf(false) }
+ var imageUrl by remember { mutableStateOf("") }
+ var imageAlt by remember { mutableStateOf("") }
  var dirty by remember { mutableStateOf(false) }
  var accent by remember { mutableStateOf(Color(0xFF16A36A)) }
  var fontSize by remember { mutableFloatStateOf(16f) }
@@ -54,10 +60,12 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var redo by remember { mutableStateOf(emptyList<String>()) }
  fun save() {
   val now=System.currentTimeMillis().toString()
-  vm.saveArticle(ArticleDocument(id=id,title=title.ifBlank { "未命名文章" },html=body,createdAt=initial?.createdAt ?: now,
-   updatedAt=now,subtitle=subtitle,summary=initial?.summary.orEmpty(),author=author,coverAssetId=initial?.coverAssetId.orEmpty(),
-   category=initial?.category.orEmpty(),tags=initial?.tags ?: emptyList(),status="draft",wordCount=(title+subtitle+body).length,
-   isFavorite=initial?.isFavorite ?: false))
+  val saved = ArticleDocument(id=id,title=title.ifBlank { "未命名文章" },html=body,createdAt=currentArticle?.createdAt ?: now,
+   updatedAt=now,subtitle=subtitle,summary=currentArticle?.summary.orEmpty(),author=author,coverAssetId=currentArticle?.coverAssetId.orEmpty(),
+   category=currentArticle?.category.orEmpty(),tags=currentArticle?.tags ?: emptyList(),status="draft",wordCount=(title+subtitle+body).length,
+   isFavorite=currentArticle?.isFavorite ?: false)
+  vm.saveArticle(saved)
+  currentArticle = saved
   dirty=false
  }
  fun changeBody(value:String) { if(value!=body) { undo=(undo+body).takeLast(50); redo=emptyList(); body=value; dirty=true } }
@@ -81,6 +89,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically) {
    IconButton(onClick={if(dirty) save();onBack()}) { Icon(Icons.Outlined.ArrowBack,contentDescription="返回") }
    Column(Modifier.weight(1f)) { Text("秀米式图文排版",fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
+   TextButton(onClick={showArticlePicker=true}) { Text("文章") }
+   TextButton(onClick={
+    currentArticle=null; id=vm.newId(); title=""; subtitle=""; author="拾万句"; body=""
+    undo=listOf(""); redo=emptyList(); dirty=true; preview=false
+   }) { Text("新建") }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
    TextButton(onClick={ { save() } }) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
    TextButton(onClick={properties=!properties}) { Text("属性") }
@@ -112,9 +125,14 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
    Column(Modifier.weight(1f).fillMaxHeight().background(Color(0xFFEDEFF1)).verticalScroll(rememberScrollState()).padding(horizontal=if(compact) 6.dp else 18.dp, vertical=10.dp),horizontalAlignment=Alignment.CenterHorizontally) {
     Row(Modifier.fillMaxWidth().height(42.dp).background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically) {
-     Text("正文画布",fontSize=12.sp,fontWeight=FontWeight.SemiBold,color=Color(0xFF42464A)); Spacer(Modifier.weight(1f)); Text("−",fontSize=18.sp,color=Color.Gray); Text(" 100% ",fontSize=10.sp,color=Color.Gray); Text("＋",fontSize=18.sp,color=Color.Gray); Text(" 适宽 ",fontSize=10.sp,color=accent)
+     Text("正文画布",fontSize=12.sp,fontWeight=FontWeight.SemiBold,color=Color(0xFF42464A))
+     Spacer(Modifier.weight(1f))
+     Text("−",fontSize=18.sp,color=Color.Gray,modifier=Modifier.clickable { zoom=(zoom-.1f).coerceAtLeast(.6f) }.padding(horizontal=5.dp))
+     Text("${(zoom*100).toInt()}%",fontSize=10.sp,color=Color.Gray)
+     Text("＋",fontSize=18.sp,color=Color.Gray,modifier=Modifier.clickable { zoom=(zoom+.1f).coerceAtMost(1.4f) }.padding(horizontal=5.dp))
+     Text("适宽",fontSize=10.sp,color=accent,modifier=Modifier.clickable { zoom=1f }.padding(start=6.dp))
     }
-    Column(Modifier.fillMaxWidth(if(compact) .98f else .88f).widthIn(max=760.dp).padding(vertical=8.dp).background(Color.White, RoundedCornerShape(3.dp)).border(1.dp,Color(0xFFE1E3E5),RoundedCornerShape(3.dp)).padding(if(compact) 12.dp else 28.dp)) {
+    Column(Modifier.fillMaxWidth(if(compact) .98f else .88f).widthIn(max=(760f*zoom).dp).padding(vertical=8.dp).background(Color.White, RoundedCornerShape(3.dp)).border(1.dp,Color(0xFFE1E3E5),RoundedCornerShape(3.dp)).padding(if(compact) 12.dp else 28.dp)) {
      if(!preview) {
       Text("文章信息",fontSize=10.sp,color=Color.LightGray)
       OutlinedTextField(title,{title=it;dirty=true},Modifier.fillMaxWidth(),placeholder={Text("请输入文章标题")},textStyle=LocalTextStyle.current.copy(fontSize=21.sp,fontWeight=FontWeight.Bold))
@@ -124,8 +142,23 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
        BasicTextField(author,{author=it;dirty=true},Modifier.weight(1f),textStyle=LocalTextStyle.current.copy(fontSize=12.sp,color=Color.DarkGray))
        Text("封面 ＋",fontSize=11.sp,color=accent,modifier=Modifier.clickable { dock=XiumiDock.IMAGE })
       }
-      Divider(Modifier.padding(vertical=12.dp)); Text("正文内容",fontSize=10.sp,color=Color.LightGray)
-      OutlinedTextField(body,{changeBody(it)},Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp),placeholder={Text("从左侧选择标题、文字、图片、布局或组件添加到文章，也可直接输入。")},
+      Divider(Modifier.padding(vertical=12.dp))
+      Row(Modifier.fillMaxWidth().padding(bottom=8.dp),horizontalArrangement=Arrangement.spacedBy(5.dp),verticalAlignment=Alignment.CenterVertically) {
+       Text("正文内容",fontSize=10.sp,color=Color.LightGray,modifier=Modifier.weight(1f))
+       listOf("B","居中","引用","分割线","图片").forEach { tool ->
+        Text(tool,fontSize=10.sp,fontWeight=if(tool=="B") FontWeight.Bold else FontWeight.Normal,
+         color=accent,modifier=Modifier.clip(RoundedCornerShape(5.dp)).background(accent.copy(alpha=.08f)).clickable {
+          when(tool) {
+           "B" -> bold=!bold
+           "居中" -> align=if(align=="居中") "左对齐" else "居中"
+           "引用" -> insert("“在这里输入引用内容。”\\n—— 来源")
+           "分割线" -> insert("━━━━━━━━━━━━━━━━")
+           "图片" -> showImageInsert=true
+          }
+         }.padding(horizontal=7.dp,vertical=5.dp))
+       }
+      }
+      OutlinedTextField(body,{changeBody(it)},Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp),placeholder={Text("从左侧选择素材添加内容，也可直接输入正文。")},
        textStyle=LocalTextStyle.current.copy(fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,fontWeight=if(bold) FontWeight.Bold else FontWeight.Normal,
         textAlign=when(align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start }),minLines=14)
      } else {
@@ -148,6 +181,43 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
    }
   }
+  if(showArticlePicker) AlertDialog(
+   onDismissRequest={showArticlePicker=false},
+   title={Text("选择文章")},
+   text={
+    Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
+     vm.data.articles.sortedByDescending { it.updatedAt }.forEach { article ->
+      Column(Modifier.fillMaxWidth().clickable {
+       currentArticle=article; id=article.id; title=article.title; subtitle=article.subtitle; author=article.author
+       body=article.html; dirty=false; undo=listOf(""); redo=emptyList(); showArticlePicker=false; preview=false
+      }.padding(vertical=10.dp)) {
+       Text(article.title.ifBlank { "未命名文章" },fontSize=13.sp,fontWeight=FontWeight.SemiBold)
+       Text(article.updatedAt,fontSize=10.sp,color=Color.Gray)
+      }
+      Divider()
+     }
+     if(vm.data.articles.isEmpty()) Text("暂无已保存文章",fontSize=12.sp,color=Color.Gray)
+    }
+   },
+   confirmButton={TextButton(onClick={showArticlePicker=false}) { Text("关闭") }}
+  )
+  if(showImageInsert) AlertDialog(
+   onDismissRequest={showImageInsert=false},
+   title={Text("插入图片引用")},
+   text={
+    Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+     OutlinedTextField(imageUrl,{imageUrl=it},label={Text("图片 URL")},singleLine=true,placeholder={Text("https://...")})
+     OutlinedTextField(imageAlt,{imageAlt=it},label={Text("图片说明")},singleLine=true)
+     Text("插入 Markdown 图片引用；本入口暂不替代本地图片导入与素材管理。",fontSize=11.sp,color=Color.Gray)
+    }
+   },
+   confirmButton={TextButton(onClick={
+    if(imageUrl.startsWith("https://") || imageUrl.startsWith("http://")) {
+     insert("![${imageAlt.ifBlank { "图片" }}]($imageUrl)"); imageUrl=""; imageAlt=""; showImageInsert=false
+    }
+   }) { Text("插入") }},
+   dismissButton={TextButton(onClick={showImageInsert=false}) { Text("取消") }}
+  )
   if(properties && compact) ModalBottomSheet(onDismissRequest={properties=false}) {
    Column(Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=10.dp)) {
     Text("属性设置 · $selected",fontSize=16.sp,fontWeight=FontWeight.Bold)
