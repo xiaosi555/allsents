@@ -128,7 +128,7 @@ header_drag = """.pointerInput(panel) {
                                 toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 350f)
                             }
                         }"""
-header_pattern = r'(Row\\(Modifier\\.fillMaxWidth\\(\\)\\.height\\(44\\.dp\\)\\))'
+header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(44\.dp\)\))'
 if header_drag not in s:
     s, header_count = re.subn(header_pattern, r'\1' + header_drag, s, count=1)
     if header_count != 1:
