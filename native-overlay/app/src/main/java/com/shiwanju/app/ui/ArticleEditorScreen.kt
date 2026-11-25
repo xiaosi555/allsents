@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -1312,7 +1313,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             if (!previewMode) {
             if (showToolPopup && selectedImageHtml.isBlank() && !selectedTextActive && activePanel != EditorPanel.CANVAS) {
-                Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 300.dp).background(Color(0xFF181818)).navigationBarsPadding()) {
+                Dialog(
+                    onDismissRequest = { showToolPopup = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+                Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 300.dp).padding(bottom = 50.dp).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -1788,6 +1794,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 }
                                 if (rowTemplates.size == 1) Spacer(Modifier.weight(1f))
                         }
+                    }
+                }
                     }
                 }
             }
