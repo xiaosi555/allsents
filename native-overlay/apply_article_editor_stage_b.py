@@ -223,7 +223,7 @@ required = [
     "saveSelection();reportSelection();",
     "if (!previewMode) {",
     "showToolPopup && activePanel != EditorPanel.CANVAS",
-    "heightIn(min = 100.dp, max = 300.dp)",
+    "toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 350f)",
     "root.contains(savedRange.commonAncestorContainer)"
 ]
 missing = [token for token in required if token not in result]
