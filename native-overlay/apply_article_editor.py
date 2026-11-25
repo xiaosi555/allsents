@@ -449,7 +449,7 @@ if 'contentDescription = "秀米式文章排版"' not in s:
                   'import androidx.compose.material.icons.outlined.Refresh\\nimport androidx.compose.material.icons.outlined.Palette', 1)
     old = '''        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }'''
     new = '''        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
-        IconButton(onClick = { vm.screen = "article_editor" }, modifier = Modifier.size(38.dp)) {
+        IconButton(onClick = { vm.screen = "xiumi_article_layout" }, modifier = Modifier.size(38.dp)) {
             Icon(Icons.Outlined.Palette, contentDescription = "秀米式文章排版", tint = AppColors.TextMain, modifier = Modifier.size(21.dp))
         }'''
     if old not in s:
@@ -462,10 +462,13 @@ p = JAVA / "MainActivity.kt"
 s = p.read_text(encoding="utf-8")
 if "import com.shiwanju.app.ui.XiumiArticleLayoutScreen" not in s:
     s = s.replace("import com.shiwanju.app.ui.LayoutScreen",
-                  "import com.shiwanju.app.ui.LayoutScreen\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen", 1)
+                  "import com.shiwanju.app.ui.LayoutScreen\\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen", 1)
+if "import com.shiwanju.app.ui.XiumiArticleEditorScreen" not in s:
+    s = s.replace("import com.shiwanju.app.ui.XiumiArticleLayoutScreen",
+                  "import com.shiwanju.app.ui.XiumiArticleLayoutScreen\\nimport com.shiwanju.app.ui.XiumiArticleEditorScreen", 1)
 
 route = '''when (vm.screen) {
-                          "article_editor" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }
+                          "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }\n                          "article_editor" -> XiumiArticleEditorScreen(vm) { vm.screen = "layout" }
                           "layout" -> LayoutScreen(vm)
                           else -> MyScreen(vm)
                       }'''
@@ -553,7 +556,7 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "multiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (UI / "XiumiArticleLayoutScreen.kt", "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)"),
-    (JAVA / "MainActivity.kt", '"article_editor" -> XiumiArticleLayoutScreen(vm)')
+    (JAVA / "MainActivity.kt", '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)'),\n    (JAVA / "MainActivity.kt", '"article_editor" -> XiumiArticleEditorScreen(vm)')
 ]
 for path, token in checks:
     if token not in path.read_text(encoding="utf-8"):
