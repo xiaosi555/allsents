@@ -201,3 +201,13 @@
 - 图片资源采用独立 MediaAsset 记录；文章复制沿用资源 ID，因此资源必须按共享引用管理，不能随文章删除直接物理清理。
 - HTML、Markdown、文章包三条导入导出链路均存在；仅静态确认入口和数据处理代码，不代表导出文件已在外部应用验证。
 - 底部工具栏在非预览状态常驻；悬浮工具栏按文字、图片、组件/表格/布局等选区状态分派。选区坐标已修正为 CSS px 到 Compose dp 的直接映射；坐标跟随、键盘避让及底栏常驻仍必须通过真机验证。
+
+
+### 10.3 最新构建与最终源码核对（2026-11-25）
+
+- Kotlin Compile Check：工作流 run `45614254038`，结论 **success**。
+- APK Build：工作流 run `45614253917`，结论 **success**；`Build debug APK`、`Upload APK`、`Package patched native source`、`Upload patched native source` 均成功。
+- 已下载并检查本轮两个产物：APK 压缩包内包含 `app-debug.apk`（19,312,914 bytes）；原生源码包内含本次构建后的完整 Android 工程源码。
+- 对最终注入源码复核：`Store.loadData` 有备份恢复分支；`Store.saveData` 有临时文件、同步写入和备份替换；`AppViewModel.updateData` 返回持久化 Boolean；`restoreArticleRevision` 在恢复前创建“恢复前自动快照”；`saveDocument` 仅在写盘成功时清除 dirty 状态，并对异步回调检查文章 ID；选区 y/height 使用 dp 直接映射；底部工具栏仍在 `!previewMode` 下渲染。
+- APK SHA-256：`f3440d248c90affdbebb227ab0ad84f2c02df1cd267261311f07fdefb26dbfd4`。
+- **结论：静态检查与本轮构建通过；真机操作验收尚未执行。** 本记录不将真机项目标记为通过。
