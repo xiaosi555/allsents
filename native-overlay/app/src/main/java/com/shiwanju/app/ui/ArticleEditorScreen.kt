@@ -2150,10 +2150,10 @@ private fun articleCompatibilityWarnings(html: String): List<String> {
     if (Regex("""(?is)<p[^>]*>\s*(?:<br\s*/?>)?\s*</p>""").findAll(html).count() > 5) warnings += "空段落较多，可能造成阅读间距过大。"
     if (Regex("""(?is)style=["'][^"']*(?:position\s*:\s*fixed|display\s*:\s*flex|grid)""").containsMatchIn(html)) warnings += "包含复杂布局 CSS，公众号可能清理或改变其显示效果。"
     if (Regex("""(?is)href=["'](?:javascript:|#|data:)""").containsMatchIn(html)) warnings += "存在脚本链接、空锚点或 data 链接，请检查链接是否有效。"
-    if (Regex("""(?is)https?://editor\\.local/assets/""").containsMatchIn(html)) warnings += "包含编辑器内部素材地址：该地址仅在 APP 内可读取，导出或粘贴前需转换为真实图片或重新上传。"
-    if (Regex("""(?is)<img\\b(?![^>]*\\balt=)[^>]*>""").containsMatchIn(html)) warnings += "部分图片缺少替代文本（alt），建议补充图片说明以改善无障碍阅读。"
-    if (Regex("""(?is)<(?:script|style|svg|canvas)\\b""").containsMatchIn(html)) warnings += "包含脚本、样式表、SVG 或 Canvas 内容，公众号编辑器可能过滤或无法保留。"
-    if (Regex("""(?is)style=["'][^"']*(?:position\\s*:\\s*(?:fixed|sticky|absolute)|display\\s*:\\s*(?:flex|grid)|transform\\s*:|background-image\\s*:|var\\s*\\()""").containsMatchIn(html)) warnings += "包含定位、弹性/网格布局、变换、背景图或 CSS 变量等复杂样式，粘贴后可能被公众号清理或重排。"
+    if (Regex("""(?is)https?://editor\.local/assets/""").containsMatchIn(html)) warnings += "包含编辑器内部素材地址：该地址仅在 APP 内可读取，导出或粘贴前需转换为真实图片或重新上传。"
+    if (Regex("""(?is)<img\b(?![^>]*\balt=)[^>]*>""").containsMatchIn(html)) warnings += "部分图片缺少替代文本（alt），建议补充图片说明以改善无障碍阅读。"
+    if (Regex("""(?is)<(?:script|style|svg|canvas)\b""").containsMatchIn(html)) warnings += "包含脚本、样式表、SVG 或 Canvas 内容，公众号编辑器可能过滤或无法保留。"
+    if (Regex("""(?is)style=["'][^"']*(?:position\s*:\s*(?:fixed|sticky|absolute)|display\s*:\s*(?:flex|grid)|transform\s*:|background-image\s*:|var\s*\()""").containsMatchIn(html)) warnings += "包含定位、弹性/网格布局、变换、背景图或 CSS 变量等复杂样式，粘贴后可能被公众号清理或重排。"
     val embeddedImageChars = Regex("""(?is)data:image/[^;]+;base64,([A-Za-z0-9+/=]+)""").findAll(html).sumOf { it.groupValues[1].length }
     if (embeddedImageChars > 0) warnings += if (embeddedImageChars > 1_400_000) "包含较大的 Base64 内嵌图片数据，剪贴板或公众号编辑器可能无法完整接收，建议改为公众号素材图片。" else "包含 Base64 内嵌图片：不同设备和公众号编辑器对内嵌图片的支持不一致，发布前请检查图片是否完整。"
     return warnings
