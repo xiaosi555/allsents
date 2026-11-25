@@ -28,18 +28,29 @@ if "import com.shiwanju.app.ui.XiumiArticleLayoutScreen" not in main:
     anchor = "import com.shiwanju.app.ui.LayoutScreen"
     main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen", 1)
 
-main = re.sub(
-    r'"article_editor"\s*->\s*XiumiArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}',
-    '"article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }',
-    main
-)
-# Remove the generic legacy key so only the two explicit editor identities remain.
-main = re.sub(r'^[ \t]*"article_editor"\s*->\s*ArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}[ \t]*\n', "", main, flags=re.M)
-if '"xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }' not in main:
-    route = '                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }'
-    if route not in main:
-        raise SystemExit("Cannot locate Xiumi route in MainActivity.")
-    main = main.replace(route, route + '\n                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }', 1)
+route_block = """when (vm.screen) {
+                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }
+                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }
+                        "layout" -> LayoutScreen(vm)
+                        else -> MyScreen(vm)
+                    }"""
+if '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)' not in main:
+    patterns = [
+        re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)'),
+        re.compile(r'when\s*\(vm\.screen\)\s*\{[^}]*"layout"\s*->\s*LayoutScreen\(vm\)[^}]*else\s*->\s*MyScreen\(vm\)[^}]*\}', re.S),
+    ]
+    match = next((m for pattern in patterns if (m := pattern.search(main))), None)
+    if not match:
+        raise SystemExit("Cannot locate MainActivity screen dispatcher to install the two editor routes.")
+    main = main[:match.start()] + route_block + main[match.end():]
+else:
+    # Existing Xiumi route is already present; insert the separate 醒图 route beside it.
+    if '"xingtu_article_editor" -> ArticleEditorScreen(vm)' not in main:
+        xiumi_line = '                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }'
+        if xiumi_line not in main:
+            raise SystemExit("Cannot locate existing Xiumi route in MainActivity.")
+        main = main.replace(xiumi_line, xiumi_line + '\n                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }', 1)
+    main = re.sub(r'^[ \t]*"article_editor"\s*->\s*ArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}[ \t]*\n', "", main, flags=re.M)
 
 # Remove the old misleading wrapper that made the classic editor look like a Xiumi screen.
 editor = EDITOR.read_text(encoding="utf-8")
