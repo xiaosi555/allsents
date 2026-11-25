@@ -1566,7 +1566,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showBlockProperties = false }) { Text("取消", color = Color.Gray) }
                         TextButton(onClick = {
-                            val dimension = Regex("""^\\d{1,3}(?:\\.\\d{1,2})?(?:px|%)$""")
+                            val dimension = Regex("""^\d{1,3}(?:\.\d{1,2})?(?:px|%)$""")
                             val colorValue = Regex("""^#[0-9a-fA-F]{6}$""")
                             val bgValid = blockBackground == "transparent" || colorValue.matches(blockBackground)
                             if (!dimension.matches(blockPadding) || !dimension.matches(blockRadius) || !colorValue.matches(blockBorder) || !bgValid) {
