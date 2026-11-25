@@ -55,7 +55,20 @@ old = """                                    } else {
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()"""
 new = """                                    } else {
                                         showCanvasPopup = false
-                                        toolPanelHeightDp = 180f
+                                        toolPanelHeightDp = when (panel) {
+                                            EditorPanel.TEXT -> 260f
+                                            EditorPanel.TITLE -> 210f
+                                            EditorPanel.IMAGE -> 230f
+                                            EditorPanel.LAYOUT -> 220f
+                                            EditorPanel.CARD -> 230f
+                                            EditorPanel.COMPONENT -> 220f
+                                            EditorPanel.SVG -> 210f
+                                            EditorPanel.LAYER -> 240f
+                                            EditorPanel.STYLE -> 260f
+                                            EditorPanel.TEMPLATE -> 260f
+                                            EditorPanel.DOCUMENT -> 200f
+                                            EditorPanel.CANVAS -> 220f
+                                        }
                                         showToolPopup = true
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()"""
@@ -128,7 +141,7 @@ header_drag = """.pointerInput(panel) {
                                 toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 350f)
                             }
                         }"""
-header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(44\.dp\)\))'
+header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(44\.dp\)\.padding\(horizontal = 5\.dp\))'
 if header_drag not in s:
     s, header_count = re.subn(header_pattern, r'\1' + header_drag, s, count=1)
     if header_count != 1:
@@ -142,7 +155,7 @@ elif new_scroll not in s:
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "non-modal popup": "PopupProperties(focusable = false" in s,
-    "180dp initial height": "mutableFloatStateOf(180f)" in s and "toolPanelHeightDp = 180f" in s,
+    "panel-adaptive initial heights": "EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s,
     "150dp collapsed minimum and 350dp maximum": "coerceIn(150f, 350f)" in s,
     "smooth height animation": "tween(durationMillis = 180)" in s,
     "nested swipe resizing": "toolPanelNestedScrollConnection" in s and ".nestedScroll(toolPanelNestedScrollConnection)" in s,
@@ -156,4 +169,4 @@ if failed:
     raise SystemExit("Xingtu bottom-sheet validation failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Xingtu bottom sheet fixed: visible 180dp initial total height, nested swipe expand/collapse, independent content scroll, 350dp maximum, smooth animation and separate primary dock.")
+print("Xingtu bottom sheet fixed: panel-specific initial heights, secondary-navigation drag, nested content scroll, 350dp maximum, smooth animation and separate primary dock.")
