@@ -80,7 +80,7 @@ private fun captureTemplateThumbnail(view: WebView, context: Context, template: 
             if (!scaled.compress(Bitmap.CompressFormat.JPEG, 68, output)) error("缩略图压缩失败")
         }
         if (!scaled.isRecycled) scaled.recycle()
-        val asset = MediaAsset(id, "template_preview_$id.jpg", "image/jpeg", "article_media/\${file.name}", file.length(), System.currentTimeMillis().toString())
+        val asset = MediaAsset(id, "template_preview_$id.jpg", "image/jpeg", "article_media/" + file.name, file.length(), System.currentTimeMillis().toString())
         vm.saveMediaAsset(asset)
         vm.saveStyle(template.copy(thumbnail = id))
     }.onFailure { android.util.Log.w("ArticleEditor", "模板缩略图生成失败", it) }
@@ -1196,7 +1196,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                                 }
                                             }
                                             if (thumbnailBitmap != null) {
-                                                Image(thumbnailBitmap.asImageBitmap(), contentDescription = "\${template.name}预览缩略图",
+                                                Image(thumbnailBitmap.asImageBitmap(), contentDescription = template.name + "预览缩略图",
                                                     modifier = Modifier.fillMaxWidth().height(92.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
                                             } else {
                                                 Surface(modifier = Modifier.fillMaxWidth().height(54.dp), color = Color(0xFFE9F0EB), shape = RoundedCornerShape(5.dp)) {
