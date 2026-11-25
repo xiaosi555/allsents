@@ -515,7 +515,7 @@ checks = [
     (UI / "AppViewModel.kt", "java.util.UUID.randomUUID().toString()"),
     (UI / "AppViewModel.kt", "revision.subtitle"),
     (UI / "MyScreens.kt", "private fun StylesPage("),
-    (UI / "LayoutScreen.kt", 'contentDescription = "文章编辑器"'),
+    (UI / "LayoutScreen.kt", 'contentDescription = "秀米式文章排版"'),
     (UI / "ArticleEditorScreen.kt", "rememberLauncherForActivityResult"),
     (UI / "ArticleEditorScreen.kt", "copyRichHtml"),
     (UI / "ArticleEditorScreen.kt", "articleJsonImporter"),
