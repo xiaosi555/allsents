@@ -85,7 +85,8 @@ if "EditorPanel.values().forEach" not in s:
 required = [
     'private enum class EditorPanel(val label: String, val icon: String)',
     'WindowInsets.ime.getBottom(this).toDp()',
-    'selectionState.y.toDp()',
+    'val selectionTopDp = selectionState.y.dp',
+    'val selectionHeightDp = selectionState.height.dp',
     'EditorTool("${panel.icon}  ${panel.label}"',
     'if (!previewMode) {'
 ]
