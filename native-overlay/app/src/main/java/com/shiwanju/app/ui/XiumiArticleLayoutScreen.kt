@@ -140,22 +140,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
   if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingTemplateJson) } ?: error("无法写入文件"); vm.toast("模板包已导出") }.onFailure { vm.toast("导出失败：\${it.message ?: "无法写入"}") }
  }
- val imageImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-  uris.forEach { uri -> runCatching {
-   val mime=context.contentResolver.getType(uri) ?: "image/jpeg"
-   if(!mime.startsWith("image/")) error("所选文件不是图片")
-   val ext=when(mime.lowercase()) { "image/png"->"png"; "image/webp"->"webp"; "image/gif"->"gif"; else->"jpg" }
-   var assetId=vm.newId()
-   while(vm.data.mediaAssets.any { it.id==assetId }) assetId=vm.newId()
-   val dir=File(context.filesDir,"article_media").apply { if(!exists()) mkdirs() }
-   val target=File(dir,"$assetId.$ext")
-   context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
-   val asset=MediaAsset(assetId,target.name,mime,"article_media/\${target.name}",target.length(),System.currentTimeMillis().toString())
-   vm.saveMediaAsset(asset)
-   insert("<img src='https://editor.local/assets/$assetId' alt='\${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
-   vm.toast("图片已加入素材库")
-  }.onFailure { vm.toast("图片导入失败：\${it.message ?: "未知错误"}") } }
- }
+
  var imageUrl by remember { mutableStateOf("") }
  var imageAlt by remember { mutableStateOf("") }
  var dirty by remember { mutableStateOf(false) }
@@ -197,6 +182,22 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  fun insert(value:String) {
   val block=XiumiBlock(vm.newId(),classifyXiumiBlock(value),value)
   syncBlocks(blocks+block); selectedBlockId=block.id; selected="内容组件"; selectedSnippet=value
+ }
+ val imageImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+  uris.forEach { uri -> runCatching {
+   val mime=context.contentResolver.getType(uri) ?: "image/jpeg"
+   if(!mime.startsWith("image/")) error("所选文件不是图片")
+   val ext=when(mime.lowercase()) { "image/png"->"png"; "image/webp"->"webp"; "image/gif"->"gif"; else->"jpg" }
+   var assetId=vm.newId()
+   while(vm.data.mediaAssets.any { it.id==assetId }) assetId=vm.newId()
+   val dir=File(context.filesDir,"article_media").apply { if(!exists()) mkdirs() }
+   val target=File(dir,"$assetId.$ext")
+   context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
+   val asset=MediaAsset(assetId,target.name,mime,"article_media/\${target.name}",target.length(),System.currentTimeMillis().toString())
+   vm.saveMediaAsset(asset)
+   insert("<img src='https://editor.local/assets/$assetId' alt='\${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
+   vm.toast("图片已加入素材库")
+  }.onFailure { vm.toast("图片导入失败：\${it.message ?: "未知错误"}") } }
  }
  fun editSelected(transform:(String)->String) {
   val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
