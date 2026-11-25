@@ -2681,7 +2681,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         )
     }
 }
-}
 
 private fun editorToolGlyph(label: String): String {
     val key = label.trim()
