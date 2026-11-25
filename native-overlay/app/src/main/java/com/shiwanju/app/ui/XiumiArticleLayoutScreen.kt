@@ -244,8 +244,13 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     FilterChip(bold,{bold=!bold},{Text("粗体",fontSize=10.sp)})
     Text("对齐方式",fontSize=11.sp,modifier=Modifier.padding(top=10.dp))
     listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option }.padding(vertical=6.dp)) }
-    Text("主题色",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
-    Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
+    Text("文字颜色",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
+    Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF222222),Color(0xFF666666),Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { foreground=c }) } }
+    Text("画布背景",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
+    Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color.White,Color(0xFFFFFBF2),Color(0xFFF4F7F6),Color(0xFFF3F3F3)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(5.dp)).background(c).border(1.dp,Color.LightGray,RoundedCornerShape(5.dp)).clickable { canvasBackground=c }) } }
+    Text("内边距 ${contentPadding.toInt()} dp",fontSize=11.sp,modifier=Modifier.padding(top=8.dp)); Slider(contentPadding,{contentPadding=it},valueRange=12f..40f)
+    Text("边框 ${borderWidth.toInt()} dp",fontSize=11.sp); Slider(borderWidth,{borderWidth=it},valueRange=0f..3f)
+    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=11.sp); Slider(cornerRadius,{cornerRadius=it},valueRange=0f..18f)
    }
   }
   if(showArticlePicker) AlertDialog(
