@@ -49,7 +49,7 @@ wrapper_pattern = re.compile(
     r'\n// 独立秀米式文章编辑页面入口：.*?\n@Composable\nfun XiumiArticleEditorScreen\(vm: AppViewModel, onBack: \(\) -> Unit\) \{\n    ArticleEditorScreen\(vm = vm, onBack = onBack\)\n\}\n',
     re.S
 )
-editor, removed = wrapper_pattern.subn("\\n", editor)
+editor, removed = wrapper_pattern.subn("\n", editor)
 if removed > 1:
     raise SystemExit("Found multiple legacy XiumiArticleEditorScreen wrappers.")
 if "fun XiumiArticleEditorScreen" in editor:
