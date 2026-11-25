@@ -103,7 +103,7 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
 }
 
 private enum class EditorPanel(val label: String) {
-    TEXT("文字"), IMAGE("图片"), LAYOUT("布局"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
+    TEXT("文字"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1363,6 +1363,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                         Text("本地图片已复制到应用私有目录；网络图片仍依赖原图链接可访问。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))
                     }
+                    EditorPanel.TITLE -> {
+                        Text("标题样式 · 选择后插入画布，可直接修改文字", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("编号标题") { insert("<section style='margin:22px 0 14px;padding:10px 14px;border-left:4px solid #159765;background:#f2f8f4'><p style='margin:0;font-size:19px;font-weight:700;color:#235b43'>01 / 在这里输入标题</p></section>") }
+                            EditorTool("色块标题") { insert("<h2 style='margin:22px 0 14px;padding:9px 13px;background:#edf6f0;border-left:4px solid #159765;color:#235b43;font-size:19px'>在这里输入标题</h2>") }
+                            EditorTool("边线标题") { insert("<h2 style='margin:22px 0 14px;padding-bottom:9px;border-bottom:1px solid #159765;color:#333;font-size:20px'>在这里输入标题</h2>") }
+                            EditorTool("杂志标题") { insert("<section style='margin:24px 0;padding:18px 12px;border-top:2px solid #222;border-bottom:1px solid #aaa'><p style='font-size:24px;font-weight:700;letter-spacing:2px;margin:0'>SECTION TITLE</p><p style='font-size:11px;color:#999;letter-spacing:2px;margin:5px 0 0'>VOL. 01 / EDITORIAL</p></section>") }
+                            EditorTool("双层标题") { insert("<section style='margin:20px 0'><p style='margin:0 0 5px;color:#159765;font-size:11px;letter-spacing:2px'>CHAPTER / 01</p><h2 style='margin:0;font-size:23px;line-height:1.45;color:#252525'>在这里输入主标题</h2></section>") }
+                            EditorTool("居中标题") { insert("<h2 style='margin:24px 0;text-align:center;font-size:22px;line-height:1.5'>在这里输入标题</h2>") }
+                            EditorTool("下划线标题") { insert("<h2 style='display:inline-block;margin:20px 0 14px;padding-bottom:5px;border-bottom:3px solid #159765;font-size:21px'>在这里输入标题</h2>") }
+                            EditorTool("序号圆点标题") { insert("<h2 style='margin:20px 0 12px;font-size:20px'><span style='display:inline-block;margin-right:8px;color:#159765'>●</span>在这里输入标题</h2>") }
+                        }
+                    }
                     EditorPanel.LAYOUT -> {
                         Text("布局 · 选择版式后直接插入画布", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1375,6 +1388,20 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("留白区块") { insert("<section style='height:32px;margin:0;padding:0'><p><br></p></section>") }
                             EditorTool("细分割线") { insert("<hr style='height:0;border:0;border-top:1px solid #e5e9e6;margin:22px 0'>") }
                             EditorTool("虚线分割") { insert("<hr style='height:0;border:0;border-top:1px dashed #cbd5ce;margin:22px 0'>") }
+                        }
+                    }
+                    EditorPanel.CARD -> {
+                        Text("卡片样式 · 常用内容块和信息卡片", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("引用卡片") { insert("<blockquote style='margin:18px 0;padding:14px 16px;background:#f4f7f5;border-left:3px solid #159765'><p style='margin:0'>在这里输入引用内容</p></blockquote>") }
+                            EditorTool("提示卡片") { insert("<section style='margin:18px 0;padding:14px;background:#f1f8f4;border-radius:8px'><p style='margin:0 0 6px;color:#168653;font-weight:700'>温馨提示</p><p style='margin:0'>在这里输入提示内容</p></section>") }
+                            EditorTool("重点卡片") { insert("<section style='margin:18px 0;padding:14px 16px;background:#fff8e9;color:#805d24;border-radius:7px;line-height:1.9'>在这里输入需要强调的内容</section>") }
+                            EditorTool("信息卡片") { insert("<section style='margin:18px 0;padding:15px;background:#f5f7f6;border:1px solid #e4e9e5;border-radius:9px'><p style='margin:0 0 7px;font-weight:700'>信息标题</p><p style='margin:0;color:#666;font-size:13px;line-height:1.8'>在这里填写信息说明。</p></section>") }
+                            EditorTool("作者卡片") { insert("<section style='margin:18px 0;padding:14px;background:#f6f7f6;border-radius:8px'><p style='margin:0 0 5px;font-weight:700'>关于作者</p><p style='margin:0;color:#777;font-size:13px'>在这里填写作者简介</p></section>") }
+                            EditorTool("关注卡片") { insert("<section style='margin:24px 0;padding:18px 14px;text-align:center;background:#f3f8f4;border:1px solid #dcebe1'><p style='margin:0 0 6px;font-weight:700;color:#28724e'>感谢阅读</p><p style='margin:0;font-size:13px;color:#77857c'>关注「拾万句」，查看更多内容</p></section>") }
+                            EditorTool("时间轴卡片") { insert("<section style='border-left:2px solid #b8d8c6;margin:18px 0;padding-left:16px'><p style='margin:0 0 5px;color:#159765;font-weight:700'>01 · 时间节点</p><p style='margin:0 0 16px'>在这里输入事件内容</p><p style='margin:0 0 5px;color:#159765;font-weight:700'>02 · 时间节点</p><p style='margin:0'>在这里输入事件内容</p></section>") }
+                            EditorTool("数字清单卡") { insert("<section style='margin:18px 0;padding:14px;background:#f5f8f6;border-radius:8px'><p style='margin:0 0 10px;font-weight:700'>本期清单</p><ol style='padding-left:22px;line-height:2;margin:0'><li>第一项内容</li><li>第二项内容</li><li>第三项内容</li></ol></section>") }
+                            EditorTool("图片说明卡") { insert("<section style='margin:18px 0;text-align:center'><img src='https://placehold.co/900x500?text=Image' style='display:block;width:100%;height:auto;border-radius:7px'><p style='margin:8px 0 0;color:#999;font-size:12px'>图片说明文字</p></section>") }
                         }
                     }
                     EditorPanel.COMPONENT -> {
