@@ -27,11 +27,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -96,9 +100,10 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
 }
 
 private enum class EditorPanel(val label: String) {
-    TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), STYLE("样式"), TEMPLATE("模板")
+    TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), LAYER("图层"), STYLE("样式"), TEMPLATE("模板"), DOCUMENT("文档")
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -117,6 +122,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var dialogValue by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
     var previewMode by remember { mutableStateOf(false) }
+    var showMoreTools by remember { mutableStateOf(false) }
     var pendingSave by remember { mutableIntStateOf(0) }
     var searchText by remember { mutableStateOf("") }
     var articleFilter by remember { mutableStateOf("全部") }
@@ -633,22 +639,40 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(pageBg).systemBarsPadding()) {
         Row(
-            Modifier.fillMaxWidth().height(56.dp).background(Color.White).padding(horizontal = 7.dp),
+            Modifier.fillMaxWidth().height(56.dp).background(Color.White)
+                .padding(horizontal = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { saveDocument(onComplete = onBack) }) { Icon(Icons.Outlined.ArrowBack, "返回", tint = Color(0xFF777777)) }
-            Column(Modifier.weight(1f).padding(start = 4.dp)) {
+            IconButton(onClick = { saveDocument(onComplete = onBack) }) {
+                Icon(Icons.Outlined.ArrowBack, "返回", tint = ink)
+            }
+            Column(Modifier.weight(1f).padding(start = 2.dp)) {
                 BasicTextField(
                     value = title, onValueChange = { title = it; saved = false; pendingSave++ },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     textStyle = androidx.compose.ui.text.TextStyle(color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-                    decorationBox = { inner -> Box { if (title.isEmpty()) Text("文章标题", color = Color.LightGray); inner() } }
+                    decorationBox = { inner -> Box { if (title.isEmpty()) Text("文章标题", color = Color(0xFF9AA19C)); inner() } }
                 )
-                Text(if (saved) "已自动保存" else "正在编辑 · 自动保存", color = Color(0xFF9A9F9B), fontSize = 10.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(5.dp).clip(CircleShape).background(if (saved) Color(0xFF20A46B) else Color(0xFFE0A23B)))
+                    Text(if (saved) "已保存" else "自动保存中", color = Color(0xFF929A94), fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
+                }
             }
-            TextButton(onClick = { saveDocument(true) }) { Text("保存", color = accent) }
-            TextButton(onClick = { saveDocument(onComplete = { showArticleList = true }) }) { Text("文章", color = ink) }
+            TextButton(onClick = { runJs("undoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("撤销", color = Color(0xFF59625C), fontSize = 11.sp) }
+            TextButton(onClick = { runJs("redoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("重做", color = Color(0xFF59625C), fontSize = 11.sp) }
+            TextButton(onClick = {
+                previewMode = !previewMode
+                editor?.evaluateJavascript("setEditable(${!previewMode});setPreviewInfo(${JSONObject.quote(if (previewMode) title else "")},${JSONObject.quote(if (previewMode) subtitle else "")},${JSONObject.quote(if (previewMode) author else "")},${JSONObject.quote(if (previewMode) summary else "")});", null)
+            }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                Text(if (previewMode) "编辑" else "预览", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            }
+            TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 4.dp)) {
+                Text("工具", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
+        androidx.compose.foundation.layout.Box(
+            Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEDEFED))
+        )
 
         if (showArticleList) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -709,11 +733,30 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     EditorTool("返回编辑") { previewMode = false; editor?.evaluateJavascript("setEditable(true);setPreviewInfo('','','','');", null) }
                 }
             } else {
-            Row(
-                Modifier.fillMaxWidth().background(Color.White).horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 9.dp, vertical = 7.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+            if (showMoreTools) {
+                Dialog(onDismissRequest = { showMoreTools = false }) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFFF9FAF9),
+                        shadowElevation = 18.dp
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth().heightIn(max = 600.dp)
+                                .verticalScroll(rememberScrollState()).padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text("全部编辑工具", color = ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { showMoreTools = false }) { Text("完成", color = accent) }
+                            }
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                Text("编辑与剪贴板", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 3.dp))
+                EditorTool("立即保存") { saveDocument(true); showMoreTools = false }
                 EditorTool("撤销") { runJs("undoEditor()") }
                 EditorTool("重做") { runJs("redoEditor()") }
                 EditorTool("预览", previewMode) {
@@ -723,6 +766,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 EditorTool("全选") { runJs("document.getElementById('editor').focus();document.execCommand('selectAll');saveSelection();") }
                 EditorTool("复制富文本") { copyRichHtml() }
                 EditorTool("复制纯文本") { copyPlainText() }
+                Text("格式检查与文件", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 EditorTool("兼容检查") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
@@ -758,6 +802,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         markdownExporter.launch("${title.ifBlank { "文章" }}.md")
                     }
                 }
+                Text("文章管理与版本", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                EditorTool("文章列表") { saveDocument(onComplete = { showArticleList = true; showMoreTools = false }) }
                 EditorTool("版本记录") { saveDocument(); showRevisionList = true }
                 EditorTool("文章信息") {
                     articleInfoSnapshot = listOf(subtitle, author, category, tagsText, summary, articleStatus, coverAssetId)
@@ -804,6 +850,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
+                Text("链接与模块操作", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 EditorTool("插入链接") { dialogValue = ""; linkInsertType = "link"; showLink = true }
                 EditorTool(if (multiSelectMode) "退出多选" else "多选组合", multiSelectMode) {
                     multiSelectMode = !multiSelectMode
@@ -826,6 +873,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     EditorTool("保存为样式") {
                         vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
                         vm.toast("已保存到「我的 - 样式」")
+                    }
+                }
+            }
+                        }
                     }
                 }
             }
@@ -867,9 +918,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         val page = """
                             <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
                             <style>
-                            *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#333;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
+                            *{box-sizing:border-box}html,body{margin:0;padding:0;min-height:100%;background:#ECEEEC;color:#333;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}
                             #previewHeader{display:none;padding:26px 18px 0;color:#333}#previewHeader h1{font-size:25px;line-height:1.45;margin:0 0 10px;font-weight:700}#previewHeader .sub{font-size:16px;color:#666;margin:0 0 10px;line-height:1.6}#previewHeader .meta{font-size:12px;color:#999;margin:0 0 14px}
-                            #editor{min-height:100vh;padding:24px 18px 100px;outline:none;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
+                            #editor{width:calc(100% - 34px);max-width:640px;min-height:calc(100vh - 28px);margin:15px auto 24px;padding:30px 22px 120px;background:#fff;border-radius:5px;box-shadow:0 3px 16px rgba(37,48,41,.08);outline:none;font-size:16px;line-height:1.9;overflow-wrap:anywhere}
                             #editor:empty:before{content:"从这里开始写文章…";color:#b8bdb9}
                             #editor h1{font-size:26px;line-height:1.4;margin:24px 0 16px}#editor h2{font-size:21px;line-height:1.5;margin:22px 0 14px}
                             #editor h3{font-size:18px;line-height:1.5;margin:18px 0 12px}#editor p{margin:0 0 14px}
@@ -995,36 +1046,64 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         tag = "article-editor"
                     }
                 },
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth().background(Color(0xFFE9ECE9)),
                 update = { editor = it }
             )
 
             if (!previewMode) {
-            Row(
-                Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 7.dp, vertical = 5.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                EditorPanel.values().forEach { panel ->
-                    EditorTool(panel.label, activePanel == panel) { activePanel = panel }
-                }
-            }
             Column(
-                Modifier.fillMaxWidth().background(Color(0xFFFCFDFC)).navigationBarsPadding()
-                    .heightIn(min = 92.dp, max = 220.dp).verticalScroll(rememberScrollState()).padding(horizontal = 9.dp, vertical = 8.dp)
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color(0xFFE7EBE8), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .navigationBarsPadding()
             ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("编辑工具", color = ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            when {
+                                selectedImageHtml.isNotBlank() -> "已选中图片 · 可调整尺寸、裁切与替换"
+                                selectedBlockHtml.isNotBlank() -> "已选中内容模块 · 可移动、复制或调整样式"
+                                multiSelectMode -> "多选模式 · 点选多个模块后可组合拖动"
+                                else -> "选择分类，快速调整文章画布"
+                            },
+                            color = Color(0xFF929A94), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) {
+                        Text("全部工具", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    EditorPanel.values().forEach { panel ->
+                        EditorTool(panel.label, activePanel == panel) { activePanel = panel }
+                    }
+                }
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F2F0)))
+                Column(
+                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 218.dp)
+                        .verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 9.dp)
+                ) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("加粗 B") { command("bold") }; EditorTool("斜体 I") { command("italic") }; EditorTool("下划线 U") { command("underline") }; EditorTool("删除线") { command("strikeThrough") }
                             EditorTool("上标") { command("superscript") }; EditorTool("下标") { command("subscript") }; EditorTool("清除格式") { command("removeFormat") }
                         }
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("正文") { command("formatBlock", "p") }; EditorTool("H1") { command("formatBlock", "h1") }; EditorTool("H2") { command("formatBlock", "h2") }; EditorTool("H3") { command("formatBlock", "h3") }; EditorTool("引用") { command("formatBlock", "blockquote") }
                             EditorTool("左对齐") { command("justifyLeft") }; EditorTool("居中") { command("justifyCenter") }; EditorTool("右对齐") { command("justifyRight") }
                         }
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             listOf("14" to "小", "16" to "标准", "18" to "大", "22" to "特大", "26" to "标题").forEach { (size, label) -> EditorTool("字号$label") { runJs("restoreSelection();setSelectionFontSize('$size');saveSelection();") } }
                             EditorTool("文字绿") { runJs("restoreSelection();document.execCommand('foreColor',false,'#159765');saveSelection();") }
                             EditorTool("文字黑") { runJs("restoreSelection();document.execCommand('foreColor',false,'#333333');saveSelection();") }
@@ -1063,7 +1142,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     EditorPanel.IMAGE -> {
                         Text("图片素材", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("本地图片/相册") { imagePicker.launch(arrayOf("image/*")) }
                             EditorTool("双图组") { pendingImageGroupCount = 2; imageGroupPicker.launch(arrayOf("image/*")) }
                             EditorTool("三图组") { pendingImageGroupCount = 3; imageGroupPicker.launch(arrayOf("image/*")) }
@@ -1074,7 +1153,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                         if (selectedImageHtml.isNotBlank()) {
                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 EditorTool("宽度100%") { runJs("setSelectedImageWidth('100%')") }
                                 EditorTool("宽度75%") { runJs("setSelectedImageWidth('75%')") }
                                 EditorTool("宽度50%") { runJs("setSelectedImageWidth('50%')") }
@@ -1106,7 +1185,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         if (vm.data.mediaAssets.isNotEmpty()) {
                             Text("本地图片库 · ${vm.data.mediaAssets.size} 张", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
                             OutlinedTextField(mediaSearchText, { mediaSearchText = it }, modifier = Modifier.fillMaxWidth().padding(top = 5.dp), singleLine = true, placeholder = { Text("搜索图片文件名或格式") })
-                            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 filteredMediaAssets.forEach { asset ->
                                     EditorTool(asset.fileName.take(12)) {
                                         insert("<p><img src='https://editor.local/assets/${asset.id}' alt='${asset.fileName}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>")
@@ -1131,7 +1210,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     EditorPanel.COMPONENT -> {
                         Text("公众号排版组件 · 插入后可继续编辑", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("编号标题") { insert("<section style='margin:22px 0 14px;padding:10px 14px;border-left:4px solid #159765;background:#f2f8f4'><p style='margin:0;font-size:19px;font-weight:700;color:#235b43'>01 / 在这里输入标题</p></section>") }
                             EditorTool("引用卡片") { insert("<blockquote style='margin:18px 0;padding:14px 16px;background:#f4f7f5;border-left:3px solid #159765'><p style='margin:0'>在这里输入引用内容</p></blockquote>") }
                             EditorTool("提示卡片") { insert("<section style='margin:18px 0;padding:14px;background:#f1f8f4;border-radius:8px'><p style='margin:0 0 6px;color:#168653;font-weight:700'>温馨提示</p><p style='margin:0'>在这里输入提示内容</p></section>") }
@@ -1161,14 +1240,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Text("我的样式 · 选择分类后插入已保存模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         if (categories.isEmpty()) Text("暂无样式分类，请在「我的 - 样式」中创建", color = Color.Gray, fontSize = 11.sp)
                         else {
-                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categories.forEach { category -> EditorTool(category, activeCategory == category) { activeCategory = category } }
                             }
-                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
                             }
                             if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
-                                Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     categoryStyles.forEach { style ->
                                         EditorTool("替换·${style.name}") { runJs("replaceSelectedBlockWithHtml(${JSONObject.quote(style.html)})") }
                                     }
@@ -1176,9 +1255,68 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                         }
                     }
+                    EditorPanel.LAYER -> {
+                        Text("图层与模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 7.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool(if (multiSelectMode) "退出多选" else "多选组合", multiSelectMode) {
+                                multiSelectMode = !multiSelectMode
+                                runJs("setMultiSelectMode(${multiSelectMode})")
+                                selectedBlockHtml = ""
+                            }
+                            if (selectedBlockHtml.isNotBlank() && multiSelectMode) {
+                                EditorTool("保存组合样式") {
+                                    vm.saveStyle(StyleModule(vm.newId(), "组合组件", "组合组件", selectedBlockHtml, System.currentTimeMillis().toString(), type = "combination"))
+                                    vm.toast("已保存组合组件到「我的 - 样式」")
+                                    multiSelectMode = false
+                                    runJs("setMultiSelectMode(false)")
+                                }
+                            }
+                            if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
+                                EditorTool("模块上移") { runJs("moveSelectedBlock(-1)") }
+                                EditorTool("模块下移") { runJs("moveSelectedBlock(1)") }
+                                EditorTool("模块样式") { showBlockProperties = true }
+                                EditorTool("复制模块") { runJs("duplicateSelectedBlock()") }
+                                EditorTool("删除模块") { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }
+                                EditorTool("保存为样式") {
+                                    vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
+                                    vm.toast("已保存到「我的 - 样式」")
+                                }
+                            }
+                            EditorTool("插入链接") { dialogValue = ""; linkInsertType = "link"; showLink = true }
+                        }
+                        if (selectedBlockHtml.isBlank() && !multiSelectMode) {
+                            Text("在画布中点选一个模块，或开启多选组合。选中后这里会显示对应的模块操作。", color = Color(0xFF8B948D), fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
+                        }
+                    }
+                    EditorPanel.DOCUMENT -> {
+                        Text("文章管理", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 7.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("立即保存") { saveDocument(true) }
+                            EditorTool("文章信息") {
+                                articleInfoSnapshot = listOf(subtitle, author, category, tagsText, summary, articleStatus, coverAssetId)
+                                showArticleInfo = true
+                            }
+                            EditorTool("文章列表") { saveDocument(onComplete = { showArticleList = true }) }
+                            EditorTool("版本记录") { saveDocument(); showRevisionList = true }
+                            EditorTool("兼容检查") {
+                                editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
+                                    val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
+                                    compatibilityWarnings = articleCompatibilityWarnings(current)
+                                    showCompatibilityReport = true
+                                }
+                            }
+                        }
+                        Text("导入与导出", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, top = 9.dp, bottom = 6.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("导入HTML") { htmlImporter.launch(arrayOf("text/html", "application/xhtml+xml", "text/plain")) }
+                            EditorTool("导入Markdown") { markdownImporter.launch(arrayOf("text/markdown", "text/plain")) }
+                            EditorTool("导入文章包") { articleJsonImporter.launch(arrayOf("application/json", "text/json")) }
+                            EditorTool("更多导出/复制") { showMoreTools = true }
+                        }
+                    }
                     EditorPanel.TEMPLATE -> {
                         Text("快速模板 · 插入到当前光标位置", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("简约文章开头") { insert("<h1 style='font-size:25px;line-height:1.5;margin:18px 0'>在这里输入文章标题</h1><p style='color:#999;font-size:12px;margin-bottom:24px'>作者 · 拾万句</p><p>从这里开始写正文……</p>") }
                             EditorTool("杂志风标题") { insert("<section style='margin:24px 0;padding:18px 12px;border-top:2px solid #222;border-bottom:1px solid #aaa'><p style='font-size:24px;font-weight:700;letter-spacing:2px;margin:0'>SECTION TITLE</p><p style='font-size:11px;color:#999;letter-spacing:2px;margin:5px 0 0'>VOL. 01 / EDITORIAL</p></section>") }
                             EditorTool("文艺引用") { insert("<blockquote style='margin:24px 0;padding:18px;background:#f7f4ef;border:0;color:#685f54;font-size:17px;line-height:1.9'><p>“在这里写下一段值得被记住的话。”</p><p style='text-align:right;font-size:12px;color:#aaa'>—— 摘录</p></blockquote>") }
@@ -1186,7 +1324,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             EditorTool("结尾段落") { insert("<section style='margin:28px 0 12px;padding-top:16px;border-top:1px solid #e4e8e5'><p style='margin:0;color:#666;line-height:1.9'>愿你在平凡的日子里，也能找到值得珍藏的片刻。</p></section>") }
 
                         }
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("导入模板包") { stylePackageImporter.launch(arrayOf("application/json", "text/json")) }
                         EditorTool("导出模板包") {
                             runCatching {
@@ -1219,7 +1357,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                     Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("整篇模板", templateLibraryTab == "full") { templateLibraryTab = "full"; templateTagFilter = "" }
                         EditorTool("局部组件", templateLibraryTab == "component") { templateLibraryTab = "component"; templateTagFilter = "" }
                         EditorTool("组合组件", templateLibraryTab == "combination") { templateLibraryTab = "combination"; templateTagFilter = "" }
@@ -1227,10 +1365,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板名称或标签") })
                         EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
-                        EditorTool(if (templateSortByName) "按名称" else "按更新", templateSortByName) { templateSortByName = !templateSortByName }
+                        EditorTool(if (templateSortByName) "排序：按名称" else "排序：按更新时间") { templateSortByName = !templateSortByName }
                     }
                     if (availableTemplateTags.isNotEmpty()) {
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("全部分类", templateTagFilter.isBlank()) { templateTagFilter = "" }
                             availableTemplateTags.forEach { tag ->
                                 EditorTool(tag, templateTagFilter == tag) { templateTagFilter = if (templateTagFilter == tag) "" else tag }
@@ -1299,6 +1437,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     }
                 }
+            }
             }
             }
         }
@@ -1974,17 +2113,20 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         )
     }
 }
+}
 
 @Composable
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(7.dp))
-            .background(if (selected) Color(0xFFE6F5EC) else Color(0xFFF1F3F1))
-            .clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 8.dp),
+        Modifier.clip(RoundedCornerShape(9.dp))
+            .background(if (selected) Color(0xFFE4F4EA) else Color(0xFFF5F7F5))
+            .border(1.dp, if (selected) Color(0xFFB9DFC8) else Color(0xFFEDF0ED), RoundedCornerShape(9.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) Color(0xFF087B4A) else Color(0xFF515852), fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1)
+        Text(label, color = if (selected) Color(0xFF087B4A) else Color(0xFF515A54), fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
     }
 }
 
