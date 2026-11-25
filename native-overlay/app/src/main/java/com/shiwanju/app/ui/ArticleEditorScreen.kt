@@ -169,6 +169,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var templateSortByName by remember { mutableStateOf(false) }
     var templatePreview by remember { mutableStateOf<StyleModule?>(null) }
     var editingTemplate by remember { mutableStateOf<StyleModule?>(null) }
+    var editingTemplateContent by remember { mutableStateOf<StyleModule?>(null) }
+    var templateHtmlDraft by remember { mutableStateOf("") }
     var deletingTemplate by remember { mutableStateOf<StyleModule?>(null) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
@@ -1338,6 +1340,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         if (template.origin == "user") {
                             TextButton(onClick = { dialogValue = template.name; editingTemplate = template; templatePreview = null }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("重命名", fontSize = 10.sp, color = accent) }
+                            TextButton(onClick = { templateHtmlDraft = template.html; editingTemplateContent = template; templatePreview = null }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("编辑内容", fontSize = 10.sp, color = accent) }
                             TextButton(onClick = {
                                 vm.saveStyle(template.copy(id = vm.newId(), name = template.name + " 副本", categoryId = "", origin = "user", updatedAt = System.currentTimeMillis().toString()))
                                 vm.toast("已复制到我的模板库")
@@ -1374,6 +1377,45 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 vm.toast("模板名称已更新")
             }
         }) { editingTemplate = null }
+    }
+    if (editingTemplateContent != null) {
+        val target = editingTemplateContent!!
+        Dialog(onDismissRequest = { editingTemplateContent = null }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("编辑模板内容", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(target.name, color = Color.Gray, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    OutlinedTextField(
+                        value = templateHtmlDraft,
+                        onValueChange = { templateHtmlDraft = it },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 220.dp, max = 440.dp),
+                        placeholder = { Text("在此编辑模板 HTML") },
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
+                        minLines = 10,
+                        maxLines = 18
+                    )
+                    Text("保存时会过滤脚本、内嵌框架和危险链接；模板预览缩略图会在下次打开时重新生成。", color = Color.Gray, fontSize = 11.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { editingTemplateContent = null }) { Text("取消", color = Color.Gray) }
+                        TextButton(onClick = {
+                            if (templateHtmlDraft.isBlank()) {
+                                vm.toast("模板内容不能为空")
+                            } else {
+                                val safeHtml = sanitizeArticleHtml(templateHtmlDraft)
+                                if (safeHtml.isBlank()) {
+                                    vm.toast("模板内容无效，未保存")
+                                } else {
+                                    vm.saveStyle(target.copy(html = safeHtml, thumbnail = "", updatedAt = System.currentTimeMillis().toString()))
+                                    editingTemplateContent = null
+                                    templateHtmlDraft = ""
+                                    vm.toast("模板内容已保存")
+                                }
+                            }
+                        }) { Text("保存内容", color = accent) }
+                    }
+                }
+            }
+        }
     }
     if (deletingTemplate != null) {
         val target = deletingTemplate!!
