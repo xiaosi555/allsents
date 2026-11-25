@@ -64,7 +64,7 @@ required = [
     "Dialog(onDismissRequest = { showCanvasPopup = false })",
     "detectDragGestures",
     "Text(\"画布工具\"",
-    "heightIn(min = 100.dp, max = 300.dp)",
+    "coerceIn(100f, 350f)",
     "CompositionLocalProvider(LocalEditorToolDark provides true)",
     "EditorPanel.values().forEach { panel ->",
     "height(50.dp)",
