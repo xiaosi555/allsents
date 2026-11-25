@@ -136,6 +136,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var previewAsset by remember { mutableStateOf<MediaAsset?>(null) }
     var templateSearchText by remember { mutableStateOf("") }
     var favoriteTemplatesOnly by remember { mutableStateOf(false) }
+    var templateTagFilter by remember { mutableStateOf("") }
+    var templateSortByName by remember { mutableStateOf(false) }
     var templatePreview by remember { mutableStateOf<StyleModule?>(null) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
@@ -144,7 +146,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
     }.sortedByDescending { it.updatedAt }
     val filteredMediaAssets = vm.data.mediaAssets.filter { mediaSearchText.isBlank() || it.fileName.contains(mediaSearchText, true) || it.mimeType.contains(mediaSearchText, true) }.sortedByDescending { it.createdAt }
-    val filteredTemplates = vm.data.styles.filter { it.category == "整篇模板" && (!favoriteTemplatesOnly || it.isFavorite) && (templateSearchText.isBlank() || it.name.contains(templateSearchText, true) || it.tags.any { tag -> tag.contains(templateSearchText, true) }) }.sortedByDescending { it.isFavorite }
+    val availableTemplateTags = vm.data.styles.filter { it.category == "整篇模板" }.flatMap { it.tags }.map { it.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
+    val filteredTemplates = vm.data.styles.filter { it.category == "整篇模板" && (!favoriteTemplatesOnly || it.isFavorite) && (templateTagFilter.isBlank() || it.tags.any { tag -> tag.equals(templateTagFilter, true) }) && (templateSearchText.isBlank() || it.name.contains(templateSearchText, true) || it.tags.any { tag -> tag.contains(templateSearchText, true) }) }
+        .let { list -> if (templateSortByName) list.sortedBy { it.name.lowercase(Locale.ROOT) } else list.sortedWith(compareByDescending<StyleModule> { it.isFavorite }.thenByDescending { it.updatedAt }) }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val previewBitmap = remember(previewAsset?.id) {
         previewAsset?.let { asset ->
@@ -1120,15 +1124,48 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板") })
+                        OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板名称或标签") })
                         EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
+                        EditorTool(if (templateSortByName) "按名称" else "按更新", templateSortByName) { templateSortByName = !templateSortByName }
+                    }
+                    if (availableTemplateTags.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("全部分类", templateTagFilter.isBlank()) { templateTagFilter = "" }
+                            availableTemplateTags.forEach { tag ->
+                                EditorTool(tag, templateTagFilter == tag) { templateTagFilter = if (templateTagFilter == tag) "" else tag }
+                            }
+                        }
                     }
                     if (filteredTemplates.isEmpty()) Text("暂无匹配模板，可将当前文章保存为整篇模板", color = Color.Gray, fontSize = 11.sp)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        filteredTemplates.forEach { template ->
-                            EditorTool("预览·${template.name}") { templatePreview = template }
-                            EditorTool(if (template.isFavorite) "★" else "☆") { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) }
-                            EditorTool("应用·${template.name}") { fullTemplateConfirm = template }
+                    else {
+                        filteredTemplates.chunked(2).forEach { rowTemplates ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                rowTemplates.forEach { template ->
+                                    val sample = template.html.replace(Regex("<[^>]*>"), " ").replace("&nbsp;", " ")
+                                        .replace(Regex("\\s+"), " ").trim().ifBlank { "图文排版模板" }.take(72)
+                                    Surface(
+                                        modifier = Modifier.weight(1f).clickable { templatePreview = template },
+                                        shape = RoundedCornerShape(9.dp),
+                                        color = Color(0xFFF4F7F5),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE4EBE6))
+                                    ) {
+                                        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                Text("整篇模板", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                                                Text(if (template.isFavorite) "★" else "☆", color = if (template.isFavorite) accent else Color.Gray, modifier = Modifier.clickable { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) })
+                                            }
+                                            Text(template.name, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text(sample, color = Color(0xFF68756D), fontSize = 10.sp, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                                            if (template.tags.isNotEmpty()) Text(template.tags.take(2).joinToString(" · "), color = Color(0xFF87958C), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                                TextButton(onClick = { templatePreview = template }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("预览", fontSize = 10.sp, color = accent) }
+                                                TextButton(onClick = { fullTemplateConfirm = template }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("应用", fontSize = 10.sp, color = accent) }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (rowTemplates.size == 1) Spacer(Modifier.weight(1f))
+                            }
                         }
                     }
                     }
