@@ -885,7 +885,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor img.selected-image{outline:2px solid #159765;outline-offset:2px}
                             </style></head><body><header id="previewHeader"></header><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
-                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let snapshotChars=snapshots[0].length;let dragSource=null;let dragTarget=null;let activeImage=null;
+                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let snapshotChars=snapshots[0].length;let dragSource=null;let dragSources=[];let dragTarget=null;let activeImage=null;
                             function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshotChars=snapshots.reduce((n,item)=>n+item.length,0);snapshots.push(value);snapshotChars+=value.length;while((snapshots.length>40||snapshotChars>8*1024*1024)&&snapshots.length>2){const removed=snapshots.shift();snapshotChars-=removed.length;historyIndex=Math.max(0,historyIndex-1);}historyIndex=snapshots.length-1;}
                             function restoreHistoryCaret(){root.focus();const r=document.createRange();r.selectNodeContents(root);r.collapse(false);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);saveSelection();}
                             function undoEditor(){commitHistory();if(historyIndex<=0)return;historyIndex--;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
@@ -925,34 +925,39 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function addTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{const c=r.insertCell(-1);c.innerHTML='<br>';c.style.border='1px solid #ddd';c.style.padding='8px';});commitHistory();NativeEditor.changed(root.innerHTML);}
                             function removeTableColumn(){const t=selectedTable();if(!t)return;Array.from(t.rows).forEach(r=>{if(r.cells.length>1)r.deleteCell(r.cells.length-1);});commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function updateMultiDragHandle(preferred){const selected=Array.from(root.querySelectorAll('.selected-block'));selected.forEach(e=>e.draggable=false);const handle=preferred&&selected.includes(preferred)?preferred:selected[selected.length-1];if(handle)handle.draggable=true;}
                             function setMultiSelectMode(v){multiSelectMode=!!v;root.querySelectorAll('.selected-block').forEach(e=>{e.classList.remove('selected-block');e.draggable=false;});NativeEditor.blockSelected('');}
                             root.addEventListener('click',function(ev){
                               if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}
                               let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;
                               if(e&&e!==root){
-                                if(multiSelectMode){e.classList.toggle('selected-block');e.draggable=false;NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>cleanBlockHtml(x)).join(''));}
+                                if(multiSelectMode){e.classList.toggle('selected-block');updateMultiDragHandle(e);NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>cleanBlockHtml(x)).join(''));}
                                 else{root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(cleanBlockHtml(e));}
                               }
                             });
                             function clearDragTarget(){if(dragTarget){dragTarget.classList.remove('drop-before','drop-after');dragTarget=null;}}
-                            root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;if(!e||e===root||!e.classList.contains('selected-block')){ev.preventDefault();return;}dragSource=e;ev.dataTransfer.effectAllowed='move';});
+                            root.addEventListener('dragstart',function(ev){let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;const selected=Array.from(root.querySelectorAll('.selected-block'));if(!e||e===root||!selected.includes(e)){ev.preventDefault();return;}dragSource=e;dragSources=multiSelectMode?selected:[e];ev.dataTransfer.effectAllowed='move';});
                             root.addEventListener('dragover',function(ev){
-                              if(!dragSource){clearDragTarget();return;}
+                              if(!dragSources.length){clearDragTarget();return;}
                               const target=topLevelAt(ev.target);
-                              if(!target||target===dragSource){clearDragTarget();return;}
+                              if(!target||dragSources.includes(target)){clearDragTarget();return;}
                               ev.preventDefault();
                               const rect=target.getBoundingClientRect(),before=ev.clientY<rect.top+rect.height/2;
                               const cls=before?'drop-before':'drop-after';
                               if(dragTarget!==target||!target.classList.contains(cls)){clearDragTarget();target.classList.add(cls);dragTarget=target;}
                             });
                             root.addEventListener('drop',function(ev){
-                              if(!dragSource){clearDragTarget();return;}
+                              if(!dragSources.length){clearDragTarget();return;}
                               ev.preventDefault();
                               const target=topLevelAt(ev.target);
-                              if(target&&target!==dragSource&&target.parentElement===root){const rect=target.getBoundingClientRect();if(ev.clientY<rect.top+rect.height/2)root.insertBefore(dragSource,target);else root.insertBefore(dragSource,target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(cleanBlockHtml(dragSource));}
-                              clearDragTarget();dragSource=null;
+                              if(target&&!dragSources.includes(target)&&target.parentElement===root){
+                                const rect=target.getBoundingClientRect(),anchor=ev.clientY<rect.top+rect.height/2?target:target.nextSibling;
+                                dragSources.forEach(node=>root.insertBefore(node,anchor));
+                                commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(dragSources.map(node=>cleanBlockHtml(node)).join(''));
+                              }
+                              clearDragTarget();dragSource=null;dragSources=[];
                             });
-                            root.addEventListener('dragend',function(){clearDragTarget();dragSource=null;});
+                            root.addEventListener('dragend',function(){clearDragTarget();dragSource=null;dragSources=[];});
 
                             // Touch fallback for phones: long-press a selected block or image-group cell, then drag to a visible drop target.
                             let touchDrag=null,touchDrop=null;
