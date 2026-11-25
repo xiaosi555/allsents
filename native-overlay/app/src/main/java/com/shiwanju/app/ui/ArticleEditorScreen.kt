@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
@@ -233,9 +234,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
-    val pageBg = Color(0xFFF5F6F5)
-    val ink = Color(0xFF252A27)
-    val accent = Color(0xFF159765)
+    val pageBg = AppColors.MyBg
+    val ink = AppColors.MyText
+    val accent = AppColors.Theme
+    val accentHex = "#%06X".format(Locale.ROOT, 0xFFFFFF and accent.toArgb())
 
     fun runJs(script: String) {
         editor?.evaluateJavascript(script, null)
@@ -654,8 +656,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(pageBg).systemBarsPadding()) {
         Row(
-            Modifier.fillMaxWidth().height(56.dp).background(Color.White)
-                .padding(horizontal = 3.dp),
+            Modifier.fillMaxWidth().height(58.dp).background(AppColors.MyCard)
+                .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { saveDocument(onComplete = onBack) }) {
@@ -669,8 +671,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     decorationBox = { inner -> Box { if (title.isEmpty()) Text("文章标题", color = Color(0xFF9AA19C)); inner() } }
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(5.dp).clip(CircleShape).background(if (saved) Color(0xFF20A46B) else Color(0xFFE0A23B)))
-                    Text(if (saved) "已保存" else "自动保存中", color = Color(0xFF929A94), fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
+                    Box(Modifier.size(6.dp).clip(CircleShape).background(if (saved) accent else Color(0xFFE0A23B)))
+                    Text(if (saved) "已保存" else "自动保存中", color = AppColors.MyDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
                 }
             }
             TextButton(onClick = { runJs("undoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("撤销", color = Color(0xFF59625C), fontSize = 11.sp) }
@@ -686,7 +688,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         }
         androidx.compose.foundation.layout.Box(
-            Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFEDEFED))
+            Modifier.fillMaxWidth().height(1.dp).background(AppColors.MyLine)
         )
 
         if (showArticleList) {
@@ -897,7 +899,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
 
-            Box(Modifier.weight(1f).fillMaxWidth().background(Color(0xFFE9ECE9))) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(pageBg)) {
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -1058,8 +1060,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             root.addEventListener('keyup',saveSelection);root.addEventListener('mouseup',saveSelection);root.addEventListener('touchend',saveSelection);
                             root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},300);});
                             document.addEventListener('selectionchange',()=>{if(document.activeElement===root)saveSelection();});
+                            window.addEventListener('scroll',()=>{if(activeImage||root.querySelector('.selected-block'))reportSelection();},{passive:true});
                             </script></body></html>
                         """.trimIndent()
+                            .replace("#159765", accentHex)
+                            .replace("#16865a", accentHex)
                         loadDataWithBaseURL("https://editor.local/", page, "text/html", "UTF-8", null)
                         editor = this
                         tag = "article-editor"
@@ -1068,12 +1073,37 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
                 update = { editor = it }
             )
-            if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive)) {
-                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), shape = RoundedCornerShape(18.dp), color = Color.White, shadowElevation = 12.dp, border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE7EBE8))) {
+            if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||
+                    selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK)) {
+                val toolbarHeight = 88.dp
+                val selectedTop = selectionState.y.dp
+                val floatingY = if (selectedTop > maxHeight * 0.56f) {
+                    (selectedTop - toolbarHeight - 8.dp).coerceAtLeast(8.dp)
+                } else {
+                    (selectedTop + selectionState.height.dp + 10.dp).coerceAtMost((maxHeight - toolbarHeight).coerceAtLeast(8.dp))
+                }
+                Surface(
+                    Modifier.align(Alignment.TopCenter).offset(y = floatingY).fillMaxWidth().padding(horizontal = 12.dp),
+                    shape = RoundedCornerShape(18.dp), color = AppColors.MyCard, shadowElevation = 14.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.MyLine)
+                ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (selectedImageHtml.isNotBlank()) "图片工具" else "文字工具", color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                            TextButton(onClick = { selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""; runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');") }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = Color.Gray, fontSize = 11.sp) }
+                            Text(
+                                when {
+                                    selectedImageHtml.isNotBlank() -> "图片工具"
+                                    selectedTextActive -> "文字工具"
+                                    selectionState.kind == EditorSelectionKind.TABLE -> "表格工具"
+                                    selectionState.kind == EditorSelectionKind.MULTI_BLOCK -> "组合工具"
+                                    else -> "模块工具"
+                                },
+                                color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
+                            )
+                            TextButton(onClick = {
+                                selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""
+                                selectionState = EditorSelectionState()
+                                runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
+                            }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = AppColors.MyDim, fontSize = 11.sp) }
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (selectedImageHtml.isNotBlank()) {
@@ -1105,7 +1135,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 TextButton(onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
                                 TextButton(onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
                                 TextButton(onClick = { selectedImageHtml = ""; activePanel = EditorPanel.IMAGE }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
-                            } else {
+                            } else if (selectedTextActive) {
                                 Box {
                                     TextButton(onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-size", onDismissRequest = { floatingMenu = "" }) {
@@ -1133,6 +1163,35 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 TextButton(onClick = { command("insertUnorderedList") }) { Text("☷•", color = ink, fontSize = 12.sp) }
                                 TextButton(onClick = { showFindReplace = true }) { Text("⌕", color = ink, fontSize = 15.sp) }
                                 TextButton(onClick = { activePanel = EditorPanel.TEXT; selectedTextActive = false }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                            } else {
+                                when (selectionState.kind) {
+                                    EditorSelectionKind.TABLE -> {
+                                        TextButton(onClick = { runJs("addTableRow()") }) { Text("＋ 行", color = accent, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("removeTableRow()") }) { Text("－ 行", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("addTableColumn()") }) { Text("＋ 列", color = accent, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("removeTableColumn()") }) { Text("－ 列", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = { activePanel = EditorPanel.COMPONENT }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                    }
+                                    EditorSelectionKind.MULTI_BLOCK -> {
+                                        TextButton(onClick = { runJs("moveSelectedBlock(-1)") }) { Text("上移", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("moveSelectedBlock(1)") }) { Text("下移", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = {
+                                            if (selectedBlockHtml.isNotBlank()) {
+                                                vm.saveStyle(StyleModule(vm.newId(), "组合组件", "组合组件", selectedBlockHtml, System.currentTimeMillis().toString(), type = "combination"))
+                                                vm.toast("已保存组合组件")
+                                            } else vm.toast("请先选择要组合的模块")
+                                        }) { Text("保存组合", color = accent, fontSize = 11.sp) }
+                                        TextButton(onClick = { activePanel = EditorPanel.LAYER }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                    }
+                                    else -> {
+                                        TextButton(onClick = { runJs("moveSelectedBlock(-1)") }) { Text("上移", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("moveSelectedBlock(1)") }) { Text("下移", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = { showBlockProperties = true }) { Text("样式", color = accent, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("duplicateSelectedBlock()") }) { Text("复制", color = ink, fontSize = 11.sp) }
+                                        TextButton(onClick = { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }) { Text("删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
+                                        TextButton(onClick = { activePanel = EditorPanel.COMPONENT }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1143,8 +1202,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             if (!previewMode && selectedImageHtml.isBlank() && !selectedTextActive) {
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE7EBE8), RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(AppColors.MyCard)
+                    .border(1.dp, AppColors.MyLine, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .navigationBarsPadding()
             ) {
                 Row(
@@ -1160,7 +1219,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 multiSelectMode -> "多选模式 · 点选多个模块后可组合拖动"
                                 else -> "选择分类，快速调整文章画布"
                             },
-                            color = Color(0xFF929A94), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                            color = AppColors.MyDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
                     TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) {
@@ -1177,9 +1236,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         EditorTool(panel.label, activePanel == panel) { activePanel = panel }
                     }
                 }
-                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F2F0)))
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(AppColors.MyLine))
                 Column(
-                    Modifier.fillMaxWidth().heightIn(min = 96.dp, max = 218.dp)
+                    Modifier.fillMaxWidth().heightIn(min = 104.dp, max = 224.dp)
                         .verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 9.dp)
                 ) {
                 when (activePanel) {
@@ -2214,14 +2273,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 @Composable
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.clip(RoundedCornerShape(9.dp))
-            .background(if (selected) Color(0xFFE4F4EA) else Color(0xFFF5F7F5))
-            .border(1.dp, if (selected) Color(0xFFB9DFC8) else Color(0xFFEDF0ED), RoundedCornerShape(9.dp))
+        Modifier.clip(RoundedCornerShape(11.dp))
+            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else AppColors.Field)
+            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.42f) else AppColors.MyLine, RoundedCornerShape(11.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) Color(0xFF087B4A) else Color(0xFF515A54), fontSize = 11.sp,
+        Text(label, color = if (selected) AppColors.Theme else AppColors.MyText, fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
     }
 }
