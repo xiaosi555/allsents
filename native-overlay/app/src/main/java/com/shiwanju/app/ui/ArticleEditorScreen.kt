@@ -40,6 +40,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Undo
+import androidx.compose.material.icons.outlined.Redo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -736,8 +738,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Text("醒图 · " + if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
                 }
             }
-            TextButton(onClick = { runJs("undoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("撤销", color = Color(0xFF59625C), fontSize = 11.sp) }
-            TextButton(onClick = { runJs("redoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("重做", color = Color(0xFF59625C), fontSize = 11.sp) }
+            IconButton(onClick = { runJs("undoEditor()") }, modifier = Modifier.size(36.dp)) { Icon(Icons.Outlined.Undo, contentDescription = "撤销", tint = Color(0xFF59625C), modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = { runJs("redoEditor()") }, modifier = Modifier.size(36.dp)) { Icon(Icons.Outlined.Redo, contentDescription = "重做", tint = Color(0xFF59625C), modifier = Modifier.size(20.dp)) }
             TextButton(onClick = {
                 previewMode = !previewMode
                 editor?.evaluateJavascript("setEditable(${!previewMode});setPreviewInfo(${JSONObject.quote(if (previewMode) title else "")},${JSONObject.quote(if (previewMode) subtitle else "")},${JSONObject.quote(if (previewMode) author else "")},${JSONObject.quote(if (previewMode) summary else "")});", null)
@@ -751,6 +753,21 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         androidx.compose.foundation.layout.Box(
             Modifier.fillMaxWidth().height(1.dp).background(AppColors.Line)
         )
+
+        if (!showArticleList && !previewMode) {
+            Row(
+                Modifier.fillMaxWidth().height(48.dp).background(AppColors.Panel)
+                    .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                EditorPanel.values().filter { it != EditorPanel.CANVAS }.forEach { panel ->
+                    EditorTool(panel.label, activePanel == panel) { activePanel = panel; floatingMenu = "" }
+                }
+                EditorTool("画布", activePanel == EditorPanel.CANVAS) { activePanel = EditorPanel.CANVAS; floatingMenu = "" }
+            }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(AppColors.Line))
+        }
 
         if (showArticleList) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -961,6 +978,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
 
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(pageBg)) {
+            Surface(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)
+            ) {
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -1168,9 +1192,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         tag = "article-editor"
                     }
                 },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
                 update = { editor = it }
             )
+            }
             if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||
                     selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
                     selectionState.kind == EditorSelectionKind.COMPONENT || selectionState.kind == EditorSelectionKind.LAYOUT)) {
@@ -1323,16 +1348,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) {
                         Text("全部工具", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    EditorPanel.values().forEach { panel ->
-                        EditorTool(panel.label, activePanel == panel) { activePanel = panel }
                     }
                 }
                 androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(AppColors.MyLine))
