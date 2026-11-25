@@ -168,6 +168,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var templateTagFilter by remember { mutableStateOf("") }
     var templateSortByName by remember { mutableStateOf(false) }
     var templatePreview by remember { mutableStateOf<StyleModule?>(null) }
+    var editingTemplate by remember { mutableStateOf<StyleModule?>(null) }
+    var deletingTemplate by remember { mutableStateOf<StyleModule?>(null) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
     val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
     val filteredArticles = vm.data.articles.filter { article ->
@@ -1314,8 +1316,21 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             if (view.url == null && template.thumbnail.isBlank()) view.loadDataWithBaseURL("https://editor.local/", template.html, "text/html", "UTF-8", null)
                         }
                     )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { templatePreview = null }) { Text("关闭", color = accent) }
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (template.origin == "user") {
+                            TextButton(onClick = { dialogValue = template.name; editingTemplate = template; templatePreview = null }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("重命名", fontSize = 10.sp, color = accent) }
+                            TextButton(onClick = {
+                                vm.saveStyle(template.copy(id = vm.newId(), name = template.name + " 副本", categoryId = "", origin = "user", updatedAt = System.currentTimeMillis().toString()))
+                                vm.toast("已复制到我的模板库")
+                            }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("复制", fontSize = 10.sp, color = accent) }
+                            TextButton(onClick = { deletingTemplate = template; templatePreview = null }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("删除", fontSize = 10.sp, color = Color(0xFFCC5555)) }
+                        } else {
+                            TextButton(onClick = {
+                                vm.saveStyle(template.copy(id = vm.newId(), name = template.name + " 副本", categoryId = "", origin = "user", updatedAt = System.currentTimeMillis().toString()))
+                                vm.toast("已复制到我的模板库")
+                            }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("复制到我的", fontSize = 10.sp, color = accent) }
+                        }
+                        TextButton(onClick = { templatePreview = null }, contentPadding = PaddingValues(horizontal = 4.dp)) { Text("关闭", fontSize = 10.sp, color = accent) }
                         if (template.type == "full" || template.category == "整篇模板") {
                             TextButton(onClick = { fullTemplateConfirm = template; templatePreview = null }) { Text("应用全文", color = accent) }
                         } else {
@@ -1328,6 +1343,34 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
         }
+    }
+    if (editingTemplate != null) {
+        val target = editingTemplate!!
+        EditorInputDialog("重命名模板", "输入新的模板名称", dialogValue, { dialogValue = it }, {
+            val newName = dialogValue.trim()
+            if (newName.isBlank()) vm.toast("模板名称不能为空")
+            else {
+                vm.saveStyle(target.copy(name = newName, updatedAt = System.currentTimeMillis().toString()))
+                editingTemplate = null
+                vm.toast("模板名称已更新")
+            }
+        }) { editingTemplate = null }
+    }
+    if (deletingTemplate != null) {
+        val target = deletingTemplate!!
+        AlertDialog(
+            onDismissRequest = { deletingTemplate = null },
+            title = { Text("删除模板？") },
+            text = { Text("确定删除「${target.name}」吗？删除后无法恢复。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.deleteStyle(target.id)
+                    deletingTemplate = null
+                    vm.toast("模板已删除")
+                }) { Text("删除", color = Color(0xFFCC5555)) }
+            },
+            dismissButton = { TextButton(onClick = { deletingTemplate = null }) { Text("取消") } }
+        )
     }
     if (previewAsset != null) {
         Dialog(onDismissRequest = { previewAsset = null }) {
