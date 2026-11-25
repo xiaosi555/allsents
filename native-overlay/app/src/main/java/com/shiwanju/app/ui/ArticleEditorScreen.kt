@@ -173,6 +173,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var layoutBuilderGap by remember { mutableStateOf("12") }
     var layoutBuilderRatios by remember { mutableStateOf("1,1") }
     var layoutBuilderBackground by remember { mutableStateOf("#F4F7F5") }
+    var layoutBuilderImageAssetId by remember { mutableStateOf("") }
 
     var blockPadding by remember { mutableStateOf("14px") }
     var blockMargin by remember { mutableStateOf("12px") }
@@ -2308,6 +2309,29 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         singleLine = true,
                         label = { Text("分栏背景色（HEX，例如 #F4F7F5）") }
                     )
+                    Text("首栏图片（可选）", color = ink, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(
+                            selected = layoutBuilderImageAssetId.isBlank(),
+                            onClick = { layoutBuilderImageAssetId = "" },
+                            label = { Text("不使用图片") }
+                        )
+                        TextButton(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
+                            Text("导入图片", color = accent)
+                        }
+                    }
+                    if (vm.data.mediaAssets.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            vm.data.mediaAssets.filter { it.mimeType.startsWith("image/") }.take(30).forEach { asset ->
+                                FilterChip(
+                                    selected = layoutBuilderImageAssetId == asset.id,
+                                    onClick = { layoutBuilderImageAssetId = asset.id },
+                                    label = { Text(asset.fileName.take(14), maxLines = 1) }
+                                )
+                            }
+                        }
+                    }
+
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { showLayoutBuilder = false }) { Text("取消", color = Color.Gray) }
                         TextButton(onClick = {
@@ -2323,8 +2347,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 val cols = widths.mapIndexed { index, width ->
                                     "<col style='width:${width}%;'>"
                                 }.joinToString("")
+                                val selectedImage = vm.data.mediaAssets.firstOrNull { it.id == layoutBuilderImageAssetId && it.mimeType.startsWith("image/") }
                                 val cells = widths.indices.joinToString("") { index ->
-                                    "<td style='vertical-align:top;padding:12px;background:${layoutBuilderBackground};word-break:break-word'><p style='margin:0'>第 ${index + 1} 栏内容</p></td>"
+                                    val body = if (index == 0 && selectedImage != null) {
+                                        "<img src='https://editor.local/assets/${selectedImage.id}' alt='${selectedImage.fileName}' style='display:block;width:100%;height:auto;margin:0 0 8px'><p style='margin:0'>图片说明文字</p>"
+                                    } else {
+                                        "<p style='margin:0'>第 ${index + 1} 栏内容</p>"
+                                    }
+                                    "<td style='vertical-align:top;padding:12px;background:${layoutBuilderBackground};word-break:break-word'>$body</td>"
                                 }
                                 val fragment = "<table role='presentation' style='width:100%;table-layout:fixed;border-collapse:separate;border-spacing:${gap}px 0;margin:16px 0'><colgroup>$cols</colgroup><tbody><tr>$cells</tr></tbody></table><p><br></p>"
                                 insert(fragment)
