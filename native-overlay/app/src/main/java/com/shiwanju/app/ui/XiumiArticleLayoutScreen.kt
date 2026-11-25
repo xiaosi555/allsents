@@ -282,14 +282,40 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
          }.padding(horizontal=7.dp,vertical=5.dp))
        }
       }
-      OutlinedTextField(body,{changeBody(it)},Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp),placeholder={Text("从左侧选择素材添加内容，也可直接输入正文。")},
-       textStyle=LocalTextStyle.current.copy(fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,color=foreground,fontWeight=if(bold) FontWeight.Bold else FontWeight.Normal,
-        textAlign=when(align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start }),minLines=14)
+      Column(Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp)) {
+       if(blocks.isEmpty()) Text("从左侧素材中心添加标题、正文、图片或卡片。",fontSize=13.sp,color=Color.Gray,modifier=Modifier.padding(vertical=20.dp))
+       blocks.forEachIndexed { index, block ->
+        Column(Modifier.fillMaxWidth().padding(vertical=5.dp).clip(RoundedCornerShape(block.radius.dp))
+         .border(if(block.id==selectedBlockId) 1.5.dp else block.border.dp,if(block.id==selectedBlockId) accent else Color(0xFFE1E3E5),RoundedCornerShape(block.radius.dp))
+         .background(if(block.type=="卡片") Color(0xFFF5F6F6) else Color.Transparent)
+         .clickable { selectedBlockId=block.id; selected=block.type; selectedType=block.type; selectedSnippet=block.content; fontSize=block.fontSize; lineSpace=block.lineSpace; bold=block.bold; align=block.align; foreground=Color(block.color) }
+         .padding(block.padding.dp)) {
+         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+          Text(block.type,fontSize=9.sp,color=accent,modifier=Modifier.weight(1f))
+          Text("编辑属性",fontSize=9.sp,color=Color.Gray,modifier=Modifier.clickable { selectedBlockId=block.id; selected=block.type; properties=true })
+         }
+         OutlinedTextField(block.content,{ value ->
+          val next=blocks.toMutableList(); next[index]=block.copy(content=value); syncBlocks(next)
+         },Modifier.fillMaxWidth().defaultMinSize(minHeight=if(block.type=="标题") 48.dp else 90.dp),
+          textStyle=LocalTextStyle.current.copy(fontSize=block.fontSize.sp,lineHeight=(block.fontSize*block.lineSpace).sp,color=Color(block.color),
+           fontWeight=if(block.bold) FontWeight.Bold else FontWeight.Normal,
+           textAlign=when(block.align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start }),
+          minLines=if(block.type=="标题") 1 else 3)
+        }
+       }
+      }
      } else {
       Text(title.ifBlank { "未命名文章" },fontSize=23.sp,fontWeight=FontWeight.Bold,color=Color(0xFF222222))
       if(subtitle.isNotBlank()) Text(subtitle,fontSize=13.sp,color=Color.Gray,modifier=Modifier.padding(top=8.dp))
       Text("文 / $author",fontSize=11.sp,color=Color.Gray,modifier=Modifier.padding(vertical=12.dp))
-      Text(body.ifBlank { "正文预览将在这里显示。" },fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,color=foreground)
+      if(blocks.isEmpty()) Text("正文预览将在这里显示。",fontSize=fontSize.sp,color=foreground)
+      blocks.forEach { block ->
+       Text(block.content,fontSize=if(block.type=="标题") (block.fontSize+6).sp else block.fontSize.sp,
+        lineHeight=(block.fontSize*block.lineSpace).sp,color=Color(block.color),
+        fontWeight=if(block.bold || block.type=="标题") FontWeight.Bold else FontWeight.Normal,
+        textAlign=when(block.align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start },
+        modifier=Modifier.fillMaxWidth().padding(vertical=block.padding.dp))
+      }
      }
      Spacer(Modifier.height(32.dp))
     }
