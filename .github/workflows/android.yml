@@ -169,7 +169,7 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/refine_settings.py
 
-      - name: Enforce article editor navigation
+      - name: Enforce separate Xingtu and Xiumi editor routes
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/ensure_article_editor_route.py
 
