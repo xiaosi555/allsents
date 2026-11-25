@@ -124,6 +124,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportStyleJson by remember { mutableStateOf("") }
     var pendingImageGroupCount by remember { mutableIntStateOf(2) }
     var selectedBlockHtml by remember { mutableStateOf("") }
+    var showBlockProperties by remember { mutableStateOf(false) }
+    var blockPadding by remember { mutableStateOf("14px") }
+    var blockBackground by remember { mutableStateOf("#F4F7F5") }
+    var blockBorder by remember { mutableStateOf("#E2E9E4") }
+    var blockRadius by remember { mutableStateOf("8px") }
     var multiSelectMode by remember { mutableStateOf(false) }
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
@@ -750,6 +755,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 } else if (selectedBlockHtml.isNotBlank()) {
                     EditorTool("模块上移") { runJs("moveSelectedBlock(-1)") }
                     EditorTool("模块下移") { runJs("moveSelectedBlock(1)") }
+                    EditorTool("模块样式") { showBlockProperties = true }
                     EditorTool("复制模块") { runJs("duplicateSelectedBlock()") }
                     EditorTool("删除模块") { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }
                     EditorTool("保存为样式") {
@@ -844,6 +850,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
                             function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function applySelectedBlockStyle(padding,bg,border,radius){const e=selectedBlock();if(!e)return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.backgroundColor=bg;e.style.border='1px solid '+border;e.style.borderRadius=radius;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}
                             function selectedTable(){const e=selectedBlock();return e?(e.tagName==='TABLE'?e:e.querySelector('table')):null;}
                             function addTableRow(){const t=selectedTable();if(!t||!t.rows.length)return;const r=t.rows[t.rows.length-1];const n=r.cloneNode(true);Array.from(n.cells).forEach(c=>c.innerHTML='<br>');r.parentNode.insertBefore(n,r.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -1540,6 +1547,36 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         TextButton(onClick = { cropLeft = 0f; cropTop = 0f; cropWidth = 1f; cropHeight = 1f }) { Text("重置", color = Color.Gray) }
                         TextButton(onClick = { showCustomImageCrop = false; customCropAsset = null }) { Text("取消", color = Color.Gray) }
                         TextButton(onClick = { applyCustomImageCrop() }) { Text("生成裁切图", color = accent) }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showBlockProperties) {
+        Dialog(onDismissRequest = { showBlockProperties = false }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("模块属性", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("调整当前选中模块的内边距、背景、边框和圆角。", color = Color.Gray, fontSize = 11.sp)
+                    OutlinedTextField(blockPadding, { blockPadding = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("内边距（例如 14px）") })
+                    OutlinedTextField(blockBackground, { blockBackground = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("背景色（HEX 或 transparent）") })
+                    OutlinedTextField(blockBorder, { blockBorder = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框颜色（HEX）") })
+                    OutlinedTextField(blockRadius, { blockRadius = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("圆角（例如 8px）") })
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showBlockProperties = false }) { Text("取消", color = Color.Gray) }
+                        TextButton(onClick = {
+                            val dimension = Regex("""^\\d{1,3}(?:\\.\\d{1,2})?(?:px|%)$""")
+                            val colorValue = Regex("""^#[0-9a-fA-F]{6}$""")
+                            val bgValid = blockBackground == "transparent" || colorValue.matches(blockBackground)
+                            if (!dimension.matches(blockPadding) || !dimension.matches(blockRadius) || !colorValue.matches(blockBorder) || !bgValid) {
+                                vm.toast("请检查尺寸格式和颜色格式")
+                            } else {
+                                runJs("applySelectedBlockStyle(${JSONObject.quote(blockPadding)},${JSONObject.quote(blockBackground)},${JSONObject.quote(blockBorder)},${JSONObject.quote(blockRadius)})")
+                                showBlockProperties = false
+                                vm.toast("模块样式已更新")
+                            }
+                        }) { Text("应用样式", color = accent) }
                     }
                 }
             }
