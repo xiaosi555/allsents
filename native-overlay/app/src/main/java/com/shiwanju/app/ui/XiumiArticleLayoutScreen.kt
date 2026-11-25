@@ -76,6 +76,7 @@ private fun writeXiumiBlocks(context:android.content.Context,articleId:String,bl
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
+ val context = LocalContext.current
  val compact = LocalConfiguration.current.screenWidthDp < 600
  val initial=remember { vm.data.articles.maxByOrNull { it.updatedAt } }
  var currentArticle by remember { mutableStateOf(initial) }
@@ -84,6 +85,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var subtitle by remember { mutableStateOf(initial?.subtitle.orEmpty()) }
  var author by remember { mutableStateOf(initial?.author?.ifBlank { "拾万句" } ?: "拾万句") }
  var body by remember { mutableStateOf(initial?.html.orEmpty()) }
+ var blocks by remember { mutableStateOf(readXiumiBlocks(context,initial?.id ?: "new",initial?.html.orEmpty(),vm::newId)) }
+ var selectedBlockId by remember { mutableStateOf("") }
  var dock by remember { mutableStateOf(XiumiDock.TITLE) }
  var selected by remember { mutableStateOf("正文") }
  var search by remember { mutableStateOf("") }
@@ -105,7 +108,6 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var contentPadding by remember { mutableFloatStateOf(28f) }
  var borderWidth by remember { mutableFloatStateOf(1f) }
  var cornerRadius by remember { mutableFloatStateOf(3f) }
- val context = LocalContext.current
  val clipboard = LocalClipboardManager.current
  val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
   if(uri!=null) runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()?.let { imported ->
@@ -133,29 +135,42 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    category=currentArticle?.category.orEmpty(),tags=currentArticle?.tags ?: emptyList(),status="draft",wordCount=(title+subtitle+body).length,
    isFavorite=currentArticle?.isFavorite ?: false)
   vm.saveArticle(saved)
+  writeXiumiBlocks(context,id,blocks)
   currentArticle = saved
   dirty=false
  }
- fun changeBody(value:String) { if(value!=body) { undo=(undo+body).takeLast(50); redo=emptyList(); body=value; dirty=true } }
+ fun changeBody(value:String) {
+  if(value==body) return
+  val old=blocks.toMutableList()
+  val next=value.split("\n\n").filter { it.isNotBlank() }.map { chunk ->
+   val match=old.firstOrNull { it.content==chunk }
+   if(match!=null) { old.remove(match); match } else XiumiBlock(vm.newId(),classifyXiumiBlock(chunk),chunk)
+  }
+  blocks=next; body=value; selectedSnippet=next.firstOrNull { it.id==selectedBlockId }?.content.orEmpty()
+  dirty=true; undo=(undo+body).takeLast(50); redo=emptyList()
+ }
+ fun syncBlocks(next:List<XiumiBlock>) {
+  blocks=next; body=next.joinToString("\n\n") { it.content }
+  selectedSnippet=next.firstOrNull { it.id==selectedBlockId }?.content.orEmpty()
+  dirty=true; undo=(undo+body).takeLast(50); redo=emptyList()
+ }
  fun insert(value:String) {
-  changeBody(if(body.isBlank()) value else body.trimEnd()+"\n\n"+value)
-  selected="内容组件"; selectedSnippet=value
+  val block=XiumiBlock(vm.newId(),classifyXiumiBlock(value),value)
+  syncBlocks(blocks+block); selectedBlockId=block.id; selected="内容组件"; selectedSnippet=value
  }
  fun editSelected(transform:(String)->String) {
-  if(selectedSnippet.isBlank()) return
-  val at=body.lastIndexOf(selectedSnippet)
-  if(at<0) return
-  changeBody(body.substring(0,at)+transform(selectedSnippet)+body.substring(at+selectedSnippet.length))
-  selectedSnippet=transform(selectedSnippet)
+  val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
+  val next=blocks.toMutableList(); val content=transform(next[index].content)
+  next[index]=next[index].copy(content=content,type=classifyXiumiBlock(content)); syncBlocks(next); selectedSnippet=content
  }
  fun moveSelected(delta:Int) {
-  if(selectedSnippet.isBlank()) return
-  val blocks=body.split("\n\n").toMutableList()
-  val index=blocks.indexOfLast { it==selectedSnippet }
-  val target=index+delta
+  val index=blocks.indexOfFirst { it.id==selectedBlockId }; val target=index+delta
   if(index<0 || target !in blocks.indices) return
-  val item=blocks.removeAt(index); blocks.add(target,item)
-  changeBody(blocks.joinToString("\n\n"))
+  val next=blocks.toMutableList(); val item=next.removeAt(index); next.add(target,item); syncBlocks(next)
+ }
+ fun updateSelectedBlock(transform:(XiumiBlock)->XiumiBlock) {
+  val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
+  val next=blocks.toMutableList(); next[index]=transform(next[index]); blocks=next; dirty=true
  }
  BackHandler { if(dirty) save(); onBack() }
  val materials=remember(dock,vm.data.styles,importedMaterials,favoriteMaterials) {
