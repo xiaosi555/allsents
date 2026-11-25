@@ -168,6 +168,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var selectedBlockHtml by remember { mutableStateOf("") }
     var layerItems by remember { mutableStateOf(emptyList<EditorLayerItem>()) }
     var showBlockProperties by remember { mutableStateOf(false) }
+    var showLayoutBuilder by remember { mutableStateOf(false) }
+    var layoutBuilderColumns by remember { mutableIntStateOf(2) }
+    var layoutBuilderGap by remember { mutableStateOf("12") }
+    var layoutBuilderRatios by remember { mutableStateOf("1,1") }
+    var layoutBuilderBackground by remember { mutableStateOf("#F4F7F5") }
+
     var blockPadding by remember { mutableStateOf("14px") }
     var blockMargin by remember { mutableStateOf("12px") }
     var blockWidth by remember { mutableStateOf("100%") }
@@ -1444,6 +1450,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     EditorPanel.LAYOUT -> {
                         Text("布局 · 选择版式后直接插入画布", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("自定义分栏") { layoutBuilderColumns = 2; layoutBuilderRatios = "1,1"; showLayoutBuilder = true }
                             EditorTool("双栏布局") { insert("<section style='display:flex;gap:10px;margin:16px 0'><div style='flex:1;min-width:0;padding:12px;background:#f3f7f4;border-radius:6px'>左侧内容</div><div style='flex:1;min-width:0;padding:12px;background:#f3f7f4;border-radius:6px'>右侧内容</div></section>") }
                             EditorTool("三栏布局") { insert("<section style='display:flex;gap:6px;margin:16px 0'><div style='flex:1;min-width:0;padding:9px 4px;background:#f3f7f4;text-align:center'>第一栏</div><div style='flex:1;min-width:0;padding:9px 4px;background:#f3f7f4;text-align:center'>第二栏</div><div style='flex:1;min-width:0;padding:9px 4px;background:#f3f7f4;text-align:center'>第三栏</div></section>") }
                             EditorTool("图文左右排") { insert("<section style='display:flex;align-items:center;gap:12px;margin:18px 0'><div style='width:34%;flex-shrink:0'><img src='https://placehold.co/480x480?text=Image' style='display:block;width:100%;height:auto;border-radius:6px'></div><div style='flex:1;min-width:0'><p style='margin:0 0 6px;font-weight:700'>内容标题</p><p style='margin:0;color:#777;font-size:13px;line-height:1.7'>在这里填写图文介绍内容。</p></div></section>") }
@@ -2252,6 +2259,79 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         TextButton(onClick = { cropLeft = 0f; cropTop = 0f; cropWidth = 1f; cropHeight = 1f }) { Text("重置", color = Color.Gray) }
                         TextButton(onClick = { showCustomImageCrop = false; customCropAsset = null }) { Text("取消", color = Color.Gray) }
                         TextButton(onClick = { applyCustomImageCrop() }) { Text("生成裁切图", color = accent) }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showLayoutBuilder) {
+        Dialog(onDismissRequest = { showLayoutBuilder = false }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("自定义分栏", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("按公众号文章常用表格结构生成分栏，避免依赖复杂的 Flex 布局。每一栏插入后可分别编辑。", color = Color.Gray, fontSize = 11.sp)
+                    Text("栏数", color = ink, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(2, 3, 4).forEach { count ->
+                            FilterChip(
+                                selected = layoutBuilderColumns == count,
+                                onClick = {
+                                    layoutBuilderColumns = count
+                                    layoutBuilderRatios = List(count) { "1" }.joinToString(",")
+                                },
+                                label = { Text("${count}栏") }
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = layoutBuilderRatios,
+                        onValueChange = { layoutBuilderRatios = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("各栏比例（逗号分隔，如 2,1 或 1,1,1）") }
+                    )
+                    OutlinedTextField(
+                        value = layoutBuilderGap,
+                        onValueChange = { layoutBuilderGap = it.filter { c -> c.isDigit() }.take(2) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("栏间距（0–24 px）") }
+                    )
+                    OutlinedTextField(
+                        value = layoutBuilderBackground,
+                        onValueChange = { layoutBuilderBackground = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text("分栏背景色（HEX，例如 #F4F7F5）") }
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showLayoutBuilder = false }) { Text("取消", color = Color.Gray) }
+                        TextButton(onClick = {
+                            val ratios = layoutBuilderRatios.split(",").mapNotNull { it.trim().toFloatOrNull() }
+                            val gap = layoutBuilderGap.toIntOrNull()
+                            val valid = ratios.size == layoutBuilderColumns && ratios.all { it > 0f && it <= 10f } &&
+                                gap != null && gap in 0..24 && Regex("^#[0-9a-fA-F]{6}$").matches(layoutBuilderBackground)
+                            if (!valid) {
+                                vm.toast("请检查栏数比例、间距和 HEX 背景色")
+                            } else {
+                                val total = ratios.sum()
+                                val widths = ratios.map { (it / total * 10000).toInt() / 100f }
+                                val cols = widths.mapIndexed { index, width ->
+                                    "<col style='width:${width}%;'>"
+                                }.joinToString("")
+                                val cells = widths.indices.joinToString("") { index ->
+                                    "<td style='vertical-align:top;padding:12px;background:${layoutBuilderBackground};word-break:break-word'><p style='margin:0'>第 ${index + 1} 栏内容</p></td>"
+                                }
+                                val fragment = "<table role='presentation' style='width:100%;table-layout:fixed;border-collapse:separate;border-spacing:${gap}px 0;margin:16px 0'><colgroup>$cols</colgroup><tbody><tr>$cells</tr></tbody></table><p><br></p>"
+                                insert(fragment)
+                                showLayoutBuilder = false
+                                vm.toast("已插入 ${layoutBuilderColumns} 栏自定义布局")
+                            }
+                        }) { Text("插入画布", color = accent) }
                     }
                 }
             }
