@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -96,7 +97,8 @@ private fun writeXiumiBlocks(context:android.content.Context,articleId:String,bl
 @Composable
 fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  val context = LocalContext.current
- val compact = LocalConfiguration.current.screenWidthDp < 600
+ val screenConfig = LocalConfiguration.current
+ val compact = screenConfig.screenWidthDp < 600 || screenConfig.screenHeightDp < 480
  val initial=remember { vm.data.articles.maxByOrNull { it.updatedAt } }
  var currentArticle by remember { mutableStateOf(initial) }
  var id by remember { mutableStateOf(initial?.id ?: vm.newId()) }
@@ -270,7 +272,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4))) {
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically) {
    IconButton(onClick={if(dirty) save();onBack()}) { Icon(Icons.Outlined.ArrowBack,contentDescription="返回") }
-   Column(Modifier.weight(1f)) { Text("秀米式图文排版",fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
+   Column(Modifier.width(104.dp)) { Text("秀米式图文排版",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=1); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
+   Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),verticalAlignment=Alignment.CenterVertically) {
    TextButton(onClick={showArticlePicker=true}) { Text("文章") }
    TextButton(onClick={showVersions=true}) { Text("版本") }
    TextButton(onClick={
@@ -293,6 +296,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }) { Text("导出模板") }
    TextButton(onClick={ { save() } }) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
    TextButton(onClick={properties=!properties}) { Text("属性") }
+   }
   }
   Row(Modifier.weight(1f).fillMaxWidth()) {
    Column(Modifier.width(if(compact) 48.dp else 64.dp).fillMaxHeight().background(Color(0xFFFAFAFA)).verticalScroll(rememberScrollState()).padding(horizontal=4.dp, vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally) {
