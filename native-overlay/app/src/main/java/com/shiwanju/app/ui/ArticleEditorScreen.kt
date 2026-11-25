@@ -755,7 +755,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
-                                Text("快速操作", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 3.dp))
+                                Text("编辑与剪贴板", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 3.dp))
                 EditorTool("立即保存") { saveDocument(true); showMoreTools = false }
                 EditorTool("撤销") { runJs("undoEditor()") }
                 EditorTool("重做") { runJs("redoEditor()") }
@@ -766,7 +766,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 EditorTool("全选") { runJs("document.getElementById('editor').focus();document.execCommand('selectAll');saveSelection();") }
                 EditorTool("复制富文本") { copyRichHtml() }
                 EditorTool("复制纯文本") { copyPlainText() }
-                Text("检查与导入导出", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                Text("格式检查与文件", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 EditorTool("兼容检查") {
                     editor?.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
                         val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
