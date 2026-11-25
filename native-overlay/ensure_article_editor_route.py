@@ -15,8 +15,7 @@ if "import com.shiwanju.app.ui.XiumiArticleLayoutScreen" not in main:
     anchor = "import com.shiwanju.app.ui.LayoutScreen"
     if anchor not in main:
         raise SystemExit("Cannot add XiumiArticleLayoutScreen import.")
-    main = main.replace(anchor, anchor + "\\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen\\nimport com.shiwanju.app.ui.XiumiArticleEditorScreen", 1)
-main = re.sub(r'import com\.shiwanju\.app\.ui\.XiumiArticleEditorScreen\n', '', main)
+    main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen\nimport com.shiwanju.app.ui.XiumiArticleEditorScreen", 1)
 route = """when (vm.screen) {
                         "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }\n                        "article_editor" -> XiumiArticleEditorScreen(vm) { vm.screen = "layout" }
                         "layout" -> LayoutScreen(vm)
