@@ -15,14 +15,14 @@ if "import com.shiwanju.app.ui.XiumiArticleLayoutScreen" not in main:
     anchor = "import com.shiwanju.app.ui.LayoutScreen"
     if anchor not in main:
         raise SystemExit("Cannot add XiumiArticleLayoutScreen import.")
-    main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen", 1)
+    main = main.replace(anchor, anchor + "\\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen\\nimport com.shiwanju.app.ui.XiumiArticleEditorScreen", 1)
 main = re.sub(r'import com\.shiwanju\.app\.ui\.XiumiArticleEditorScreen\n', '', main)
 route = """when (vm.screen) {
-                        "article_editor" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }
+                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }\n                        "article_editor" -> XiumiArticleEditorScreen(vm) { vm.screen = "layout" }
                         "layout" -> LayoutScreen(vm)
                         else -> MyScreen(vm)
                     }"""
-if '"article_editor" -> XiumiArticleLayoutScreen(vm)' not in main:
+if '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)' not in main:
     patterns = [
         re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)'),
         re.compile(r'when\s*\(vm\.screen\)\s*\{[^}]*"layout"\s*->\s*LayoutScreen\(vm\)[^}]*else\s*->\s*MyScreen\(vm\)[^}]*\}', re.S)
@@ -34,7 +34,7 @@ if '"article_editor" -> XiumiArticleLayoutScreen(vm)' not in main:
 MAIN.write_text(main, encoding="utf-8")
 
 layout = LAYOUT.read_text(encoding="utf-8")
-if 'contentDescription = "秀米式文章排版"' not in layout or 'vm.screen = "article_editor"' not in layout:
+if 'contentDescription = "秀米式文章排版"' not in layout or 'vm.screen = "xiumi_article_layout"' not in layout:
     raise SystemExit("Palette entry is missing from LayoutScreen.")
 if 'ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)' not in layout:
     raise SystemExit("Existing Edit entry missing; preserve it.")
@@ -43,7 +43,7 @@ edit_at = layout.find('ThemeChip(if (vm.editing) "完成" else "编辑", vm.edit
 if icon_at < edit_at:
     raise SystemExit("Palette entry must remain to the right of Edit.")
 check = MAIN.read_text(encoding="utf-8")
-for token in ['"article_editor" -> XiumiArticleLayoutScreen(vm)', '"layout" -> LayoutScreen(vm)', "import com.shiwanju.app.ui.XiumiArticleLayoutScreen"]:
+for token in ['"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)', '"article_editor" -> XiumiArticleEditorScreen(vm)', '"layout" -> LayoutScreen(vm)', "import com.shiwanju.app.ui.XiumiArticleLayoutScreen", "import com.shiwanju.app.ui.XiumiArticleEditorScreen"]:
     if token not in check: raise SystemExit("Route verification failed: " + token)
 if "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)" not in EDITOR.read_text(encoding="utf-8"):
     raise SystemExit("Independent Xiumi editor composable missing.")
