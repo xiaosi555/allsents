@@ -47,7 +47,7 @@ if dock_start >= 0:
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Preserve the 180dp initial/collapsed total height and the 350dp maximum.
+# Give each tool panel a content-appropriate initial height, capped by the 350dp maximum.
 old = """                                    } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
@@ -119,8 +119,8 @@ if "val toolPanelNestedScrollConnection" not in s:
     s = s.replace(state_anchor, state_anchor + "\n" + nested_state, 1)
 
 # Keep the panel body clear of inner navigation-bar inset padding.
-# The 180dp total includes the 26dp drag handle; the remaining 154dp belongs to
-# the visible panel body (44dp header plus visible content).
+# The animated body excludes the separate 26dp drag handle; keep the header and
+# useful content visible at every panel's initial height.
 old_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding())'
 new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).nestedScroll(toolPanelNestedScrollConnection))'
 if old_panel in s:
@@ -156,6 +156,7 @@ checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "non-modal popup": "PopupProperties(focusable = false" in s,
     "panel-adaptive initial heights": "EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s,
+    "secondary navigation drag surface": header_count == 1,
     "150dp collapsed minimum and 350dp maximum": "coerceIn(150f, 350f)" in s,
     "smooth height animation": "tween(durationMillis = 180)" in s,
     "nested swipe resizing": "toolPanelNestedScrollConnection" in s and ".nestedScroll(toolPanelNestedScrollConnection)" in s,
