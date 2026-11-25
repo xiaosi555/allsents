@@ -31,6 +31,11 @@ import com.shiwanju.app.data.MediaAsset
 import com.shiwanju.app.data.StyleModule
 import org.json.JSONArray
 import org.json.JSONObject
+import android.graphics.BitmapFactory
+import java.io.File
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 
 private enum class XiumiDock(val label:String,val icon:String) {
  THEME("主题","◉"), TITLE("标题","T"), TEXT("文字","文"), IMAGE("图片","▧"), LAYOUT("布局","▦"),
@@ -103,6 +108,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var showMaterialPreview by remember { mutableStateOf<XiumiMaterial?>(null) }
  var favoriteMaterials by remember { mutableStateOf(setOf<String>()) }
  var importedMaterials by remember { mutableStateOf(listOf<XiumiMaterial>()) }
+ var pendingTemplateJson by remember { mutableStateOf("") }
  var foreground by remember { mutableStateOf(Color(0xFF333333)) }
  var canvasBackground by remember { mutableStateOf(Color.White) }
  var contentPadding by remember { mutableFloatStateOf(28f) }
