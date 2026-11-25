@@ -1,5 +1,7 @@
 package com.shiwanju.app.ui
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,6 +21,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiwanju.app.data.ArticleDocument
@@ -50,6 +55,28 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var showImageInsert by remember { mutableStateOf(false) }
  var showLayers by remember { mutableStateOf(false) }
  var selectedSnippet by remember { mutableStateOf("") }
+ var selectedType by remember { mutableStateOf("正文") }
+ var showBlockEditor by remember { mutableStateOf(false) }
+ var blockDraft by remember { mutableStateOf("") }
+ var showMaterialPreview by remember { mutableStateOf<XiumiMaterial?>(null) }
+ var favoriteMaterials by remember { mutableStateOf(setOf<String>()) }
+ var importedMaterials by remember { mutableStateOf(listOf<XiumiMaterial>()) }
+ var foreground by remember { mutableStateOf(Color(0xFF333333)) }
+ var canvasBackground by remember { mutableStateOf(Color.White) }
+ var contentPadding by remember { mutableFloatStateOf(28f) }
+ var borderWidth by remember { mutableFloatStateOf(1f) }
+ var cornerRadius by remember { mutableFloatStateOf(3f) }
+ val context = LocalContext.current
+ val clipboard = LocalClipboardManager.current
+ val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+  if(uri!=null) runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()?.let { imported ->
+   val name=uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')?.ifBlank { "导入素材" } ?: "导入素材"
+   importedMaterials=importedMaterials+XiumiMaterial(name,"导入文件 · ${imported.length} 字",imported)
+  }
+ }
+ val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write("# ${title}\n\n${subtitle}\n\n${body}") } }
+ }
  var imageUrl by remember { mutableStateOf("") }
  var imageAlt by remember { mutableStateOf("") }
  var dirty by remember { mutableStateOf(false) }
@@ -92,7 +119,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   changeBody(blocks.joinToString("\n\n"))
  }
  BackHandler { if(dirty) save(); onBack() }
- val materials=remember(dock,vm.data.styles) {
+ val materials=remember(dock,vm.data.styles,importedMaterials,favoriteMaterials) {
   when(dock) {
    XiumiDock.TITLE -> listOf(XiumiMaterial("大标题","醒目章节标题","【大标题】"),XiumiMaterial("编号标题","序号标题","01  【章节标题】"),XiumiMaterial("色块标题","带底色标题","▰  【标题文字】"))
    XiumiDock.TEXT -> listOf(XiumiMaterial("正文段落","标准文字段落","在这里输入正文内容。"),XiumiMaterial("引用","引用与出处","“在这里输入引用内容。”\n—— 来源"),XiumiMaterial("分割线","段落分隔","━━━━━━━━━━━━"),XiumiMaterial("注释","小字说明","注：补充说明。"))
@@ -103,7 +130,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    XiumiDock.COMPONENT -> listOf(XiumiMaterial("关注引导","公众号关注提示","关注公众号｜拾万句"),XiumiMaterial("作者信息","作者署名","文 / 拾万句"),XiumiMaterial("二维码","二维码占位","［二维码图片］"))
    XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释"))
    XiumiDock.THEME -> listOf(XiumiMaterial("薄荷绿","清新绿色","mint"),XiumiMaterial("暖阳橙","温暖橙色","orange"),XiumiMaterial("海盐蓝","清爽蓝色","blue"))
-   XiumiDock.FAVORITE -> vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) }
+   XiumiDock.FAVORITE -> (vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) } + importedMaterials).filter { it.name in favoriteMaterials }
   }
  }
  Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4))) {
@@ -130,7 +157,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
    }
    Column(Modifier.width(if(compact) 116.dp else 224.dp).fillMaxHeight().background(Color.White).padding(horizontal=if(compact) 7.dp else 12.dp, vertical=12.dp)) {
-    Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31)); Text(dock.label,fontSize=10.sp,color=accent,modifier=Modifier.padding(top=3.dp,bottom=8.dp))
+    Row(verticalAlignment=Alignment.CenterVertically) { Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31),modifier=Modifier.weight(1f)); Text("导入＋",fontSize=10.sp,color=accent,modifier=Modifier.clickable { importLauncher.launch(arrayOf("text/plain","text/markdown","text/html")) }) }
+    Text(dock.label,fontSize=10.sp,color=accent,modifier=Modifier.padding(top=3.dp,bottom=8.dp))
     OutlinedTextField(search,{search=it},Modifier.fillMaxWidth().heightIn(min=42.dp),singleLine=true,placeholder={Text("搜索",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=11.sp),shape=RoundedCornerShape(7.dp))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
      materials.filter { search.isBlank() || it.name.contains(search) || it.detail.contains(search) }.forEach { material ->
@@ -170,7 +198,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
        }.padding(horizontal=4.dp,vertical=3.dp))
      }
     }
-    Column(Modifier.fillMaxWidth(if(compact) .98f else .88f).widthIn(max=(760f*zoom).dp).padding(vertical=8.dp).background(Color.White, RoundedCornerShape(3.dp)).border(1.dp,Color(0xFFE1E3E5),RoundedCornerShape(3.dp)).padding(if(compact) 12.dp else 28.dp)) {
+    Column(Modifier.fillMaxWidth(if(compact) .98f else .88f).widthIn(max=(760f*zoom).dp).padding(vertical=8.dp).background(canvasBackground, RoundedCornerShape(cornerRadius.dp)).border(borderWidth.dp,Color(0xFFE1E3E5),RoundedCornerShape(cornerRadius.dp)).padding(contentPadding.dp)) {
      if(!preview) {
       Text("文章信息",fontSize=10.sp,color=Color.LightGray)
       OutlinedTextField(title,{title=it;dirty=true},Modifier.fillMaxWidth(),placeholder={Text("请输入文章标题")},textStyle=LocalTextStyle.current.copy(fontSize=21.sp,fontWeight=FontWeight.Bold))
@@ -197,13 +225,13 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
        }
       }
       OutlinedTextField(body,{changeBody(it)},Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp),placeholder={Text("从左侧选择素材添加内容，也可直接输入正文。")},
-       textStyle=LocalTextStyle.current.copy(fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,fontWeight=if(bold) FontWeight.Bold else FontWeight.Normal,
+       textStyle=LocalTextStyle.current.copy(fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,color=foreground,fontWeight=if(bold) FontWeight.Bold else FontWeight.Normal,
         textAlign=when(align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start }),minLines=14)
      } else {
       Text(title.ifBlank { "未命名文章" },fontSize=23.sp,fontWeight=FontWeight.Bold,color=Color(0xFF222222))
       if(subtitle.isNotBlank()) Text(subtitle,fontSize=13.sp,color=Color.Gray,modifier=Modifier.padding(top=8.dp))
       Text("文 / $author",fontSize=11.sp,color=Color.Gray,modifier=Modifier.padding(vertical=12.dp))
-      Text(body.ifBlank { "正文预览将在这里显示。" },fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,color=Color(0xFF333333))
+      Text(body.ifBlank { "正文预览将在这里显示。" },fontSize=fontSize.sp,lineHeight=(fontSize*lineSpace).sp,color=foreground)
      }
      Spacer(Modifier.height(32.dp))
     }
