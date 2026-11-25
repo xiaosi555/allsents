@@ -132,7 +132,8 @@ private fun Text2EditorPanel(
     onCommand: (String, String?) -> Unit,
     onApplyCss: (String, String) -> Unit,
     onApplyColor: (String, Boolean) -> Unit,
-    onRecognize: () -> Unit
+    onRecognize: () -> Unit,
+    onEyedropper: () -> Unit
 ) {
     var textValue by remember { mutableStateOf("") }
     var mainTab by remember { mutableStateOf("字体") }
@@ -149,11 +150,13 @@ private fun Text2EditorPanel(
     var lineSpacing by remember { mutableFloatStateOf(1.6f) }
     var letterSpacing by remember { mutableFloatStateOf(0f) }
     var outlineMode by remember { mutableStateOf("单层") }
-    val colors = listOf("#D9D9D9", "#222222", "#777777", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
+    val colors = listOf("#FF0000", "#000000", "#888888", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
     @Composable fun colorRow() {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("禁用", "取色", "渐变").forEachIndexed { i, label ->
-                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(0xFFF0F0F0)).clickable { if (i == 1) onRecognize() }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(0xFFF0F0F0)).clickable {
+                    when (i) { 0 -> onApplyColor("transparent", styleTab == "背景"); 1 -> onEyedropper(); else -> { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") } }
+                }, contentAlignment = Alignment.Center) {
                     Text(if (i == 0) "／" else if (i == 1) "⌁" else "✦", color = Color(0xFF555555), fontSize = 17.sp)
                 }
             }
@@ -1515,8 +1518,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false, clippingEnabled = false)
                 ) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
-                    Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(if (activePanel == EditorPanel.TEXT2) Color.White else Color(0xFF181818)).navigationBarsPadding()) {
+                    if (activePanel != EditorPanel.TEXT2) Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Text("全部", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
@@ -1657,7 +1660,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 val commandName = if (background) "hiliteColor" else "foreColor"
                                 runJs("restoreSelection();document.execCommand('" + commandName + "',false,'" + color + "');saveSelection();")
                             },
-                            onRecognize = { vm.toast("文本识别：请先选择图片，再使用图片文字识别") }
+                            onRecognize = { vm.toast("文本识别：请先选择图片，再使用图片文字识别") },
+                            onEyedropper = { vm.toast("吸管取色：请先使用下方预设色；屏幕取色能力待接入") }
                         )
                     }
                     EditorPanel.TITLE -> {
