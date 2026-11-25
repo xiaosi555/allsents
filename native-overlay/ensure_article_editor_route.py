@@ -52,13 +52,13 @@ if removed > 1:
     raise SystemExit("Found multiple legacy XiumiArticleEditorScreen wrappers.")
 if "fun XiumiArticleEditorScreen" in editor:
     raise SystemExit("Legacy XiumiArticleEditorScreen alias remains in ArticleEditorScreen.kt.")
-if "醒图 · " not in editor:
-    raise SystemExit("醒图 editor identity label was not applied.")
 # Make the restored editor visibly identify itself as 醒图.
 editor = editor.replace(
     'Text(if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))',
     'Text("醒图 · " + if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))'
 )
+if "醒图 · " not in editor:
+    raise SystemExit("醒图 editor identity label was not applied.")
 EDITOR.write_text(editor, encoding="utf-8")
 
 # Add the camera entry immediately LEFT of Edit; keep the Xiumi palette entry RIGHT of Edit.
