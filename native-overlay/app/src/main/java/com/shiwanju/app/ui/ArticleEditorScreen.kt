@@ -103,7 +103,7 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
 }
 
 private enum class EditorPanel(val label: String) {
-    TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档")
+    TEXT("文字"), IMAGE("图片"), LAYOUT("布局"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档")
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1358,6 +1358,20 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                         Text("本地图片已复制到应用私有目录；网络图片仍依赖原图链接可访问。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))
                     }
+                    EditorPanel.LAYOUT -> {
+                        Text("布局 · 选择版式后直接插入画布", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("双栏布局") { insert("<section style='display:flex;gap:10px;margin:16px 0'><div style='flex:1;min-width:0;padding:12px;background:#f3f7f4;border-radius:6px'>左侧内容</div><div style='flex:1;min-width:0;padding:12px;background:#f3f7f4;border-radius:6px'>右侧内容</div></section>") }
+                            EditorTool("三栏布局") { insert("<section style='display:flex;gap:6px;margin:16px 0'><div style='flex:1;min-width:0;padding:9px 4px;background:#f3f7f4;text-align:center'>第一栏</div><div style='flex:1;min-width:0;padding:9px 4px;background:#f3f7f4;text-align:center'>第二栏</div><div style='flex:1;min-width:0;padding:9px 4px;background:#f3f7f4;text-align:center'>第三栏</div></section>") }
+                            EditorTool("图文左右排") { insert("<section style='display:flex;align-items:center;gap:12px;margin:18px 0'><div style='width:34%;flex-shrink:0'><img src='https://placehold.co/480x480?text=Image' style='display:block;width:100%;height:auto;border-radius:6px'></div><div style='flex:1;min-width:0'><p style='margin:0 0 6px;font-weight:700'>内容标题</p><p style='margin:0;color:#777;font-size:13px;line-height:1.7'>在这里填写图文介绍内容。</p></div></section>") }
+                            EditorTool("图文上下排") { insert("<section style='margin:18px 0'><img src='https://placehold.co/900x500?text=Image' style='display:block;width:100%;height:auto;border-radius:6px'><p style='margin:9px 0 4px;font-weight:700'>图片标题</p><p style='margin:0;color:#777;font-size:13px'>在这里填写图片说明。</p></section>") }
+                            EditorTool("左右分割") { insert("<table style='width:100%;table-layout:fixed;border-collapse:collapse;margin:16px 0'><tr><td style='width:50%;vertical-align:top;padding:10px;background:#f5f7f5'>左侧内容</td><td style='width:50%;vertical-align:top;padding:10px'>右侧内容</td></tr></table>") }
+                            EditorTool("居中内容") { insert("<section style='margin:20px auto;text-align:center;max-width:92%'><p style='margin:0;font-size:20px;font-weight:700'>居中标题</p><p style='margin:8px 0 0;color:#888;font-size:13px'>补充说明文字</p></section>") }
+                            EditorTool("留白区块") { insert("<section style='height:32px;margin:0;padding:0'><p><br></p></section>") }
+                            EditorTool("细分割线") { insert("<hr style='height:0;border:0;border-top:1px solid #e5e9e6;margin:22px 0'>") }
+                            EditorTool("虚线分割") { insert("<hr style='height:0;border:0;border-top:1px dashed #cbd5ce;margin:22px 0'>") }
+                        }
+                    }
                     EditorPanel.COMPONENT -> {
                         Text("公众号排版组件 · 插入后可继续编辑", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1385,6 +1399,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("表格删列") { runJs("removeTableColumn()") }
                             }
                         }
+                    }
+                    EditorPanel.SVG -> {
+                        Text("SVG 与交互组件 · 插入后可在画布中继续编辑", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("SVG 呼吸圆点") { insert("<section style='margin:18px 0;text-align:center'><svg xmlns='http://www.w3.org/2000/svg' width='100%' height='72' viewBox='0 0 320 72' role='img'><circle cx='160' cy='36' r='12' fill='#159765'><animate attributeName='r' values='9;17;9' dur='1.8s' repeatCount='indefinite'/><animate attributeName='opacity' values='1;.45;1' dur='1.8s' repeatCount='indefinite'/></circle></svg><p style='margin:0;color:#888;font-size:12px'>动态呼吸效果</p></section>") }
+                            EditorTool("SVG 流动线条") { insert("<section style='margin:18px 0'><svg xmlns='http://www.w3.org/2000/svg' width='100%' height='30' viewBox='0 0 320 30'><path d='M4 15 H316' stroke='#dce8e0' stroke-width='4' fill='none'/><path d='M4 15 H316' stroke='#159765' stroke-width='4' stroke-dasharray='40 280' fill='none'><animate attributeName='stroke-dashoffset' from='0' to='-320' dur='3s' repeatCount='indefinite'/></path></svg></section>") }
+                            EditorTool("SVG 跳动标题") { insert("<section style='margin:18px 0;text-align:center'><svg xmlns='http://www.w3.org/2000/svg' width='100%' height='54' viewBox='0 0 320 54'><text x='160' y='37' text-anchor='middle' font-size='24' font-weight='700' fill='#159765'>拾万句<animate attributeName='opacity' values='1;.55;1' dur='2s' repeatCount='indefinite'/></text></svg></section>") }
+                            EditorTool("点击展开内容") { insert("<details style='margin:16px 0;padding:13px 15px;background:#f3f7f4;border-radius:7px'><summary style='color:#168653;font-weight:700;cursor:pointer'>点击展开 / 收起</summary><p style='margin:10px 0 0;line-height:1.8'>这里填写点击后显示的补充内容。</p></details>") }
+                            EditorTool("横向滑动卡片") { insert("<section style='display:flex;gap:10px;overflow-x:auto;white-space:normal;margin:16px 0;padding-bottom:8px'><div style='flex:0 0 78%;padding:16px;background:#f0f7f2;border-radius:8px'>卡片 01<br><span style='color:#888;font-size:12px'>左右滑动查看更多</span></div><div style='flex:0 0 78%;padding:16px;background:#f7f4ed;border-radius:8px'>卡片 02<br><span style='color:#888;font-size:12px'>第二张内容</span></div><div style='flex:0 0 78%;padding:16px;background:#f1f4fa;border-radius:8px'>卡片 03<br><span style='color:#888;font-size:12px'>第三张内容</span></div></section>") }
+                            EditorTool("序列步骤") { insert("<section style='margin:18px 0;padding:14px;background:#f5f8f6;border-radius:8px'><p style='margin:0 0 10px;color:#159765;font-weight:700'>01　第一步</p><p style='margin:0 0 14px'>填写第一步说明</p><p style='margin:0 0 10px;color:#159765;font-weight:700'>02　第二步</p><p style='margin:0'>填写第二步说明</p></section>") }
+                        }
+                        Text("说明：SVG 动画依赖阅读端对 SVG/SMIL 的支持；交互组件以 HTML 原生交互为主，发布前需在公众号预览环境验证。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp))
                     }
                     EditorPanel.STYLE -> {
                         Text("图文收藏 · 在图文模板卡片上点 ☆ 收藏后统一管理", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
@@ -2284,6 +2310,7 @@ private fun editorToolGlyph(label: String): String {
         key.contains("文字") || key.contains("字体") -> "Aa"
         key.contains("图片") || key.contains("相册") || key.contains("封面") -> "▧"
         key.contains("组件") || key.contains("布局") || key.contains("分栏") -> "▦"
+        key.equals("SVG", true) || key.contains("动画") -> "✧"
         key.contains("图层") || key.contains("层级") -> "▤"
         key.contains("模板") -> "▩"
         key.contains("收藏") || key.contains("喜欢") -> "☆"
