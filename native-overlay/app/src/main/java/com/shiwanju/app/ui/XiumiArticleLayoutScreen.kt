@@ -195,7 +195,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    Column(Modifier.weight(1f)) { Text("秀米式图文排版",fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
    TextButton(onClick={showArticlePicker=true}) { Text("文章") }
    TextButton(onClick={
-    currentArticle=null; id=vm.newId(); title=""; subtitle=""; author="拾万句"; body=""
+    currentArticle=null; id=vm.newId(); title=""; subtitle=""; author="拾万句"; body=""; blocks=emptyList(); selectedBlockId=""; selectedSnippet=""
     undo=listOf(""); redo=emptyList(); dirty=true; preview=false
    }) { Text("新建") }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
@@ -322,18 +322,18 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
    if(properties && !compact) Column(Modifier.width(if(LocalConfiguration.current.screenWidthDp < 900) 184.dp else 224.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(horizontal=14.dp, vertical=14.dp)) {
     Text("属性面板",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31)); Text("当前对象 · $selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=10.dp)); Divider()
-    Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
-    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
-    FilterChip(bold,{bold=!bold},{Text("粗体",fontSize=10.sp)})
+    Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f)
+    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
+    FilterChip(bold,{bold=!bold;updateSelectedBlock { b -> b.copy(bold=bold) }},{Text("粗体",fontSize=10.sp)})
     Text("对齐方式",fontSize=11.sp,modifier=Modifier.padding(top=10.dp))
-    listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option }.padding(vertical=6.dp)) }
+    listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option;updateSelectedBlock { b -> b.copy(align=option) } }.padding(vertical=6.dp)) }
     Text("文字颜色",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
-    Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF222222),Color(0xFF666666),Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { foreground=c }) } }
+    Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF222222),Color(0xFF666666),Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { foreground=c;updateSelectedBlock { b -> b.copy(color=c.value.toLong()) } }) } }
     Text("画布背景",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
     Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color.White,Color(0xFFFFFBF2),Color(0xFFF4F7F6),Color(0xFFF3F3F3)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(5.dp)).background(c).border(1.dp,Color.LightGray,RoundedCornerShape(5.dp)).clickable { canvasBackground=c }) } }
-    Text("内边距 ${contentPadding.toInt()} dp",fontSize=11.sp,modifier=Modifier.padding(top=8.dp)); Slider(contentPadding,{contentPadding=it},valueRange=12f..40f)
-    Text("边框 ${borderWidth.toInt()} dp",fontSize=11.sp); Slider(borderWidth,{borderWidth=it},valueRange=0f..3f)
-    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=11.sp); Slider(cornerRadius,{cornerRadius=it},valueRange=0f..18f)
+    Text("内边距 ${contentPadding.toInt()} dp",fontSize=11.sp,modifier=Modifier.padding(top=8.dp)); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f)
+    Text("边框 ${borderWidth.toInt()} dp",fontSize=11.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f)
+    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=11.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f)
    }
   }
   if(showArticlePicker) AlertDialog(
@@ -344,7 +344,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      vm.data.articles.sortedByDescending { it.updatedAt }.forEach { article ->
       Column(Modifier.fillMaxWidth().clickable {
        currentArticle=article; id=article.id; title=article.title; subtitle=article.subtitle; author=article.author
-       body=article.html; dirty=false; undo=listOf(""); redo=emptyList(); selectedSnippet=""; selected="正文"; showArticlePicker=false; preview=false
+       body=article.html; blocks=readXiumiBlocks(context,article.id,article.html,vm::newId); dirty=false; undo=listOf(""); redo=emptyList(); selectedSnippet=""; selectedBlockId=""; selected="正文"; showArticlePicker=false; preview=false
       }.padding(vertical=10.dp)) {
        Text(article.title.ifBlank { "未命名文章" },fontSize=13.sp,fontWeight=FontWeight.SemiBold)
        Text(article.updatedAt,fontSize=10.sp,color=Color.Gray)
