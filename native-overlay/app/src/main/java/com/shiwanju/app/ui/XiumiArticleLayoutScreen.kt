@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.shiwanju.app.data.ArticleDocument
@@ -31,6 +32,7 @@ private data class XiumiMaterial(val name:String,val detail:String,val value:Str
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
+ val compact = LocalConfiguration.current.screenWidthDp < 600
  val initial=remember { vm.data.articles.maxByOrNull { it.updatedAt } }
  var id by remember { mutableStateOf(initial?.id ?: vm.newId()) }
  var title by remember { mutableStateOf(initial?.title.orEmpty()) }
@@ -41,7 +43,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var selected by remember { mutableStateOf("正文") }
  var search by remember { mutableStateOf("") }
  var preview by remember { mutableStateOf(false) }
- var properties by remember { mutableStateOf(true) }
+ var properties by remember { mutableStateOf(!compact) }
  var dirty by remember { mutableStateOf(false) }
  var accent by remember { mutableStateOf(Color(0xFF16A36A)) }
  var fontSize by remember { mutableFloatStateOf(16f) }
@@ -84,7 +86,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    TextButton(onClick={properties=!properties}) { Text("属性") }
   }
   Row(Modifier.weight(1f).fillMaxWidth()) {
-   Column(Modifier.width(60.dp).fillMaxHeight().background(Color(0xFFFAFAFA)).verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally) {
+   Column(Modifier.width(if(compact) 48.dp else 60.dp).fillMaxHeight().background(Color(0xFFFAFAFA)).verticalScroll(rememberScrollState()),horizontalAlignment=Alignment.CenterHorizontally) {
     XiumiDock.entries.forEach { item ->
      val active=dock==item
      Column(Modifier.fillMaxWidth().padding(horizontal=4.dp,vertical=2.dp).clip(RoundedCornerShape(8.dp)).background(if(active) accent.copy(alpha=.12f) else Color.Transparent)
@@ -93,7 +95,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      }
     }
    }
-   Column(Modifier.width(168.dp).fillMaxHeight().background(Color.White).padding(9.dp)) {
+   Column(Modifier.width(if(compact) 128.dp else 168.dp).fillMaxHeight().background(Color.White).padding(9.dp)) {
     Text(dock.label,fontSize=15.sp,fontWeight=FontWeight.Bold)
     OutlinedTextField(search,{search=it},Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("搜索素材",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=12.sp))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
@@ -135,7 +137,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      Spacer(Modifier.height(32.dp))
     }
    }
-   if(properties) Column(Modifier.width(148.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(9.dp)) {
+   if(properties && !compact) Column(Modifier.width(148.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(9.dp)) {
     Text("属性设置",fontSize=14.sp,fontWeight=FontWeight.Bold); Text("选中：$selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=8.dp)); Divider()
     Text("字号 \${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
     Text("行间距 \${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
@@ -144,6 +146,16 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option }.padding(vertical=6.dp)) }
     Text("主题色",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
     Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
+   }
+  }
+  if(properties && compact) ModalBottomSheet(onDismissRequest={properties=false}) {
+   Column(Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=10.dp)) {
+    Text("属性设置 · $selected",fontSize=16.sp,fontWeight=FontWeight.Bold)
+    Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
+    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=12.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
+    FilterChip(bold,{bold=!bold},{Text("粗体")})
+    Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) { listOf("左对齐","居中","右对齐").forEach { option -> Text(option,color=if(align==option) accent else Color.Gray,modifier=Modifier.clickable { align=option }.padding(vertical=8.dp)) } }
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
    }
   }
   Row(Modifier.fillMaxWidth().height(52.dp).background(Color.White),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
