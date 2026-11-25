@@ -35,4 +35,9 @@ if "enableEdgeToEdge()" not in s:
 if "WindowCompat.setDecorFitsSystemWindows(window, true)" in s:
     raise SystemExit("Conflicting decorFitsSystemWindows(true) remains")
 p.write_text(s, encoding="utf-8")
-print("Edge-to-edge preserved; status-bar icon contrast follows active theme.")
+final = p.read_text(encoding="utf-8")
+if "isAppearanceLightStatusBars" not in final or "SideEffect {" not in final:
+    raise SystemExit("Final MainActivity is missing theme-aware status-bar icon contrast.")
+if "WindowCompat.setDecorFitsSystemWindows(window, true)" in final:
+    raise SystemExit("Conflicting decorFitsSystemWindows(true) remains in final MainActivity.")
+print("Verified final MainActivity: edge-to-edge enabled and status-bar icon contrast follows active theme.")
