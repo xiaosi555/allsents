@@ -14,14 +14,31 @@ s = EDITOR.read_text(encoding="utf-8")
 # The primary dock is already rendered outside the Popup. Remove the accidental
 # second copy from the Popup so the sheet overlays that dock without containing it.
 dock_marker = "                // Fixed primary navigation dock, as a sibling of the expandable sheet."
-if s.count(dock_marker) != 1:
-    raise SystemExit(f"Expected exactly one duplicate in-popup dock marker, found {s.count(dock_marker)}")
-start = s.index(dock_marker)
 handle_marker = "                    Box(\n                        Modifier.fillMaxWidth().height(26.dp)"
-end = s.find(handle_marker, start)
-if end < 0:
-    raise SystemExit("Could not locate the sheet's bottom-center drag handle")
-s = s[:start] + s[end:]
+dock_count = s.count(dock_marker)
+if dock_count == 1:
+    start = s.index(dock_marker)
+    end = s.find(handle_marker, start)
+    if end < 0:
+        raise SystemExit("Could not locate the sheet's bottom-center drag handle")
+    s = s[:start] + s[end:]
+elif dock_count == 0:
+    import re
+    dock_heights = [m.start() for m in re.finditer(r"height\\(50\\.dp\\)", s)]
+    if len(dock_heights) == 2:
+        second = dock_heights[1]
+        row_start = s.rfind("Row(", 0, second)
+        start = s.rfind("\n", 0, row_start) + 1
+        end = s.find(handle_marker, second)
+        if row_start < 0 or end < 0:
+            raise SystemExit("Could not safely locate the duplicate primary dock without its comment")
+        s = s[:start] + s[end:]
+    elif len(dock_heights) == 1:
+        pass  # The extracted source already has one independent primary dock.
+    else:
+        raise SystemExit(f"Unexpected dock structure without marker: {len(dock_heights)} height anchors")
+else:
+    raise SystemExit(f"Expected at most one duplicate dock marker, found {dock_count}")
 
 # Preserve the established 100dp collapsed/initial height whenever a different
 # primary tool is opened. 350dp remains only the maximum expanded height.
