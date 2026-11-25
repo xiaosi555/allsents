@@ -7,7 +7,12 @@ java = root / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app"
 def patch(rel, pairs):
     p = java / rel
     s = p.read_text(encoding="utf-8")
-    for old, new, label in pairs:
+    for item in pairs:
+        if len(item) == 2:
+            old, new = item
+            label = old[:80].replace(chr(10), ' ')
+        else:
+            old, new, label = item
         n = s.count(old)
         if n != 1:
             raise SystemExit(f"{rel}: {label}: expected one anchor, found {n}")
@@ -226,26 +231,84 @@ patch("ui/ArticleEditorScreen.kt", [
 """    val templateLibraryItems = vm.data.styles.filter { style ->
         style.origin == templateLibraryOrigin && when (templateLibraryTab) {""", "official/user filtering"),
 ("""                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        EditorTool("整篇模板", templateLibraryTab == "full")""",
-"""                    Text(if (templateLibraryOrigin == "official") "官方模板库" else "我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        EditorTool("整篇模板", templateLibraryTab == "full") { templateLibraryTab = "full"; templateTagFilter = "" }
+                        EditorTool("局部组件", templateLibraryTab == "component") { templateLibraryTab = "component"; templateTagFilter = "" }
+                        EditorTool("组合组件", templateLibraryTab == "combination") { templateLibraryTab = "combination"; templateTagFilter = "" }
+                    }""",
+"""                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("官方模板", templateLibraryOrigin == "official") { templateLibraryOrigin = "official"; templateLibraryTab = "component"; templateTagFilter = "" }
                         EditorTool("我的模板", templateLibraryOrigin == "mine") { templateLibraryOrigin = "mine"; templateLibraryTab = "full"; templateTagFilter = "" }
                     }
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("整篇模板", templateLibraryTab == "full")""", "official/user tabs"),
 ("""                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)))""",
 """                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)).put("origin", style.origin))""", "template package origin export"),
 ("""                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = idMap[row.optString("thumbnail")] ?: row.optString("thumbnail").take(200), tags = safeTags""",
 """                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = idMap[row.optString("thumbnail")] ?: row.optString("thumbnail").take(200), tags = safeTags, origin = "user" """, "imported templates stay user-owned"),
-("""                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+("""                            FlowRow(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
                             }""",
-"""                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+"""                            FlowRow(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
                             }
                             if (categoryStyles.isEmpty()) Text("该分类暂时没有组件，可在「我的 - 样式」中添加", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))""", "empty category state")
 ])
 
 print("Style category IDs, legacy migration, official/user separation and category ordering applied.")
+
+
+# Final editor-tool wiring validation. This runs after all editor category patches.
+def verify_editor_tool_callbacks():
+    import re
+    path = java / "ui/ArticleEditorScreen.kt"
+    source = path.read_text(encoding="utf-8")
+    signature = re.search(r"private fun EditorTool\\(label: String, selected: Boolean = false, onClick: \\(\\) -> Unit\\)", source)
+    if not signature:
+        raise SystemExit("EditorTool definition/signature is missing or changed unexpectedly")
+    calls = list(re.finditer(r"\\bEditorTool\\s*\\(", source))
+    missing = []
+    for match in calls:
+        start = match.end()
+        depth = 1
+        quote = None
+        escaped = False
+        i = start
+        while i < len(source) and depth:
+            ch = source[i]
+            if quote:
+                if escaped:
+                    escaped = False
+                elif ch == "\\\\":
+                    escaped = True
+                elif ch == quote:
+                    quote = None
+            else:
+                if ch in ("\\\\"'", '"'):
+                    quote = ch
+                elif ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+            i += 1
+        if depth:
+            missing.append((source.count("\\n", 0, match.start()) + 1, "unclosed EditorTool call"))
+            continue
+        args = source[start:i-1]
+        tail = i
+        while tail < len(source) and source[tail].isspace():
+            tail += 1
+        if "onClick" not in args and not source.startswith("{", tail):
+            missing.append((source.count("\\n", 0, match.start()) + 1, "missing click callback"))
+    if missing:
+        raise SystemExit("EditorTool callback validation failed: " + repr(missing))
+    print(f"EditorTool callback validation passed: {len(calls)} actionable tool calls")
+    lines = source.splitlines()
+    for index, line in enumerate(lines):
+        if "private fun EditorTool(" in line:
+            print("EditorTool signature:", line.strip())
+        if "排序：按名称" in line:
+            print(f"Verified template sort action at line {index + 1}: {line.strip()}")
+
+verify_editor_tool_callbacks()
