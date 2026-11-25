@@ -40,9 +40,9 @@ s = replace_once(
 
 s = replace_once(
     s,
-    '''                    EditorTool(panel.label, activePanel == panel) { activePanel = panel }''',
-    '''                    EditorTool("${panel.icon}  ${panel.label}", activePanel == panel) { activePanel = panel }''',
-    "show category identifiers without changing category actions"
+    '''                    EditorTool(panel.label, activePanel == panel) { activePanel = panel; floatingMenu = "" }''',
+    '''                    EditorTool("${panel.icon}  ${panel.label}", activePanel == panel) { activePanel = panel; floatingMenu = "" }''',
+    "show category identifiers in the relocated top navigation without changing category actions"
 )
 
 s = replace_once(
@@ -80,8 +80,8 @@ s = replace_once(
 # Stage B already changes the visibility guard; fail loudly if the foundation is not applied.
 if "if (!previewMode) {" not in s:
     raise SystemExit("Stage C2 requires the Stage B persistent bottom dock patch")
-if "EditorPanel.values().forEach" not in s:
-    raise SystemExit("Stage C2 category dock anchor missing")
+if "EditorPanel.values().filter { it != EditorPanel.CANVAS }.forEach" not in s:
+    raise SystemExit("Stage C2 top-level category navigation anchor missing")
 
 required = [
     'private enum class EditorPanel(val label: String, val icon: String)',
@@ -89,6 +89,7 @@ required = [
     'val selectionTopDp = selectionState.y.dp',
     'val selectionHeightDp = selectionState.height.dp',
     'EditorTool("${panel.icon}  ${panel.label}"',
+    'EditorPanel.values().filter { it != EditorPanel.CANVAS }.forEach',
     'if (!previewMode) {'
 ]
 missing = [item for item in required if item not in s]
