@@ -1844,15 +1844,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                             TextButton(onClick = { revisionPreview = revision }) { Text("预览", color = ink) }
                             TextButton(onClick = {
-                                vm.restoreArticleRevision(revision)
-                                title = revision.title; html = revision.html
-                                subtitle = revision.subtitle; summary = revision.summary; author = revision.author
-                                coverAssetId = revision.coverAssetId; category = revision.category
-                                tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
-                                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});setEditable(true);", null)
-                                showRevisionList = false
-                                pendingSave++
-                                vm.toast("已恢复历史版本（含文章信息）")
+                                if (vm.restoreArticleRevision(revision)) {
+                                    title = revision.title; html = revision.html
+                                    subtitle = revision.subtitle; summary = revision.summary; author = revision.author
+                                    coverAssetId = revision.coverAssetId; category = revision.category
+                                    tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
+                                    editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});setEditable(true);", null)
+                                    showRevisionList = false
+                                    pendingSave++
+                                    vm.toast("已恢复历史版本（恢复前内容已另存为快照）")
+                                }
                             }) { Text("恢复", color = accent) }
                         }
                         HorizontalDivider(color = Color(0xFFE9ECE9))
@@ -1882,14 +1883,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { revisionPreview = null }) { Text("关闭", color = Color.Gray) }
                         TextButton(onClick = {
-                            vm.restoreArticleRevision(revision)
-                            title = revision.title; html = revision.html
-                            subtitle = revision.subtitle; summary = revision.summary; author = revision.author
-                            coverAssetId = revision.coverAssetId; category = revision.category
-                            tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
-                            editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});setEditable(true);", null)
-                            showRevisionList = false; revisionPreview = null; pendingSave++
-                            vm.toast("已恢复历史版本（含文章信息）")
+                            if (vm.restoreArticleRevision(revision)) {
+                                title = revision.title; html = revision.html
+                                subtitle = revision.subtitle; summary = revision.summary; author = revision.author
+                                coverAssetId = revision.coverAssetId; category = revision.category
+                                tagsText = revision.tags.joinToString(", "); articleStatus = revision.status
+                                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(revision.html)});setEditable(true);", null)
+                                showRevisionList = false; revisionPreview = null; pendingSave++
+                                vm.toast("已恢复历史版本（恢复前内容已另存为快照）")
+                            }
                         }) { Text("恢复此版本", color = accent) }
                     }
                 }
