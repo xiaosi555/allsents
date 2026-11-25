@@ -37,6 +37,41 @@ private enum class XiumiDock(val label:String,val icon:String) {
  CARD("卡片","▤"), SVG("SVG","◇"), COMPONENT("组件","⊞"), TEMPLATE("模板","▣"), FAVORITE("收藏","♡")
 }
 private data class XiumiMaterial(val name:String,val detail:String,val value:String)
+private data class XiumiBlock(
+ val id:String,val type:String,val content:String,
+ val fontSize:Float=16f,val lineSpace:Float=1.8f,val bold:Boolean=false,val align:String="左对齐",
+ val color:Long=0xFF333333,val padding:Float=8f,val border:Float=0f,val radius:Float=0f
+)
+private fun classifyXiumiBlock(value:String):String = when {
+ value.trimStart().startsWith("<img") || value.startsWith("![") || value.startsWith("［图片") -> "图片"
+ value.contains("卡片") || value.startsWith("▧") || value.startsWith("▢") -> "卡片"
+ value.contains("［点击展开］") || value.contains("［卡片") -> "SVG"
+ value.contains("关注公众号") || value.contains("文 /") -> "组件"
+ value.startsWith("【") || value.startsWith("#") || value.startsWith("01 ") -> "标题"
+ else -> "正文"
+}
+private fun readXiumiBlocks(context:android.content.Context,articleId:String,body:String,newId:()->String):List<XiumiBlock> {
+ val raw=context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE).getString("blocks_$articleId",null)
+ if(!raw.isNullOrBlank()) runCatching {
+  val array=JSONArray(raw)
+  return (0 until array.length()).mapNotNull { i -> array.optJSONObject(i)?.let { o ->
+   XiumiBlock(o.optString("id",newId()),o.optString("type","正文"),o.optString("content"),
+    o.optDouble("fontSize",16.0).toFloat(),o.optDouble("lineSpace",1.8).toFloat(),o.optBoolean("bold"),
+    o.optString("align","左对齐"),o.optLong("color",0xFF333333),o.optDouble("padding",8.0).toFloat(),
+    o.optDouble("border",0.0).toFloat(),o.optDouble("radius",0.0).toFloat())
+  } }
+ }.onFailure { android.util.Log.w("XiumiEditor","读取组件数据失败",it) }
+ return body.split("\n\n").filter { it.isNotBlank() }.map { XiumiBlock(newId(),classifyXiumiBlock(it),it) }
+}
+private fun writeXiumiBlocks(context:android.content.Context,articleId:String,blocks:List<XiumiBlock>) {
+ val array=JSONArray()
+ blocks.forEach { b -> array.put(JSONObject().put("id",b.id).put("type",b.type).put("content",b.content)
+  .put("fontSize",b.fontSize.toDouble()).put("lineSpace",b.lineSpace.toDouble()).put("bold",b.bold)
+  .put("align",b.align).put("color",b.color).put("padding",b.padding.toDouble())
+  .put("border",b.border.toDouble()).put("radius",b.radius.toDouble())) }
+ context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE).edit().putString("blocks_$articleId",array.toString()).apply()
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
