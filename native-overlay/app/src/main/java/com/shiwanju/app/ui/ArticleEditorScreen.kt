@@ -63,6 +63,29 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private fun captureTemplateThumbnail(view: WebView, context: Context, template: StyleModule, vm: AppViewModel) {
+    if (template.thumbnail.isNotBlank() || view.width <= 0 || view.height <= 0) return
+    runCatching {
+        val source = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        view.draw(android.graphics.Canvas(source))
+        val targetWidth = 320
+        val targetHeight = (source.height * targetWidth.toFloat() / source.width).toInt().coerceIn(1, 640)
+        val scaled = Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
+        if (scaled !== source) source.recycle()
+        val mediaDir = File(context.filesDir, "article_media")
+        if (!mediaDir.exists() && !mediaDir.mkdirs()) error("无法创建素材目录")
+        val id = vm.newId()
+        val file = File(mediaDir, "template_preview_$id.jpg")
+        file.outputStream().use { output ->
+            if (!scaled.compress(Bitmap.CompressFormat.JPEG, 68, output)) error("缩略图压缩失败")
+        }
+        if (!scaled.isRecycled) scaled.recycle()
+        val asset = MediaAsset(id, "template_preview_$id.jpg", "image/jpeg", "article_media/\${file.name}", file.length(), System.currentTimeMillis().toString())
+        vm.saveMediaAsset(asset)
+        vm.saveStyle(template.copy(thumbnail = id))
+    }.onFailure { android.util.Log.w("ArticleEditor", "模板缩略图生成失败", it) }
+}
+
 private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
@@ -414,7 +437,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         id = vm.newId(), name = row.optString("name", "导入样式").take(100).ifBlank { "导入样式" },
                         category = row.optString("category", "导入模板").take(80).ifBlank { "导入模板" },
                         html = sanitizeArticleHtml(htmlValue), updatedAt = System.currentTimeMillis().toString(),
-                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = row.optString("thumbnail").take(200), tags = safeTags
+                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = idMap[row.optString("thumbnail")] ?: row.optString("thumbnail").take(200), tags = safeTags
                     )
                 }
                 if (importedStyles.isEmpty()) error("模板包中没有可导入的样式")
@@ -1112,7 +1135,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                             val assets = org.json.JSONArray()
                             var totalBytes = 0L
-                            vm.data.mediaAssets.filter { asset -> vm.data.styles.any { it.html.contains(asset.id) } }.forEach { asset ->
+                            vm.data.mediaAssets.filter { asset -> vm.data.styles.any { it.html.contains(asset.id) || it.thumbnail == asset.id } }.forEach { asset ->
                                 val root = File(context.filesDir, "article_media").canonicalFile
                                 val file = File(context.filesDir, asset.relativePath).canonicalFile
                                 if (file.path.startsWith(root.path + File.separator) && file.isFile) {
@@ -1162,6 +1185,26 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                                 Text(if (template.isFavorite) "★" else "☆", color = if (template.isFavorite) accent else Color.Gray, modifier = Modifier.clickable { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) })
                                             }
                                             Text(template.name, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            val thumbnailAsset = vm.data.mediaAssets.firstOrNull { it.id == template.thumbnail }
+                                            val thumbnailBitmap = remember(template.thumbnail, thumbnailAsset?.relativePath) {
+                                                thumbnailAsset?.let { asset ->
+                                                    runCatching {
+                                                        val root = File(context.filesDir, "article_media").canonicalFile
+                                                        val file = File(context.filesDir, asset.relativePath).canonicalFile
+                                                        if (file.path.startsWith(root.path + File.separator) && file.isFile) decodeArticleAssetPreview(file) else null
+                                                    }.getOrNull()
+                                                }
+                                            }
+                                            if (thumbnailBitmap != null) {
+                                                Image(thumbnailBitmap.asImageBitmap(), contentDescription = "\${template.name}预览缩略图",
+                                                    modifier = Modifier.fillMaxWidth().height(92.dp).clip(RoundedCornerShape(5.dp)), contentScale = ContentScale.Crop)
+                                            } else {
+                                                Surface(modifier = Modifier.fillMaxWidth().height(54.dp), color = Color(0xFFE9F0EB), shape = RoundedCornerShape(5.dp)) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Text("打开预览后自动生成缩略图", color = Color(0xFF829087), fontSize = 9.sp)
+                                                    }
+                                                }
+                                            }
                                             Text(sample, color = Color(0xFF68756D), fontSize = 10.sp, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
                                             if (template.tags.isNotEmpty()) Text(template.tags.take(2).joinToString(" · "), color = Color(0xFF87958C), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -1235,10 +1278,20 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         factory = { ctx -> WebView(ctx).apply {
                             settings.javaScriptEnabled = false
                             settings.domStorageEnabled = false
+                            settings.allowFileAccess = false
+                            settings.allowContentAccess = false
                             setBackgroundColor(android.graphics.Color.WHITE)
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    if (template.thumbnail.isBlank()) view?.postDelayed({ view?.let { captureTemplateThumbnail(it, ctx, template, vm) } }, 350)
+                                }
+                            }
                             loadDataWithBaseURL("https://editor.local/", template.html, "text/html", "UTF-8", null)
                         } },
-                        update = { view -> view.loadDataWithBaseURL("https://editor.local/", template.html, "text/html", "UTF-8", null) }
+                        update = { view ->
+                            if (view.url == null && template.thumbnail.isBlank()) view.loadDataWithBaseURL("https://editor.local/", template.html, "text/html", "UTF-8", null)
+                        }
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { templatePreview = null }) { Text("关闭", color = accent) }
