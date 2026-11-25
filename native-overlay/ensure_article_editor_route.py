@@ -36,12 +36,26 @@ if '"article_editor" -> XiumiArticleEditorScreen(vm)' not in main:
 MAIN.write_text(main, encoding="utf-8")
 
 layout = LAYOUT.read_text(encoding="utf-8")
-if 'contentDescription = "文章编辑器"' not in layout or 'vm.screen = "article_editor"' not in layout:
-    raise SystemExit("Layout page editor icon is missing or does not navigate to article_editor.")
+if 'contentDescription = "文章编辑器"' not in layout:
+    raise SystemExit("Layout page article editor icon is missing.")
+if 'onClick = { vm.screen = "article_editor" }' not in layout:
+    raise SystemExit("Layout page article editor icon has no navigation click handler.")
+if 'ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)' not in layout:
+    raise SystemExit("Layout page Edit action anchor missing.")
+icon_at = layout.find('contentDescription = "文章编辑器"')
+edit_at = layout.find('ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)')
+if icon_at < 0 or edit_at < 0 or icon_at > edit_at:
+    raise SystemExit("Article editor icon must be positioned immediately before the Edit action.")
+if 'vm.screen = "article_editor"' not in layout:
+    raise SystemExit("Layout page article editor route target is missing.")
 
 check = MAIN.read_text(encoding="utf-8")
 if '"article_editor" -> XiumiArticleEditorScreen(vm)' not in check:
     raise SystemExit("MainActivity article_editor route verification failed.")
+if '"layout" -> LayoutScreen(vm)' not in check:
+    raise SystemExit("MainActivity layout return route verification failed.")
 if "import com.shiwanju.app.ui.XiumiArticleEditorScreen" not in check:
     raise SystemExit("MainActivity XiumiArticleEditorScreen import verification failed.")
-print("Article editor navigation verified: layout icon -> vm.screen=article_editor -> XiumiArticleEditorScreen; back -> layout.")
+if 'fun XiumiArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit)' not in EDITOR.read_text(encoding="utf-8"):
+    raise SystemExit("Dedicated Xiumi editor screen entry is missing.")
+print("Article editor navigation verified: visible icon LEFT of Edit -> click -> XiumiArticleEditorScreen -> back to LayoutScreen.")
