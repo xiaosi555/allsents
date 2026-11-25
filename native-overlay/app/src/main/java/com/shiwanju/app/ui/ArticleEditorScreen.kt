@@ -234,8 +234,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
-    val pageBg = AppColors.MyBg
-    val ink = AppColors.MyText
+    val pageBg = AppColors.Bg
+    val ink = AppColors.TextMain
     val accent = AppColors.Theme
     val accentHex = "#%06X".format(Locale.ROOT, 0xFFFFFF and accent.toArgb())
 
@@ -656,7 +656,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(pageBg).systemBarsPadding()) {
         Row(
-            Modifier.fillMaxWidth().height(58.dp).background(AppColors.MyCard)
+            Modifier.fillMaxWidth().height(58.dp).background(AppColors.Panel)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -672,7 +672,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(6.dp).clip(CircleShape).background(if (saved) accent else Color(0xFFE0A23B)))
-                    Text(if (saved) "已保存" else "自动保存中", color = AppColors.MyDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
+                    Text(if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
                 }
             }
             TextButton(onClick = { runJs("undoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("撤销", color = Color(0xFF59625C), fontSize = 11.sp) }
@@ -688,7 +688,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         }
         androidx.compose.foundation.layout.Box(
-            Modifier.fillMaxWidth().height(1.dp).background(AppColors.MyLine)
+            Modifier.fillMaxWidth().height(1.dp).background(AppColors.Line)
         )
 
         if (showArticleList) {
@@ -1085,8 +1085,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 Surface(
                     Modifier.align(Alignment.TopCenter).offset(y = floatingY).fillMaxWidth().padding(horizontal = 12.dp),
-                    shape = RoundedCornerShape(18.dp), color = AppColors.MyCard, shadowElevation = 14.dp,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.MyLine)
+                    shape = RoundedCornerShape(18.dp), color = AppColors.Panel, shadowElevation = 14.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)
                 ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1104,7 +1104,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""
                                 selectionState = EditorSelectionState()
                                 runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
-                            }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = AppColors.MyDim, fontSize = 11.sp) }
+                            }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = AppColors.TextDim, fontSize = 11.sp) }
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (selectedImageHtml.isNotBlank()) {
@@ -1203,8 +1203,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             if (!previewMode && selectedImageHtml.isBlank() && !selectedTextActive) {
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(AppColors.MyCard)
-                    .border(1.dp, AppColors.MyLine, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(AppColors.Panel)
+                    .border(1.dp, AppColors.Line, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .navigationBarsPadding()
             ) {
                 Row(
@@ -1220,7 +1220,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 multiSelectMode -> "多选模式 · 点选多个模块后可组合拖动"
                                 else -> "选择分类，快速调整文章画布"
                             },
-                            color = AppColors.MyDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                            color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
                     TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) {
@@ -2275,13 +2275,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(11.dp))
-            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else if (AppColors.IsDark) AppColors.Field else Color(0xFFF3F5F4))
-            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.42f) else if (AppColors.IsDark) AppColors.MyLine else Color(0xFFE5E7EB), RoundedCornerShape(11.dp))
+            .background(if (selected) AppColors.Theme.copy(alpha = 0.16f) else AppColors.Field)
+            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.46f) else AppColors.Line, RoundedCornerShape(11.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, color = if (selected) AppColors.Theme else AppColors.MyText, fontSize = 11.sp,
+        Text(label, color = if (selected) AppColors.Theme else AppColors.TextMain, fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
     }
 }
