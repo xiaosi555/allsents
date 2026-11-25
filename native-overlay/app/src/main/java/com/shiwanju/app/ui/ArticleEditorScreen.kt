@@ -100,6 +100,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showFindReplace by remember { mutableStateOf(false) }
     var showHtmlImportPreview by remember { mutableStateOf(false) }
     var pendingImportedHtml by remember { mutableStateOf("") }
+    var showArticlePackagePreview by remember { mutableStateOf(false) }
+    var pendingArticlePackageRaw by remember { mutableStateOf("") }
     var findValue by remember { mutableStateOf("") }
     var replaceValue by remember { mutableStateOf("") }
     var compatibilityWarnings by remember { mutableStateOf(emptyList<String>()) }
@@ -366,78 +368,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }.onFailure { vm.toast("文章包导出失败：${it.message ?: "无法写入文件"}") }
     }
     val articleJsonImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            val importedMedia = mutableListOf<MediaAsset>()
-            runCatching {
-                val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
-                if (raw.length > 52 * 1024 * 1024) error("文章包超过 52 MB，暂不支持导入")
-                val pack = JSONObject(raw)
-                if (pack.optString("format") != "shiwanju.article.v1") error("不是拾万句文章包")
-                val sourceHtml = pack.optString("html")
-                if (sourceHtml.length > 12 * 1024 * 1024) error("文章 HTML 内容过大")
-                val now = System.currentTimeMillis().toString()
-                val idMap = mutableMapOf<String, String>()
-                val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
-                if (assets.length() > 40) error("单篇文章最多导入 40 张图片")
-                val mediaDir = File(context.filesDir, "article_media").apply { mkdirs() }
-                var totalBytes = 0L
-                for (index in 0 until assets.length()) {
-                    val item = assets.optJSONObject(index) ?: continue
-                    val oldId = item.optString("id")
-                    if (oldId.isBlank()) error("文章包中存在缺少资源 ID 的图片")
-                    val mime = item.optString("mimeType", "image/jpeg")
-                    if (!mime.startsWith("image/")) error("文章包包含非图片媒体资源")
-                    val encoded = item.optString("base64")
-                    if (encoded.length > 16 * 1024 * 1024) error("单张图片数据过大")
-                    val bytes = Base64.decode(encoded, Base64.DEFAULT)
-                    if (bytes.size > 12 * 1024 * 1024) error("单张图片超过 12 MB")
-                    totalBytes += bytes.size
-                    if (totalBytes > 36L * 1024 * 1024) error("图片总大小超过 36 MB")
-                    var newId = vm.newId() + "_" + index
-                    while (vm.data.mediaAssets.any { it.id == newId } || importedMedia.any { it.id == newId }) newId = vm.newId()
-                    val rawName = item.optString("fileName", "image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
-                    val ext = rawName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").take(8).ifBlank { "jpg" }
-                    val safeName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100).ifBlank { "image_$index.$ext" }
-                    val target = File(mediaDir, "$newId.$ext")
-                    target.writeBytes(bytes)
-                    val asset = MediaAsset(newId, safeName, mime, "article_media/${target.name}", target.length(), now)
-                    vm.saveMediaAsset(asset)
-                    importedMedia.add(asset)
-                    idMap[oldId] = newId
-                }
-                var importedHtml = sanitizeArticleHtml(sourceHtml.ifBlank { "<p><br></p>" })
-                idMap.forEach { (oldId, newId) -> importedHtml = importedHtml.replace("/assets/$oldId", "/assets/$newId") }
-                val tagsJson = pack.optJSONArray("tags") ?: org.json.JSONArray()
-                val importedTags = (0 until minOf(tagsJson.length(), 50)).mapNotNull { tagsJson.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
-                val imported = ArticleDocument(
-                    id = vm.newId(), title = pack.optString("title", "导入文章").take(120).ifBlank { "导入文章" }, html = importedHtml,
-                    createdAt = now, updatedAt = now, subtitle = pack.optString("subtitle").take(200),
-                    summary = pack.optString("summary").take(1000), author = pack.optString("author").take(100),
-                    category = pack.optString("category").take(100), tags = importedTags,
-                    coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty(),
-                    status = if (pack.optString("status") == "complete") "complete" else "draft",
-                    wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length, isFavorite = pack.optBoolean("isFavorite", false)
-                )
-                vm.saveArticle(imported)
-                articleId = imported.id; title = imported.title; html = imported.html
-                subtitle = imported.subtitle; summary = imported.summary; author = imported.author
-                category = imported.category; tagsText = imported.tags.joinToString(", ")
-                articleStatus = imported.status; coverAssetId = imported.coverAssetId
-                previewMode = false; showArticleList = false
-                editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(imported.html)});setEditable(true);", null)
-                pendingSave++
-                vm.toast("文章包已导入")
-            }.onFailure { error ->
-                importedMedia.forEach { asset ->
-                    runCatching { File(context.filesDir, asset.relativePath).canonicalFile.let { file ->
-                        val root = File(context.filesDir, "article_media").canonicalFile
-                        if (file.path.startsWith(root.path + File.separator)) file.delete()
-                    } }
-                    vm.deleteMediaAsset(asset.id)
-                }
-                vm.toast("文章包导入失败：${error.message ?: "文件格式错误"}")
-            }
-        }
+        if (uri != null) runCatching {
+            val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+            if (raw.length > 52 * 1024 * 1024) error("文章包超过 52 MB，暂不支持导入")
+            val pack = JSONObject(raw)
+            if (pack.optString("format") != "shiwanju.article.v1") error("不是拾万句文章包")
+            if (pack.optString("html").length > 12 * 1024 * 1024) error("文章 HTML 内容过大")
+            val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
+            if (assets.length() > 40) error("单篇文章最多导入 40 张图片")
+            pendingArticlePackageRaw = raw
+            showArticlePackagePreview = true
+        }.onFailure { vm.toast("文章包读取失败：${it.message ?: "文件格式错误"}") }
     }
         val imageGroupPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val chosen = uris.take(pendingImageGroupCount)
@@ -1368,6 +1309,119 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }) { Text("全部替换", color = accent) } },
             dismissButton = { TextButton(onClick = { showFindReplace = false }) { Text("取消") } }
         )
+    }
+    if (showArticlePackagePreview) {
+        val packagePreview = runCatching { JSONObject(pendingArticlePackageRaw) }.getOrNull()
+        if (packagePreview != null) {
+            val packageHtml = sanitizeArticleHtml(packagePreview.optString("html").ifBlank { "<p><br></p>" })
+            val packageAssets = packagePreview.optJSONArray("assets") ?: org.json.JSONArray()
+            val packageWordCount = packageHtml.replace(Regex("<[^>]*>"), "").length
+            Dialog(onDismissRequest = { showArticlePackagePreview = false; pendingArticlePackageRaw = "" }) {
+                Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("文章包导入预览", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text(packagePreview.optString("title").ifBlank { "未命名文章" }, color = ink, fontSize = 18.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            listOf(packagePreview.optString("author"), packagePreview.optString("category"), if (packagePreview.optString("status") == "complete") "已完成" else "草稿")
+                                .filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "未设置作者和分类" },
+                            color = Color.Gray, fontSize = 11.sp
+                        )
+                        Text("正文约 $packageWordCount 字 · 引用图片 ${packageAssets.length()} 张 · 将作为新文章导入，不会覆盖现有文章", color = accent, fontSize = 11.sp)
+                        packagePreview.optString("summary").takeIf { it.isNotBlank() }?.let {
+                            Text(it, color = Color.Gray, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        }
+                        AndroidView(
+                            modifier = Modifier.fillMaxWidth().height(300.dp),
+                            factory = { ctx -> WebView(ctx).apply {
+                                settings.javaScriptEnabled = false
+                                settings.domStorageEnabled = false
+                                setBackgroundColor(android.graphics.Color.WHITE)
+                                loadDataWithBaseURL("https://editor.local/", packageHtml, "text/html", "UTF-8", null)
+                            } },
+                            update = { view -> view.loadDataWithBaseURL("https://editor.local/", packageHtml, "text/html", "UTF-8", null) }
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { showArticlePackagePreview = false; pendingArticlePackageRaw = "" }) {
+                                Text("取消", color = Color.Gray)
+                            }
+                            TextButton(onClick = {
+                                val raw = pendingArticlePackageRaw
+                                val importedMedia = mutableListOf<MediaAsset>()
+                                runCatching {
+                                    val pack = JSONObject(raw)
+                                    val sourceHtml = pack.optString("html")
+                                    if (sourceHtml.length > 12 * 1024 * 1024) error("文章 HTML 内容过大")
+                                    val now = System.currentTimeMillis().toString()
+                                    val idMap = mutableMapOf<String, String>()
+                                    val assets = pack.optJSONArray("assets") ?: org.json.JSONArray()
+                                    if (assets.length() > 40) error("单篇文章最多导入 40 张图片")
+                                    val mediaDir = File(context.filesDir, "article_media").apply { mkdirs() }
+                                    var totalBytes = 0L
+                                    for (index in 0 until assets.length()) {
+                                        val item = assets.optJSONObject(index) ?: continue
+                                        val oldId = item.optString("id")
+                                        if (oldId.isBlank()) error("文章包中存在缺少资源 ID 的图片")
+                                        val mime = item.optString("mimeType", "image/jpeg")
+                                        if (!mime.startsWith("image/")) error("文章包包含非图片媒体资源")
+                                        val encoded = item.optString("base64")
+                                        if (encoded.length > 16 * 1024 * 1024) error("单张图片数据过大")
+                                        val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                                        if (bytes.size > 12 * 1024 * 1024) error("单张图片超过 12 MB")
+                                        totalBytes += bytes.size
+                                        if (totalBytes > 36L * 1024 * 1024) error("图片总大小超过 36 MB")
+                                        var newId = vm.newId() + "_" + index
+                                        while (vm.data.mediaAssets.any { it.id == newId } || importedMedia.any { it.id == newId }) newId = vm.newId()
+                                        val rawName = item.optString("fileName", "image_$index.jpg").substringAfterLast('/').substringAfterLast('\\')
+                                        val ext = rawName.substringAfterLast('.', "jpg").replace(Regex("[^A-Za-z0-9]"), "").take(8).ifBlank { "jpg" }
+                                        val safeName = rawName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(100).ifBlank { "image_$index.$ext" }
+                                        val target = File(mediaDir, "$newId.$ext")
+                                        target.writeBytes(bytes)
+                                        val asset = MediaAsset(newId, safeName, mime, "article_media/${target.name}", target.length(), now)
+                                        vm.saveMediaAsset(asset)
+                                        importedMedia.add(asset)
+                                        idMap[oldId] = newId
+                                    }
+                                    var importedHtml = sanitizeArticleHtml(sourceHtml.ifBlank { "<p><br></p>" })
+                                    idMap.forEach { (oldId, newId) -> importedHtml = importedHtml.replace("/assets/$oldId", "/assets/$newId") }
+                                    val tagsJson = pack.optJSONArray("tags") ?: org.json.JSONArray()
+                                    val importedTags = (0 until minOf(tagsJson.length(), 50)).mapNotNull { tagsJson.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
+                                    val imported = ArticleDocument(
+                                        id = vm.newId(), title = pack.optString("title", "导入文章").take(120).ifBlank { "导入文章" }, html = importedHtml,
+                                        createdAt = now, updatedAt = now, subtitle = pack.optString("subtitle").take(200),
+                                        summary = pack.optString("summary").take(1000), author = pack.optString("author").take(100),
+                                        category = pack.optString("category").take(100), tags = importedTags,
+                                        coverAssetId = idMap[pack.optString("coverAssetId")].orEmpty(),
+                                        status = if (pack.optString("status") == "complete") "complete" else "draft",
+                                        wordCount = importedHtml.replace(Regex("<[^>]*>"), "").length, isFavorite = pack.optBoolean("isFavorite", false)
+                                    )
+                                    saveDocument()
+                                    vm.saveArticle(imported)
+                                    articleId = imported.id; title = imported.title; html = imported.html
+                                    subtitle = imported.subtitle; summary = imported.summary; author = imported.author
+                                    category = imported.category; tagsText = imported.tags.joinToString(", ")
+                                    articleStatus = imported.status; coverAssetId = imported.coverAssetId
+                                    previewMode = false; showArticleList = false
+                                    editor?.evaluateJavascript("setEditorHtml(${JSONObject.quote(imported.html)});setEditable(true);", null)
+                                    pendingSave++
+                                    showArticlePackagePreview = false
+                                    pendingArticlePackageRaw = ""
+                                    vm.toast("文章包已导入")
+                                }.onFailure { error ->
+                                    importedMedia.forEach { asset ->
+                                        runCatching { File(context.filesDir, asset.relativePath).canonicalFile.let { file ->
+                                            val root = File(context.filesDir, "article_media").canonicalFile
+                                            if (file.path.startsWith(root.path + File.separator)) file.delete()
+                                        } }
+                                        vm.deleteMediaAsset(asset.id)
+                                    }
+                                    vm.toast("文章包导入失败：${error.message ?: "文件格式错误"}")
+                                }
+                            }) { Text("确认导入为新文章", color = accent) }
+                        }
+                    }
+                }
+            }
+        }
     }
     if (showCompatibilityReport) {
         AlertDialog(
