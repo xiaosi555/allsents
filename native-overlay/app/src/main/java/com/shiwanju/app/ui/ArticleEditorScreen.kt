@@ -1845,7 +1845,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 Row(
                     Modifier.fillMaxWidth().height(50.dp)
-                        .align(Alignment.BottomCenter)
                         .background(Color(0xFF181818)),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceAround
