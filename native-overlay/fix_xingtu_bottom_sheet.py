@@ -44,13 +44,10 @@ if dock_start >= 0:
     tail_start = s.find(row_tail, anchor)
     if tail_start < 0:
         raise SystemExit("Could not locate the end of the duplicate dock Row without consuming surrounding scope braces")
-    # row_tail begins with the outer Row's closing brace. Keep the following
-    # three scope braces and the drag handle exactly where they were.
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Preserve the established 100dp collapsed/initial height whenever a different
-# primary tool is opened. 350dp remains only the maximum expanded height.
+# Preserve the 100dp initial/collapsed total height and the 350dp maximum.
 old = """                                    } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
@@ -67,13 +64,73 @@ if "toolPanelHeightDp = 100f" not in s:
         raise SystemExit(f"Expected one primary navigation open handler, found {s.count(old)}")
     s = s.replace(old, new, 1)
 
+# Nested scrolling lets a swipe anywhere in the sheet expand it first. Once
+# expanded, the content scrolls normally; downward swipes collapse only after
+# the content has returned to its top. The bottom handle remains independently draggable.
+nested_imports = [
+    "import androidx.compose.ui.input.nestedscroll.NestedScrollConnection",
+    "import androidx.compose.ui.input.nestedscroll.NestedScrollSource",
+    "import androidx.compose.ui.input.nestedscroll.nestedScroll",
+]
+for statement in nested_imports:
+    if statement not in s:
+        anchor = "import androidx.compose.ui.input.pointer.pointerInput"
+        if anchor not in s:
+            raise SystemExit("Could not locate Compose pointer-input imports")
+        s = s.replace(anchor, statement + "\n" + anchor, 1)
+
+state_anchor = "    val toolPanelDensity = LocalDensity.current"
+nested_state = """    val toolPanelScrollState = rememberScrollState()
+    val toolPanelNestedScrollConnection = remember(toolPanelScrollState, toolPanelDensity) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val deltaDp = with(toolPanelDensity) { available.y.toDp().value }
+                val currentHeight = toolPanelHeightDp
+                if (deltaDp < 0f && currentHeight < 350f) {
+                    val consumedDp = minOf(-deltaDp, 350f - currentHeight)
+                    toolPanelHeightDp = currentHeight + consumedDp
+                    return Offset(0f, with(toolPanelDensity) { (-consumedDp).dp.toPx() })
+                }
+                if (deltaDp > 0f && toolPanelScrollState.value == 0 && currentHeight > 100f) {
+                    val consumedDp = minOf(deltaDp, currentHeight - 100f)
+                    toolPanelHeightDp = currentHeight - consumedDp
+                    return Offset(0f, with(toolPanelDensity) { consumedDp.dp.toPx() })
+                }
+                return Offset.Zero
+            }
+        }
+    }"""
+if "val toolPanelNestedScrollConnection" not in s:
+    if s.count(state_anchor) != 1:
+        raise SystemExit("Could not locate the unique tool panel density state")
+    s = s.replace(state_anchor, state_anchor + "\n" + nested_state, 1)
+
+# Do not consume the already-small 100dp panel with navigation-bar inset padding.
+# The 100dp total includes the 26dp drag handle; the remaining 74dp belongs to
+# the visible panel body (44dp header plus visible content).
+old_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding())'
+new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).nestedScroll(toolPanelNestedScrollConnection))'
+if old_panel in s:
+    s = s.replace(old_panel, new_panel, 1)
+elif new_panel not in s:
+    raise SystemExit("Could not locate the Xingtu tool panel container for nested scrolling")
+
+old_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp))'
+new_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanelScrollState).padding(horizontal = 13.dp, vertical = 4.dp))'
+if old_scroll in s:
+    s = s.replace(old_scroll, new_scroll, 1)
+elif new_scroll not in s:
+    raise SystemExit("Could not locate the tool panel's independent content scroll container")
+
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "non-modal popup": "PopupProperties(focusable = false" in s,
     "100dp initial height": "mutableFloatStateOf(100f)" in s and "toolPanelHeightDp = 100f" in s,
     "350dp maximum": "coerceIn(100f, 350f)" in s,
     "smooth height animation": "tween(durationMillis = 180)" in s,
-    "independent content scrolling": ".verticalScroll(rememberScrollState())" in s,
+    "nested swipe resizing": "toolPanelNestedScrollConnection" in s and ".nestedScroll(toolPanelNestedScrollConnection)" in s,
+    "content scroll shares nested state": ".verticalScroll(toolPanelScrollState)" in s,
+    "no inner navigation inset consuming initial height": new_panel in s,
     "bottom-center drag handle": handle_marker in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
@@ -82,4 +139,4 @@ if failed:
     raise SystemExit("Xingtu bottom-sheet validation failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Xingtu bottom sheet fixed: independent dock, non-modal overlay, 100dp collapsed start, 350dp maximum, animated resize, scrollable content and bottom drag handle.")
+print("Xingtu bottom sheet fixed: visible 100dp initial total height, nested swipe expand/collapse, independent content scroll, 350dp maximum, smooth animation and separate primary dock.")
