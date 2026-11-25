@@ -18,6 +18,11 @@ try:
 except Exception as error:
     fail("Unable to copy ArticleEditorScreen.kt: " + repr(error))
 
+try:
+    shutil.copy2(ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/XiumiArticleLayoutScreen.kt", UI / "XiumiArticleLayoutScreen.kt")
+except Exception as error:
+    fail("Unable to copy independent XiumiArticleLayoutScreen.kt: " + repr(error))
+
 def replace_once(path, old, new, label):
     s = path.read_text(encoding="utf-8")
     if new in s:
@@ -547,7 +552,7 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "shiwanju.styles.v1"),
     (UI / "ArticleEditorScreen.kt", "multiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
-    (UI / "ArticleEditorScreen.kt", "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)"),
+    (UI / "XiumiArticleLayoutScreen.kt", "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)"),
     (JAVA / "MainActivity.kt", '"article_editor" -> XiumiArticleLayoutScreen(vm)')
 ]
 for path, token in checks:
