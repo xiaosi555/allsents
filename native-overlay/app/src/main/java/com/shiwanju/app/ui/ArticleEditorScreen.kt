@@ -102,6 +102,14 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
     @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
 }
 
+private data class EditorLayerItem(
+    val id: String,
+    val tag: String,
+    val name: String,
+    val visible: Boolean,
+    val locked: Boolean
+)
+
 private enum class EditorPanel(val label: String) {
     TEXT("文字"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }
@@ -158,6 +166,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var pendingExportStyleJson by remember { mutableStateOf("") }
     var pendingImageGroupCount by remember { mutableIntStateOf(2) }
     var selectedBlockHtml by remember { mutableStateOf("") }
+    var layerItems by remember { mutableStateOf(emptyList<EditorLayerItem>()) }
     var showBlockProperties by remember { mutableStateOf(false) }
     var blockPadding by remember { mutableStateOf("14px") }
     var blockMargin by remember { mutableStateOf("12px") }
@@ -245,6 +254,22 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     val accent = AppColors.Theme
     val accentHex = "#%06X".format(Locale.ROOT, 0xFFFFFF and accent.toArgb())
 
+    fun refreshLayerItems() {
+        editor?.evaluateJavascript("getLayerList()") { raw ->
+            val payload = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull()
+            val array = runCatching { org.json.JSONArray(payload ?: "[]") }.getOrNull()
+            layerItems = if (array == null) emptyList() else (0 until array.length()).mapNotNull { index ->
+                val item = array.optJSONObject(index) ?: return@mapNotNull null
+                EditorLayerItem(
+                    id = item.optString("id"),
+                    tag = item.optString("tag"),
+                    name = item.optString("name"),
+                    visible = item.optBoolean("visible", true),
+                    locked = item.optBoolean("locked", false)
+                )
+            }
+        }
+    }
     fun runJs(script: String) {
         editor?.evaluateJavascript(script, null)
         saved = false
@@ -989,6 +1014,36 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function copyTextFormat(){const e=selectedTextElement();if(!e)return false;const c=getComputedStyle(e);formatClipboard={fontFamily:c.fontFamily,fontSize:c.fontSize,fontWeight:c.fontWeight,fontStyle:c.fontStyle,color:c.color,backgroundColor:c.backgroundColor,textDecoration:c.textDecoration};return true;}
                             function pasteTextFormat(){if(!formatClipboard)return false;return applyInlineStyle(formatClipboard);}
 
+                            function getLayerList(){
+                              return JSON.stringify(Array.from(root.children).map((e,i)=>{
+                                const id=ensureEditorId(e);
+                                const text=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();
+                                return {id:id,tag:e.tagName.toLowerCase(),name:text.slice(0,42),visible:getComputedStyle(e).display!=='none',locked:e.dataset.editorLocked==='1'};
+                              }));
+                            }
+                            function selectLayer(id){
+                              const e=Array.from(root.children).find(x=>x.dataset.editorId===id);
+                              if(!e)return false;
+                              root.querySelectorAll('.selected-block').forEach(x=>x.classList.remove('selected-block'));
+                              e.classList.add('selected-block');
+                              NativeEditor.blockSelected(cleanBlockHtml(e));
+                              if(typeof reportSelection==='function')reportSelection();
+                              return true;
+                            }
+                            function setLayerVisibility(id,visible){
+                              const e=Array.from(root.children).find(x=>x.dataset.editorId===id);
+                              if(!e)return;
+                              e.style.display=visible?'':'none';
+                              commitHistory();NativeEditor.changed(root.innerHTML);
+                            }
+                            function setLayerLocked(id,locked){
+                              const e=Array.from(root.children).find(x=>x.dataset.editorId===id);
+                              if(!e)return;
+                              e.dataset.editorLocked=locked?'1':'0';
+                              e.contentEditable=locked?'false':'true';
+                              e.draggable=!locked;
+                              commitHistory();NativeEditor.changed(root.innerHTML);
+                            }
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function cleanBlockHtml(e){const c=e.cloneNode(true);c.classList.remove('selected-block');c.draggable=false;return c.outerHTML;}
                             function replaceSelectedBlockWithHtml(v){const e=selectedBlock();if(!e)return;const box=document.createElement('div');box.innerHTML=v;const frag=document.createDocumentFragment();while(box.firstChild)frag.appendChild(box.firstChild);const first=frag.firstElementChild;e.replaceWith(frag);if(first){first.classList.add('selected-block');NativeEditor.blockSelected(cleanBlockHtml(first));}commitHistory();NativeEditor.changed(root.innerHTML);}
