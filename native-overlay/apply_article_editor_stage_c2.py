@@ -55,15 +55,9 @@ s = replace_once(
     "keep selection toolbar inside canvas and above the keyboard"
 )
 
-s = replace_once(
-    s,
-    """                    Modifier.fillMaxWidth().height(50.dp)
-                        .background(Color(0xFF181818)),""",
-    """                    Modifier.fillMaxWidth().height(50.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(Color(0xFF181818)),""",
-    "anchor bottom-level category dock to the canvas bottom"
-)
+# The parent Box already uses contentAlignment = Alignment.BottomCenter.
+# Keep the dock as a direct sibling of the expandable sheet; an explicit Modifier.align
+# is invalid after the generated Compose scope transformation and is unnecessary.
 
 required = [
     "modifier = Modifier.fillMaxSize()",
