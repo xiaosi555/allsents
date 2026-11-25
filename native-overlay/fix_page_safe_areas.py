@@ -1,52 +1,51 @@
 from pathlib import Path
 
 ROOT = Path("source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app")
-targets = {
-    "ui/LayoutScreen.kt": [
-        (".background(AppColors.Bg).systemBarsPadding().imePadding()", ".background(AppColors.Bg).imePadding()", 1),
-    ],
-    "ui/MyScreens.kt": [
-        (".background(AppColors.MyBg).systemBarsPadding()) {", ".background(AppColors.MyBg)) {", 1),
-    ],
-    "ui/HistoryArticlesPage.kt": [
-        (".background(AppColors.MyBg).statusBarsPadding()) {", ".background(AppColors.MyBg)) {", 1),
-    ],
-    "ui/OfficialAccountPage.kt": [
-        (".background(AppColors.MyBg).statusBarsPadding()) {", ".background(AppColors.MyBg)) {", 1),
-    ],
-    "ui/ArticleEditorScreen.kt": [
-        (".background(pageBg).systemBarsPadding()) {", ".background(pageBg)) {", 1),
-    ],
-}
-
-for relative, replacements in targets.items():
+def edit(relative, old, new, expected=1):
     path = ROOT / relative
     if not path.is_file():
         raise SystemExit(f"Required page source missing: {path}")
     source = path.read_text(encoding="utf-8")
-    for old, new, expected in replacements:
-        count = source.count(old)
-        if count != expected:
-            raise SystemExit(f"{relative}: expected {expected} root safe-area anchor(s), found {count}: {old}")
-        source = source.replace(old, new, expected)
-    path.write_text(source, encoding="utf-8")
+    count = source.count(old)
+    if count != expected:
+        raise SystemExit(f"{relative}: expected {expected} anchor(s), found {count}: {old}")
+    path.write_text(source.replace(old, new, expected), encoding="utf-8")
 
-# Verify no primary screen root still adds a second system-bar inset.
+# Keep edge-to-edge enabled. Each full-screen route owns exactly one root inset.
+# Do not combine decorFitsSystemWindows(true) with Compose inset modifiers.
+activity = ROOT / "MainActivity.kt"
+a = activity.read_text(encoding="utf-8")
+if "WindowCompat.setDecorFitsSystemWindows(window, true)" in a:
+    a = a.replace("WindowCompat.setDecorFitsSystemWindows(window, true)", "")
+    activity.write_text(a, encoding="utf-8")
+
+# Existing full-screen roots already use systemBarsPadding; the two legacy
+# subpages only reserved the status bar and therefore let bottom controls
+# overlap gesture navigation.
+edit("ui/HistoryArticlesPage.kt",
+     ".background(AppColors.MyBg).statusBarsPadding()) {",
+     ".background(AppColors.MyBg).systemBarsPadding()) {")
+edit("ui/OfficialAccountPage.kt",
+     ".background(AppColors.MyBg).statusBarsPadding()) {",
+     ".background(AppColors.MyBg).systemBarsPadding()) {")
+
+# Independent Xiumi editor was the only primary full-screen editor without a
+# root inset. Add it once; leave its internal canvas/toolbar spacing untouched.
+edit("ui/XiumiArticleLayoutScreen.kt",
+     "Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4))) {",
+     "Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4)).systemBarsPadding()) {")
+
+# Verify the five main routes have one root system-bars inset.
 checks = {
-    "ui/LayoutScreen.kt": "Column(Modifier.fillMaxSize().background(AppColors.Bg).imePadding())",
-    "ui/MyScreens.kt": "Column(Modifier.fillMaxSize().background(AppColors.MyBg)) {",
-    "ui/HistoryArticlesPage.kt": "Column(Modifier.fillMaxSize().background(AppColors.MyBg)) {",
-    "ui/OfficialAccountPage.kt": "Column(Modifier.fillMaxSize().background(AppColors.MyBg)) {",
-    "ui/ArticleEditorScreen.kt": "Column(Modifier.fillMaxSize().background(pageBg)) {",
+    "ui/LayoutScreen.kt": ".background(AppColors.Bg).systemBarsPadding().imePadding()",
+    "ui/MyScreens.kt": ".background(AppColors.MyBg).systemBarsPadding()",
+    "ui/HistoryArticlesPage.kt": ".background(AppColors.MyBg).systemBarsPadding()",
+    "ui/OfficialAccountPage.kt": ".background(AppColors.MyBg).systemBarsPadding()",
+    "ui/ArticleEditorScreen.kt": ".background(pageBg).systemBarsPadding()",
+    "ui/XiumiArticleLayoutScreen.kt": ".background(Color(0xFFF2F3F4)).systemBarsPadding()",
 }
-for relative, expected in checks.items():
-    if expected not in (ROOT / relative).read_text(encoding="utf-8"):
-        raise SystemExit(f"Safe-area root verification failed: {relative}")
+for relative, marker in checks.items():
+    if marker not in (ROOT / relative).read_text(encoding="utf-8"):
+        raise SystemExit(f"Root system-bar inset verification failed: {relative}")
 
-# Keep the independent Xiumi editor root free of per-page insets; the Activity
-# now reserves the same system-bar safe region for every route.
-xiumi = (ROOT / "ui/XiumiArticleLayoutScreen.kt").read_text(encoding="utf-8")
-if "Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4)))" not in xiumi:
-    raise SystemExit("Independent Xiumi editor root changed; inspect before patching.")
-
-print("Verified global safe-area handling for Layout, My, History, Official Account, Article Editor and Xiumi routes.")
+print("Verified one root systemBarsPadding for home/layout, My, History, Official Account, original editor and Xiumi editor.")
