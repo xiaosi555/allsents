@@ -355,7 +355,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
         view.evaluateJavascript("document.getElementById('editor').innerHTML") { raw ->
             val current = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull() ?: html
-            html = current
             val old = vm.data.articles.firstOrNull { it.id == savingId }
             val changed = old == null || old.title != savingTitle || old.html != current ||
                 old.subtitle != savingSubtitle || old.summary != savingSummary || old.author != savingAuthor ||
@@ -367,7 +366,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     savingSubtitle, savingSummary, savingAuthor, savingCoverAssetId, savingCategory, savingTags,
                     savingStatus, current.replace(Regex("<[^>]*>"), "").length, savingIsFavorite))
             } else true
-            saved = persisted
+            if (articleId == savingId) saved = persisted
             if (persisted && showToast) vm.toast("文章已保存")
             if (persisted) onComplete?.invoke()
         }
