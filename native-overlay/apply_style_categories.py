@@ -62,11 +62,40 @@ patch("data/Store.kt", [
             category = defaultCategory.name,
             categoryId = defaultCategory.id,
             origin = "official",""", "built-in official style"),
-("""            val styles = if (data.styles.any { it.id == defaultStyle.id }) data.styles else data.styles + defaultStyle
-            data.copy(styles = styles, styleSeedApplied = true)""",
-"""            val styles = if (data.styles.any { it.id == defaultStyle.id }) data.styles else data.styles + defaultStyle
-            val categories = if (data.styleCategories.any { it.id == defaultCategory.id }) data.styleCategories else data.styleCategories + defaultCategory
-            data.copy(styles = styles, styleCategories = categories, styleSeedApplied = true)""", "built-in category")
+("""        val migrated = if (!data.styleSeedApplied) {
+            val styles = if (data.styles.any { it.id == defaultStyle.id }) data.styles else data.styles + defaultStyle
+            data.copy(styles = styles, styleSeedApplied = true)
+        } else data""",
+"""        val builtInCategories = listOf(
+            defaultCategory,
+            StyleCategory("stylecat_builtin_quotes", "引用组件", 1, "seed"),
+            StyleCategory("stylecat_builtin_dividers", "分隔组件", 2, "seed"),
+            StyleCategory("stylecat_builtin_full", "整篇模板", 3, "seed")
+        )
+        val builtInStyles = listOf(
+            defaultStyle,
+            StyleModule(
+                id = "style_official_quote_warm", name = "暖色引言卡", category = "引用组件",
+                html = """<section style="margin:18px 0;padding:18px 20px;background:#fff8ef;border-radius:8px;border-left:4px solid #d69a55;"><p style="margin:0;color:#8a6238;font-size:15px;line-height:1.9;">在这里放入值得停留的句子。</p><p style="margin:10px 0 0;color:#b28c65;font-size:11px;text-align:right;">—— 引言 / 出处</p></section>""",
+                updatedAt = "seed", type = "component", tags = listOf("引用", "暖色", "金句"),
+                categoryId = "stylecat_builtin_quotes", origin = "official"
+            ),
+            StyleModule(
+                id = "style_official_divider_dots", name = "轻点分隔线", category = "分隔组件",
+                html = """<div style="margin:26px auto;text-align:center;color:#b7c7bc;font-size:13px;letter-spacing:8px;">· · ·</div>""",
+                updatedAt = "seed", type = "component", tags = listOf("分隔", "极简"),
+                categoryId = "stylecat_builtin_dividers", origin = "official"
+            ),
+            StyleModule(
+                id = "style_official_full_minimal", name = "清爽图文长文", category = "整篇模板",
+                html = """<article style="margin:0 auto;max-width:100%;color:#333;font-family:Arial,'Microsoft YaHei',sans-serif;line-height:1.9;"><header style="padding:26px 0 20px;border-bottom:1px solid #e8eee9;"><p style="margin:0 0 10px;color:#4a9b72;font-size:12px;letter-spacing:2px;">NOTES · ARTICLE</p><h1 style="margin:0;color:#25372d;font-size:26px;line-height:1.45;font-weight:700;">在这里填写文章标题</h1><p style="margin:10px 0 0;color:#89948d;font-size:13px;">副标题或一句简短说明</p></header><section style="padding:22px 0;"><p style="margin:0 0 18px;color:#68766e;font-size:15px;">在这里填写文章导语，简要介绍文章主题。</p><h2 style="margin:26px 0 12px;color:#31845b;font-size:19px;">一、章节标题</h2><p style="margin:0 0 16px;font-size:15px;">在这里填写正文内容。可继续使用编辑器添加段落、图片、引用和其他组件。</p><blockquote style="margin:22px 0;padding:12px 16px;background:#f4f8f5;border-left:3px solid #70ad88;color:#607568;">在这里填写重点句子或引用内容。</blockquote><h2 style="margin:26px 0 12px;color:#31845b;font-size:19px;">二、继续展开</h2><p style="margin:0 0 16px;font-size:15px;">在这里继续填写正文内容。</p><p style="margin:28px 0 0;padding-top:14px;border-top:1px solid #e8eee9;color:#9aa39d;font-size:12px;text-align:center;">— END —</p></section></article>""",
+                updatedAt = "seed", type = "full", tags = listOf("极简", "图文", "长文"),
+                categoryId = "stylecat_builtin_full", origin = "official"
+            )
+        )
+        val styles = data.styles + builtInStyles.filterNot { builtin -> data.styles.any { it.id == builtin.id } }
+        val categories = data.styleCategories + builtInCategories.filterNot { builtin -> data.styleCategories.any { it.id == builtin.id } }
+        val migrated = data.copy(styles = styles, styleCategories = categories, styleSeedApplied = true)""", "merge official template catalog on every migration")
 ])
 
 store = java / "data/Store.kt"
