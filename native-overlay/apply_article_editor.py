@@ -472,7 +472,7 @@ route = '''when (vm.screen) {
                           "layout" -> LayoutScreen(vm)
                           else -> MyScreen(vm)
                       }'''
-if '"article_editor" -> XiumiArticleLayoutScreen(vm)' not in s:
+if '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)' not in s:
     pattern = re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)')
     match = pattern.search(s)
     if match:
