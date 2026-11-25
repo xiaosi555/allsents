@@ -129,16 +129,15 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      val row=rows.optJSONObject(i) ?: continue
      vm.saveStyle(StyleModule(vm.newId(),row.optString("name","导入模板"),row.optString("category","导入模板"),row.optString("html"),System.currentTimeMillis().toString(),isFavorite=row.optBoolean("isFavorite"),type=row.optString("type","component")))
     }
-    vm.toast("模板包导入完成：\${rows.length()} 个模板")
+    vm.toast("模板包导入完成：${rows.length()} 个模板")
    } else {
     vm.saveStyle(StyleModule(vm.newId(),name,dock.label,raw,System.currentTimeMillis().toString(),type=if(dock==XiumiDock.TEMPLATE) "full" else "component"))
-    importedMaterials=importedMaterials+XiumiMaterial(name,"导入文件 · \${raw.length} 字",raw)
-    vm.toast("素材已导入")
+       vm.toast("素材已导入")
    }
-  }.onFailure { vm.toast("导入失败：\${it.message ?: "文件格式错误"}") }
+  }.onFailure { vm.toast("导入失败：${it.message ?: "文件格式错误"}") }
  }
  val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingTemplateJson) } ?: error("无法写入文件"); vm.toast("模板包已导出") }.onFailure { vm.toast("导出失败：\${it.message ?: "无法写入"}") }
+  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingTemplateJson) } ?: error("无法写入文件"); vm.toast("模板包已导出") }.onFailure { vm.toast("导出失败：${it.message ?: "无法写入"}") }
  }
 
  var imageUrl by remember { mutableStateOf("") }
@@ -174,7 +173,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   dirty=true
  }
  fun syncBlocks(next:List<XiumiBlock>) {
-  undo=(undo+body).takeLast(50); redo=emptyList()
+  undo=(undo+listOf(blocks)).takeLast(50); redo=emptyList()
   blocks=next; body=next.joinToString("\n\n") { it.content }
   selectedSnippet=next.firstOrNull { it.id==selectedBlockId }?.content.orEmpty()
   dirty=true
@@ -193,11 +192,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    val dir=File(context.filesDir,"article_media").apply { if(!exists()) mkdirs() }
    val target=File(dir,"$assetId.$ext")
    context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
-   val asset=MediaAsset(assetId,target.name,mime,"article_media/\${target.name}",target.length(),System.currentTimeMillis().toString())
+   val asset=MediaAsset(assetId,target.name,mime,"article_media/${target.name}",target.length(),System.currentTimeMillis().toString())
    vm.saveMediaAsset(asset)
-   insert("<img src='https://editor.local/assets/$assetId' alt='\${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
+   insert("<img src='https://editor.local/assets/$assetId' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
    vm.toast("图片已加入素材库")
-  }.onFailure { vm.toast("图片导入失败：\${it.message ?: "未知错误"}") } }
+  }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") } }
  }
  fun editSelected(transform:(String)->String) {
   val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
@@ -226,7 +225,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   when(dock) {
    XiumiDock.TITLE -> listOf(XiumiMaterial("大标题","醒目章节标题","【大标题】"),XiumiMaterial("编号标题","序号标题","01  【章节标题】"),XiumiMaterial("色块标题","带底色标题","▰  【标题文字】"))
    XiumiDock.TEXT -> listOf(XiumiMaterial("正文段落","标准文字段落","在这里输入正文内容。"),XiumiMaterial("引用","引用与出处","“在这里输入引用内容。”\n—— 来源"),XiumiMaterial("分割线","段落分隔","━━━━━━━━━━━━"),XiumiMaterial("注释","小字说明","注：补充说明。"))
-   XiumiDock.IMAGE -> listOf(XiumiMaterial("单图","图片占位","［图片：点击替换］"),XiumiMaterial("双图","左右双图","［图片 1］　　　［图片 2］"),XiumiMaterial("图文混排","图文组合","［图片］\n图片说明文字。")) + vm.data.mediaAssets.map { XiumiMaterial(it.fileName,"本地图片素材 · \${it.mimeType}","<img src='https://editor.local/assets/\${it.id}' alt='\${it.fileName}'>") }
+   XiumiDock.IMAGE -> listOf(XiumiMaterial("单图","图片占位","［图片：点击替换］"),XiumiMaterial("双图","左右双图","［图片 1］　　　［图片 2］"),XiumiMaterial("图文混排","图文组合","［图片］\n图片说明文字。")) + vm.data.mediaAssets.map { XiumiMaterial(it.fileName,"本地图片素材 · ${it.mimeType}","<img src='https://editor.local/assets/${it.id}' alt='${it.fileName}'>") }
    XiumiDock.LAYOUT -> listOf(XiumiMaterial("双栏布局","两列内容","［左栏内容］　　　［右栏内容］"),XiumiMaterial("三栏布局","三列内容","［一］　［二］　［三］"),XiumiMaterial("图文卡片","图文组合卡片","［图片］\n【卡片标题】\n卡片正文"),XiumiMaterial("留白","段落留白","\n\n"))
    XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
    XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\n02  第二步\n03  第三步"))
@@ -332,7 +331,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Column(Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp)) {
        if(blocks.isEmpty()) Text("从左侧素材中心添加标题、正文、图片或卡片。",fontSize=13.sp,color=Color.Gray,modifier=Modifier.padding(vertical=20.dp))
        blocks.forEachIndexed { index, block ->
-        val imageAsset=vm.data.mediaAssets.firstOrNull { block.content.contains("/assets/\${it.id}") }
+        val imageAsset=vm.data.mediaAssets.firstOrNull { block.content.contains("/assets/${it.id}") }
         val imageBitmap=remember(imageAsset?.id) { imageAsset?.let { runCatching { BitmapFactory.decodeFile(File(context.filesDir,it.relativePath).absolutePath) }.getOrNull() } }
         Column(Modifier.fillMaxWidth().padding(vertical=5.dp).clip(RoundedCornerShape(block.radius.dp))
          .border(if(block.id==selectedBlockId) 1.5.dp else block.border.dp,if(block.id==selectedBlockId) accent else Color(0xFFE1E3E5),RoundedCornerShape(block.radius.dp))
@@ -345,7 +344,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
          }
          if(block.type=="图片") {
           if(imageBitmap!=null) Image(imageBitmap.asImageBitmap(),contentDescription=imageAsset?.fileName,modifier=Modifier.fillMaxWidth().heightIn(max=280.dp),contentScale=ContentScale.Fit)
-          else Text("图片素材引用 · \${imageAsset?.fileName ?: "请导入或替换图片"}",fontSize=11.sp,color=Color.Gray)
+          else Text("图片素材引用 · ${imageAsset?.fileName ?: "请导入或替换图片"}",fontSize=11.sp,color=Color.Gray)
          }
          OutlinedTextField(block.content,{ value ->
           val next=blocks.toMutableList(); next[index]=block.copy(content=value); syncBlocks(next)
@@ -363,7 +362,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Text("文 / $author",fontSize=11.sp,color=Color.Gray,modifier=Modifier.padding(vertical=12.dp))
       if(blocks.isEmpty()) Text("正文预览将在这里显示。",fontSize=fontSize.sp,color=foreground)
       blocks.forEach { block ->
-       val imageAsset=vm.data.mediaAssets.firstOrNull { block.content.contains("/assets/\${it.id}") }
+       val imageAsset=vm.data.mediaAssets.firstOrNull { block.content.contains("/assets/${it.id}") }
        val imageBitmap=remember(imageAsset?.id) { imageAsset?.let { runCatching { BitmapFactory.decodeFile(File(context.filesDir,it.relativePath).absolutePath) }.getOrNull() } }
        if(block.type=="图片" && imageBitmap!=null) Image(imageBitmap.asImageBitmap(),contentDescription=imageAsset?.fileName,modifier=Modifier.fillMaxWidth().heightIn(max=360.dp).padding(vertical=block.padding.dp),contentScale=ContentScale.Fit)
        else Text(if(block.type=="图片") imageAsset?.fileName ?: "图片素材" else block.content,fontSize=if(block.type=="标题") (block.fontSize+6).sp else block.fontSize.sp,
@@ -422,7 +421,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp)).background(if(block.id==selectedBlockId) accent.copy(alpha=.10f) else Color.Transparent)
        .clickable { selectedBlockId=block.id; selectedSnippet=block.content; selectedType=block.type; selected=block.type; fontSize=block.fontSize; lineSpace=block.lineSpace; bold=block.bold; align=block.align; foreground=Color(block.color); contentPadding=block.padding; borderWidth=block.border; cornerRadius=block.radius; showLayers=false; blockDraft=block.content; showBlockEditor=true }.padding(9.dp),
        verticalAlignment=Alignment.CenterVertically) {
-       Text("\${index+1}",fontSize=10.sp,color=Color.Gray,modifier=Modifier.width(22.dp))
+       Text("${index+1}",fontSize=10.sp,color=Color.Gray,modifier=Modifier.width(22.dp))
        Text(block.content.replace("\n"," / "),fontSize=11.sp,maxLines=2,modifier=Modifier.weight(1f))
        if(block.id==selectedBlockId) Text("选中",fontSize=10.sp,color=accent)
       }
