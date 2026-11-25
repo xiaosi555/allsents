@@ -426,8 +426,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
    if(properties && !compact) Column(Modifier.width(if(LocalConfiguration.current.screenWidthDp < 900) 184.dp else 224.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(horizontal=14.dp, vertical=14.dp)) {
     Text("属性面板",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31)); Text("当前对象 · $selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=10.dp)); Divider()
-    Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f)
-    Text("行间距 " + "%.1f".format(lineSpace),fontSize=11.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
+    Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
+    Text("行间距 " + "%.1f".format(lineSpace),fontSize=11.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
     FilterChip(bold,{bold=!bold;updateSelectedBlock { b -> b.copy(bold=bold) }},{Text("粗体",fontSize=10.sp)})
     Text("对齐方式",fontSize=11.sp,modifier=Modifier.padding(top=10.dp))
     listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option;updateSelectedBlock { b -> b.copy(align=option) } }.padding(vertical=6.dp)) }
@@ -435,9 +435,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color(0xFF222222),Color(0xFF666666),Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(50)).background(c).clickable { foreground=c;updateSelectedBlock { b -> b.copy(color=c.value.toLong()) } }) } }
     Text("画布背景",fontSize=11.sp,modifier=Modifier.padding(top=10.dp,bottom=6.dp))
     Row(horizontalArrangement=Arrangement.spacedBy(5.dp)) { listOf(Color.White,Color(0xFFFFFBF2),Color(0xFFF4F7F6),Color(0xFFF3F3F3)).forEach { c -> Box(Modifier.size(21.dp).clip(RoundedCornerShape(5.dp)).background(c).border(1.dp,Color.LightGray,RoundedCornerShape(5.dp)).clickable { canvasBackground=c }) } }
-    Text("内边距 ${contentPadding.toInt()} dp",fontSize=11.sp,modifier=Modifier.padding(top=8.dp)); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f)
-    Text("边框 ${borderWidth.toInt()} dp",fontSize=11.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f)
-    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=11.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f)
+    Text("内边距 ${contentPadding.toInt()} dp",fontSize=11.sp,modifier=Modifier.padding(top=8.dp)); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
+    Text("边框 ${borderWidth.toInt()} dp",fontSize=11.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
+    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=11.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
    }
   }
   if(showArticlePicker) AlertDialog(
@@ -543,12 +543,12 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   if(properties && compact) ModalBottomSheet(onDismissRequest={properties=false}) {
    Column(Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=10.dp)) {
     Text("属性设置 · $selected",fontSize=16.sp,fontWeight=FontWeight.Bold)
-    Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f)
-    Text("行间距 " + "%.1f".format(lineSpace),fontSize=12.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
+    Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
+    Text("行间距 " + "%.1f".format(lineSpace),fontSize=12.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
     FilterChip(bold,{bold=!bold;updateSelectedBlock { b -> b.copy(bold=bold) }},{Text("粗体")})
-    Text("内边距 ${contentPadding.toInt()} dp",fontSize=12.sp); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f)
-    Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f)
-    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=12.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f)
+    Text("内边距 ${contentPadding.toInt()} dp",fontSize=12.sp); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
+    Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
+    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=12.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f,modifier=Modifier.height(28.dp),colors=SliderDefaults.colors(thumbColor=Color(0xFF252A30),activeTrackColor=Color(0xFF3987F7),inactiveTrackColor=Color(0xFFD8DDE4)))
     Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) { listOf("左对齐","居中","右对齐").forEach { option -> Text(option,color=if(align==option) accent else Color.Gray,modifier=Modifier.clickable { align=option }.padding(vertical=8.dp)) } }
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { foreground=c;updateSelectedBlock { b -> b.copy(color=c.value.toLong()) } }) } }
    }
