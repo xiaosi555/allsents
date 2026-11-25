@@ -127,8 +127,8 @@ patch("ui/AppViewModel.kt", [
     }
     fun saveStyle(x: StyleModule) = updateData { d ->
         val name = x.category.trim().ifBlank { "未分类" }
-        val cat = d.styleCategories.firstOrNull { x.categoryId.isNotBlank() && it.id == x.categoryId }
-            ?: d.styleCategories.firstOrNull { it.name.equals(name, true) }
+        val cat = d.styleCategories.firstOrNull { it.name.equals(name, true) }
+            ?: d.styleCategories.firstOrNull { x.categoryId.isNotBlank() && it.id == x.categoryId }
             ?: StyleCategory(newId(), name, (d.styleCategories.maxOfOrNull { it.sortOrder } ?: -1) + 1, System.currentTimeMillis().toString())
         val categories = if (d.styleCategories.any { it.id == cat.id }) d.styleCategories else d.styleCategories + cat
         val i = d.styles.indexOfFirst { it.id == x.id }
