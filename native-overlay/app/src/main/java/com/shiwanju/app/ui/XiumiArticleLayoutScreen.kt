@@ -71,6 +71,16 @@ private fun readXiumiBlocks(context:android.content.Context,articleId:String,bod
  }
  return body.split("\n\n").filter { it.isNotBlank() }.map { XiumiBlock(newId(),classifyXiumiBlock(it),it) }
 }
+private fun saveXiumiVersion(context:android.content.Context,articleId:String,title:String,body:String,timestamp:String) {
+ val prefs=context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE)
+ val history=runCatching { JSONArray(prefs.getString("versions_$articleId","[]")) }.getOrDefault(JSONArray())
+ val latest=history.optJSONObject(history.length()-1)
+ if(latest?.optString("body")==body && latest.optString("title")==title) return
+ history.put(JSONObject().put("timestamp",timestamp).put("title",title).put("body",body).put("blocks",prefs.getString("blocks_$articleId","[]")))
+ val trimmed=JSONArray()
+ for(i in maxOf(0,history.length()-30) until history.length()) trimmed.put(history.getJSONObject(i))
+ prefs.edit().putString("versions_$articleId",trimmed.toString()).apply()
+}
 private fun writeXiumiBlocks(context:android.content.Context,articleId:String,blocks:List<XiumiBlock>) {
  val array=JSONArray()
  blocks.forEach { b -> array.put(JSONObject().put("id",b.id).put("type",b.type).put("content",b.content)
@@ -102,6 +112,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var properties by remember { mutableStateOf(!compact) }
  var zoom by remember { mutableFloatStateOf(1f) }
  var showArticlePicker by remember { mutableStateOf(false) }
+ var showVersions by remember { mutableStateOf(false) }
  var showImageInsert by remember { mutableStateOf(false) }
  var showLayers by remember { mutableStateOf(false) }
  var selectedSnippet by remember { mutableStateOf("") }
@@ -161,6 +172,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    isFavorite=currentArticle?.isFavorite ?: false)
   vm.saveArticle(saved)
   writeXiumiBlocks(context,id,blocks)
+  saveXiumiVersion(context,id,saved.title,body,now)
   currentArticle = saved
   dirty=false
  }
@@ -243,6 +255,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    IconButton(onClick={if(dirty) save();onBack()}) { Icon(Icons.Outlined.ArrowBack,contentDescription="返回") }
    Column(Modifier.weight(1f)) { Text("秀米式图文排版",fontSize=16.sp,fontWeight=FontWeight.SemiBold); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
    TextButton(onClick={showArticlePicker=true}) { Text("文章") }
+   TextButton(onClick={showVersions=true}) { Text("版本") }
    TextButton(onClick={
     currentArticle=null; id=vm.newId(); title=""; subtitle=""; author="拾万句"; body=""; blocks=emptyList(); selectedBlockId=""; selectedSnippet=""
     undo=listOf(emptyList()); redo=emptyList(); dirty=true; preview=false
@@ -413,6 +426,31 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
    },
    confirmButton={TextButton(onClick={showArticlePicker=false}) { Text("关闭") }}
+  )
+  if(showVersions) AlertDialog(
+   onDismissRequest={showVersions=false}, title={Text("版本记录 · 最多保留 30 个")},
+   text={
+    val history=runCatching { JSONArray(context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE).getString("versions_$id","[]")) }.getOrDefault(JSONArray())
+    Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
+     if(history.length()==0) Text("保存文章后会在这里生成版本记录。",fontSize=12.sp,color=Color.Gray)
+     for(i in history.length()-1 downTo 0) {
+      val version=history.optJSONObject(i) ?: continue
+      Column(Modifier.fillMaxWidth().clickable {
+       val versionBody=version.optString("body")
+       context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE).edit().putString("blocks_$id",version.optString("blocks","[]")).apply()
+       body=versionBody; blocks=readXiumiBlocks(context,id,versionBody,vm::newId); title=version.optString("title",title)
+       selectedBlockId=""; selectedSnippet=""; undo=listOf(blocks); redo=emptyList(); dirty=true; showVersions=false
+      }.padding(vertical=9.dp)) {
+       Text(version.optString("title","未命名版本"),fontSize=12.sp,fontWeight=FontWeight.SemiBold)
+       Text(version.optString("timestamp"),fontSize=10.sp,color=Color.Gray)
+       Text(version.optString("body").take(90),fontSize=10.sp,color=Color.Gray,maxLines=2)
+       Text("恢复此版本",fontSize=10.sp,color=accent)
+      }
+      Divider()
+     }
+    }
+   },
+   confirmButton={TextButton(onClick={showVersions=false}) { Text("关闭") }}
   )
   if(showLayers) AlertDialog(
    onDismissRequest={showLayers=false},
