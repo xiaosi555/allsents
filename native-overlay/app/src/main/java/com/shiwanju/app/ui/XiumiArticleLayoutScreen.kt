@@ -48,6 +48,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var zoom by remember { mutableFloatStateOf(1f) }
  var showArticlePicker by remember { mutableStateOf(false) }
  var showImageInsert by remember { mutableStateOf(false) }
+ var showLayers by remember { mutableStateOf(false) }
+ var selectedSnippet by remember { mutableStateOf("") }
  var imageUrl by remember { mutableStateOf("") }
  var imageAlt by remember { mutableStateOf("") }
  var dirty by remember { mutableStateOf(false) }
@@ -69,7 +71,26 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   dirty=false
  }
  fun changeBody(value:String) { if(value!=body) { undo=(undo+body).takeLast(50); redo=emptyList(); body=value; dirty=true } }
- fun insert(value:String) { changeBody(if(body.isBlank()) value else body.trimEnd()+"\n\n"+value) }
+ fun insert(value:String) {
+  changeBody(if(body.isBlank()) value else body.trimEnd()+"\n\n"+value)
+  selected="内容组件"; selectedSnippet=value
+ }
+ fun editSelected(transform:(String)->String) {
+  if(selectedSnippet.isBlank()) return
+  val at=body.lastIndexOf(selectedSnippet)
+  if(at<0) return
+  changeBody(body.substring(0,at)+transform(selectedSnippet)+body.substring(at+selectedSnippet.length))
+  selectedSnippet=transform(selectedSnippet)
+ }
+ fun moveSelected(delta:Int) {
+  if(selectedSnippet.isBlank()) return
+  val blocks=body.split("\n\n").toMutableList()
+  val index=blocks.indexOfLast { it==selectedSnippet }
+  val target=index+delta
+  if(index<0 || target !in blocks.indices) return
+  val item=blocks.removeAt(index); blocks.add(target,item)
+  changeBody(blocks.joinToString("\n\n"))
+ }
  BackHandler { if(dirty) save(); onBack() }
  val materials=remember(dock,vm.data.styles) {
   when(dock) {
@@ -132,6 +153,23 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      Text("＋",fontSize=18.sp,color=Color.Gray,modifier=Modifier.clickable { zoom=(zoom+.1f).coerceAtMost(1.4f) }.padding(horizontal=5.dp))
      Text("适宽",fontSize=10.sp,color=accent,modifier=Modifier.clickable { zoom=1f }.padding(start=6.dp))
     }
+    if(selectedSnippet.isNotBlank() && !preview) Row(
+     Modifier.fillMaxWidth().padding(top=7.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).padding(horizontal=8.dp,vertical=6.dp),
+     verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)
+    ) {
+     Text("已选 · $selected",fontSize=10.sp,color=accent,modifier=Modifier.weight(1f),maxLines=1)
+     listOf("上移","下移","复制","删除").forEach { action ->
+      Text(action,fontSize=10.sp,color=if(action=="删除") Color(0xFFCC5555) else Color.DarkGray,
+       modifier=Modifier.clickable {
+        when(action) {
+         "上移" -> moveSelected(-1)
+         "下移" -> moveSelected(1)
+         "复制" -> insert(selectedSnippet)
+         "删除" -> { editSelected { "" }; selectedSnippet=""; selected="正文" }
+        }
+       }.padding(horizontal=4.dp,vertical=3.dp))
+     }
+    }
     Column(Modifier.fillMaxWidth(if(compact) .98f else .88f).widthIn(max=(760f*zoom).dp).padding(vertical=8.dp).background(Color.White, RoundedCornerShape(3.dp)).border(1.dp,Color(0xFFE1E3E5),RoundedCornerShape(3.dp)).padding(if(compact) 12.dp else 28.dp)) {
      if(!preview) {
       Text("文章信息",fontSize=10.sp,color=Color.LightGray)
@@ -151,7 +189,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
           when(tool) {
            "B" -> bold=!bold
            "居中" -> align=if(align=="居中") "左对齐" else "居中"
-           "引用" -> insert("“在这里输入引用内容。”\\n—— 来源")
+           "引用" -> insert("“在这里输入引用内容。”\n—— 来源")
            "分割线" -> insert("━━━━━━━━━━━━━━━━")
            "图片" -> showImageInsert=true
           }
@@ -189,7 +227,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      vm.data.articles.sortedByDescending { it.updatedAt }.forEach { article ->
       Column(Modifier.fillMaxWidth().clickable {
        currentArticle=article; id=article.id; title=article.title; subtitle=article.subtitle; author=article.author
-       body=article.html; dirty=false; undo=listOf(""); redo=emptyList(); showArticlePicker=false; preview=false
+       body=article.html; dirty=false; undo=listOf(""); redo=emptyList(); selectedSnippet=""; selected="正文"; showArticlePicker=false; preview=false
       }.padding(vertical=10.dp)) {
        Text(article.title.ifBlank { "未命名文章" },fontSize=13.sp,fontWeight=FontWeight.SemiBold)
        Text(article.updatedAt,fontSize=10.sp,color=Color.Gray)
@@ -200,6 +238,27 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
    },
    confirmButton={TextButton(onClick={showArticlePicker=false}) { Text("关闭") }}
+  )
+  if(showLayers) AlertDialog(
+   onDismissRequest={showLayers=false},
+   title={Text("图层 / 内容结构")},
+   text={
+    Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
+     val blocks=body.split("\n\n").filter { it.isNotBlank() }
+     if(blocks.isEmpty()) Text("画布中还没有内容组件",fontSize=12.sp,color=Color.Gray)
+     blocks.forEachIndexed { index, block ->
+      Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp)).background(if(block==selectedSnippet) accent.copy(alpha=.10f) else Color.Transparent)
+       .clickable { selectedSnippet=block; selected="内容组件"; showLayers=false }.padding(9.dp),
+       verticalAlignment=Alignment.CenterVertically) {
+       Text("\${index+1}",fontSize=10.sp,color=Color.Gray,modifier=Modifier.width(22.dp))
+       Text(block.replace("\n"," / "),fontSize=11.sp,maxLines=2,modifier=Modifier.weight(1f))
+       if(block==selectedSnippet) Text("选中",fontSize=10.sp,color=accent)
+      }
+      Divider()
+     }
+    }
+   },
+   confirmButton={TextButton(onClick={showLayers=false}) { Text("完成") }}
   )
   if(showImageInsert) AlertDialog(
    onDismissRequest={showImageInsert=false},
@@ -231,7 +290,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
    Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.isNotEmpty()) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true} })
    Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true} })
-   listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable { selected=label;dock=when(label) { "文字"->XiumiDock.TEXT;"图片"->XiumiDock.IMAGE;"布局"->XiumiDock.LAYOUT;else->XiumiDock.COMPONENT } }.padding(6.dp)) }
+   listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable {
+    selected=label
+    if(label=="图层") showLayers=true
+    else dock=when(label) { "文字"->XiumiDock.TEXT;"图片"->XiumiDock.IMAGE;"布局"->XiumiDock.LAYOUT;else->XiumiDock.COMPONENT }
+   }.padding(6.dp)) }
   }
  }
 }
