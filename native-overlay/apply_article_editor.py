@@ -170,12 +170,13 @@ replace_once(p,
             .maxOrNull()
         val shouldCreateRevision = changed && (lastRevisionAt == null || nowMillis - lastRevisionAt >= 5 * 60 * 1000L)
         val revisions = if (shouldCreateRevision) {
-            (d.articleRevisions + ArticleRevision(
+            val articleHistory = (d.articleRevisions.filter { it.articleId == x.id } + ArticleRevision(
                 id = newId(), articleId = previous!!.id, title = previous.title, html = previous.html,
                 createdAt = now, note = "自动保存快照", subtitle = previous.subtitle, summary = previous.summary,
                 author = previous.author, coverAssetId = previous.coverAssetId, category = previous.category,
                 tags = previous.tags, status = previous.status, isFavorite = previous.isFavorite
             )).takeLast(30)
+            d.articleRevisions.filterNot { it.articleId == x.id } + articleHistory
         } else d.articleRevisions
         d.copy(
             articles = if (i >= 0) list.toMutableList().also { it[i] = x } else list + x,
