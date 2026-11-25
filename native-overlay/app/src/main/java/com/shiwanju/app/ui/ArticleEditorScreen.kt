@@ -125,6 +125,28 @@ private data class EditorLayerItem(
 )
 
 
+@Composable
+private fun CompactEditorSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    modifier: Modifier = Modifier
+) {
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        valueRange = valueRange,
+        modifier = modifier.height(28.dp),
+        colors = SliderDefaults.colors(
+            thumbColor = Color.White,
+            activeTrackColor = Color(0xFF4A91FF),
+            inactiveTrackColor = Color(0xFF4A4A4A),
+            activeTickColor = Color.Transparent,
+            inactiveTickColor = Color.Transparent
+        )
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Text2EditorPanel(
@@ -155,10 +177,10 @@ private fun Text2EditorPanel(
     @Composable fun colorRow() {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("禁用", "取色", "渐变").forEachIndexed { i, label ->
-                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(0xFFF0F0F0)).clickable {
+                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(0xFF303030)).clickable {
                     when (i) { 0 -> onApplyColor("transparent", styleTab == "背景"); 1 -> onEyedropper(); else -> { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") } }
                 }, contentAlignment = Alignment.Center) {
-                    Text(if (i == 0) "／" else if (i == 1) "⌁" else "✦", color = Color(0xFF555555), fontSize = 17.sp)
+                    Text(if (i == 0) "／" else if (i == 1) "⌁" else "✦", color = Color(0xFFDDDDDD), fontSize = 17.sp)
                 }
             }
             colors.forEach { color ->
@@ -179,26 +201,7 @@ private fun Text2EditorPanel(
         }
     }
     @Composable fun parameter(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
-        Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, Modifier.width(54.dp), color = Color(0xFF555555), fontSize = 12.sp)
-            Slider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
-            Text(value.toInt().toString() + suffix, Modifier.width(42.dp), color = Color(0xFF333333), fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
-        }
-    }
-    Column(Modifier.fillMaxWidth().heightIn(min = 280.dp).background(Color.White), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
-            BasicTextField(value = textValue, onValueChange = { textValue = it }, singleLine = true, modifier = Modifier.weight(1f).padding(start = 4.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF222222), fontSize = 14.sp),
-                decorationBox = { inner -> Box { if (textValue.isEmpty()) Text("点击输入文字", color = Color(0xFFAAAAAA), fontSize = 14.sp); inner() } })
-            listOf("×", "识", "✓").forEachIndexed { i, symbol ->
-                Box(Modifier.padding(start = 7.dp).size(30.dp).clip(CircleShape).background(if (i == 2) Color.Black else Color(0xFFEAEAEA)).clickable {
-                    when (i) { 0 -> textValue = ""; 1 -> onRecognize(); else -> if (textValue.isNotBlank()) { onInsertText(textValue); textValue = "" } }
-                }, contentAlignment = Alignment.Center) {
-                    Text(symbol, color = if (i == 2) Color.White else Color(0xFF555555), fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(42.dp), horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("字体", "样式", "排版").forEach { tab ->
                 Column(Modifier.clickable { mainTab = tab }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(tab, color = if (mainTab == tab) Color.Black else Color(0xFFAAAAAA), fontSize = 14.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
@@ -206,22 +209,25 @@ private fun Text2EditorPanel(
                 }
             }
         }
+        if (mainTab == "样式") {
+            Row(Modifier.fillMaxWidth().height(34.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
+                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.White else Color(0xFF888888), fontSize = 12.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
+                }
+            }
+        }
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (mainTab == "字体") {
-            Text("选择字体", color = Color(0xFF777777), fontSize = 11.sp)
+            Text("选择字体", color = Color(0xFFAAAAAA), fontSize = 11.sp)
             val fonts = listOf("系统默认", "微软雅黑", "苹方", "思源黑体", "宋体", "楷体", "仿宋", "黑体", "圆体", "衬线", "无衬线", "等宽")
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 fonts.forEach { font ->
-                    Box(Modifier.weight(1f).widthIn(min = 78.dp).height(48.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFFF2F2F2))
+                    Box(Modifier.weight(1f).widthIn(min = 78.dp).height(48.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF303030))
                         .clickable { onCommand("fontName", when (font) { "宋体" -> "SimSun"; "楷体" -> "KaiTi"; "黑体", "微软雅黑" -> "Microsoft YaHei"; "仿宋" -> "FangSong"; "等宽" -> "monospace"; "衬线" -> "serif"; "无衬线" -> "sans-serif"; else -> "sans-serif" }) },
-                        contentAlignment = Alignment.Center) { Text(font, color = Color(0xFF333333), fontSize = 12.sp) }
+                        contentAlignment = Alignment.Center) { Text(font, color = Color(0xFFEAEAEA), fontSize = 12.sp) }
                 }
             }
         } else if (mainTab == "样式") {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
-                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.Black else Color(0xFFAAAAAA), fontSize = 12.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
-                }
-            }
             if (styleTab == "描边") {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     listOf("单层", "多层").forEach { label ->
@@ -234,17 +240,17 @@ private fun Text2EditorPanel(
                 "文本" -> {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                         listOf("B" to "粗体", "I" to "斜体", "U" to "下划线", "S" to "删除线").forEachIndexed { i, item ->
-                            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0)).clickable {
+                            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(Color(0xFF303030)).clickable {
                                 onCommand(listOf("bold", "italic", "underline", "strikeThrough")[i], null)
                             }.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(item.first, color = Color.Black, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                                Text(item.second, color = Color(0xFF777777), fontSize = 10.sp)
+                                Text(item.first, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                Text(item.second, color = Color(0xFFAAAAAA), fontSize = 10.sp)
                             }
                         }
                     }
                     parameter("字号", fontSize, 8f, 72f, "px") { fontSize = it; onApplyCss("font-size", it.toInt().toString() + "px") }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("字号微调", color = Color(0xFF555555), fontSize = 11.sp); Spacer(Modifier.weight(1f))
+                        Text("字号微调", color = Color(0xFFDDDDDD), fontSize = 11.sp); Spacer(Modifier.weight(1f))
                         TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(8f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }) { Text("−") }
                         Text(fontSize.toInt().toString(), color = Color.Black)
                         TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(72f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }) { Text("＋") }
@@ -289,9 +295,9 @@ private fun Text2EditorPanel(
             parameter("行间距", lineSpacing, 1f, 3f, "x") { lineSpacing = it; onApplyCss("line-height", it.toString()) }
             parameter("字间距", letterSpacing, -2f, 12f, "px") { letterSpacing = it; onApplyCss("letter-spacing", it.toString() + "px") }
         }
+        }
     }
 }
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
@@ -378,6 +384,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var selectedImageHtml by remember { mutableStateOf("") }
     var selectedTextActive by remember { mutableStateOf(false) }
     var floatingMenu by remember { mutableStateOf("") }
+    var floatingToolbarOffset by remember { mutableStateOf(Offset.Zero) }
     var showImageAlt by remember { mutableStateOf(false) }
     var showCustomImageCrop by remember { mutableStateOf(false) }
     var customCropAsset by remember { mutableStateOf<MediaAsset?>(null) }
@@ -1362,12 +1369,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     (selectedTop + selectionState.height.dp + 10.dp).coerceAtMost((maxHeight - toolbarHeight).coerceAtLeast(8.dp))
                 }
                 Surface(
-                    Modifier.align(Alignment.TopCenter).offset(y = floatingY).fillMaxWidth().padding(horizontal = 12.dp),
+                    Modifier.align(Alignment.TopCenter).offset(y = floatingY).offset { IntOffset(floatingToolbarOffset.x.toInt(), floatingToolbarOffset.y.toInt()) }.fillMaxWidth().padding(horizontal = 12.dp),
                     shape = RoundedCornerShape(18.dp), color = AppColors.Panel, shadowElevation = 14.dp,
                     border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)
                 ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount -> change.consume(); floatingToolbarOffset = Offset(floatingToolbarOffset.x + dragAmount.x, floatingToolbarOffset.y + dragAmount.y) }
+                        }, verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 when {
                                     selectedImageHtml.isNotBlank() -> "图片工具"
@@ -1384,7 +1393,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
                             }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = AppColors.TextDim, fontSize = 11.sp) }
                         }
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (selectedImageHtml.isNotBlank()) {
                                 Box {
                                     TextButton(onClick = { floatingMenu = if (floatingMenu == "image-width") "" else "image-width" }) { Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp) }
@@ -2593,13 +2602,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Text("无法生成预览，但仍可使用下方滑块调整裁切区域。", color = Color.Gray, fontSize = 11.sp)
                     }
                     Text("裁切区域位置 · 左侧 ${String.format(Locale.getDefault(), "%.0f", cropLeft * 100)}%", color = ink, fontSize = 11.sp)
-                    Slider(value = cropLeft, onValueChange = { cropLeft = it.coerceAtMost(1f - cropWidth) }, valueRange = 0f..(1f - cropWidth).coerceAtLeast(0f))
+                    CompactEditorSlider(value = cropLeft, onValueChange = { cropLeft = it.coerceAtMost(1f - cropWidth) }, valueRange = 0f..(1f - cropWidth).coerceAtLeast(0f))
                     Text("裁切区域位置 · 顶部 ${String.format(Locale.getDefault(), "%.0f", cropTop * 100)}%", color = ink, fontSize = 11.sp)
-                    Slider(value = cropTop, onValueChange = { cropTop = it.coerceAtMost(1f - cropHeight) }, valueRange = 0f..(1f - cropHeight).coerceAtLeast(0f))
+                    CompactEditorSlider(value = cropTop, onValueChange = { cropTop = it.coerceAtMost(1f - cropHeight) }, valueRange = 0f..(1f - cropHeight).coerceAtLeast(0f))
                     Text("裁切区域宽度 · ${String.format(Locale.getDefault(), "%.0f", cropWidth * 100)}%", color = ink, fontSize = 11.sp)
-                    Slider(value = cropWidth, onValueChange = { cropWidth = it.coerceIn(0.10f, 1f); cropLeft = cropLeft.coerceAtMost(1f - cropWidth) }, valueRange = 0.10f..1f)
+                    CompactEditorSlider(value = cropWidth, onValueChange = { cropWidth = it.coerceIn(0.10f, 1f); cropLeft = cropLeft.coerceAtMost(1f - cropWidth) }, valueRange = 0.10f..1f)
                     Text("裁切区域高度 · ${String.format(Locale.getDefault(), "%.0f", cropHeight * 100)}%", color = ink, fontSize = 11.sp)
-                    Slider(value = cropHeight, onValueChange = { cropHeight = it.coerceIn(0.10f, 1f); cropTop = cropTop.coerceAtMost(1f - cropHeight) }, valueRange = 0.10f..1f)
+                    CompactEditorSlider(value = cropHeight, onValueChange = { cropHeight = it.coerceIn(0.10f, 1f); cropTop = cropTop.coerceAtMost(1f - cropHeight) }, valueRange = 0.10f..1f)
                     Text("可分别调整裁切区域的左边距、上边距、宽度和高度；原图不会被覆盖，会生成一张新的本地素材。", color = Color.Gray, fontSize = 10.sp)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = { cropLeft = 0f; cropTop = 0f; cropWidth = 1f; cropHeight = 1f }) { Text("重置", color = Color.Gray) }
