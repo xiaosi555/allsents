@@ -139,7 +139,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }
     val toolPanelDensity = LocalDensity.current
     val animatedToolPanelHeight by androidx.compose.animation.core.animateDpAsState(
-        targetValue = toolPanelHeightDp.dp,
+        targetValue = (toolPanelHeightDp - 26f).coerceAtLeast(0f).dp,
         animationSpec = androidx.compose.animation.core.tween(durationMillis = 180),
         label = "toolPanelHeight"
     )
