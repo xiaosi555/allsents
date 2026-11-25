@@ -174,6 +174,10 @@ jobs:
         run: python3 native-overlay/ensure_article_editor_route.py
       # Validate that camera/Edit/palette entries resolve to different Compose screens.
 
+      - name: Fix Xingtu expandable bottom sheet interaction
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/fix_xingtu_bottom_sheet.py
+
       # Run last because route enforcement rewrites MainActivity; verify the final source.
       - name: Apply and verify status bar icon contrast
         if: steps.source.outputs.present == 'true'
