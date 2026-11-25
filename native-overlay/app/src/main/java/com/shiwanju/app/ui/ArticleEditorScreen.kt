@@ -103,7 +103,7 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
 }
 
 private enum class EditorPanel(val label: String) {
-    TEXT("文字"), IMAGE("图片"), LAYOUT("布局"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档")
+    TEXT("文字"), IMAGE("图片"), LAYOUT("布局"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1468,6 +1468,40 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         if (selectedBlockHtml.isBlank() && !multiSelectMode) {
                             Text("在画布中点选一个模块，或开启多选组合。选中后这里会显示对应的模块操作。", color = Color(0xFF8B948D), fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
                         }
+                    }
+                    EditorPanel.CANVAS -> {
+                        Text("画布设置 · 调整文章阅读区域的整体呈现", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        Text("内容宽度", color = ink, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("全宽") { runJs("root.style.width='100%';root.style.maxWidth='100%';root.style.margin='0 auto';") }
+                            EditorTool("92%") { runJs("root.style.width='92%';root.style.maxWidth='680px';root.style.margin='0 auto';") }
+                            EditorTool("680px") { runJs("root.style.width='100%';root.style.maxWidth='680px';root.style.margin='0 auto';") }
+                            EditorTool("重置宽度") { runJs("root.style.width='';root.style.maxWidth='';root.style.margin='';") }
+                        }
+                        Text("画布背景", color = ink, fontSize = 11.sp, modifier = Modifier.padding(top = 7.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("纯白") { runJs("root.style.backgroundColor='#FFFFFF';") }
+                            EditorTool("暖白") { runJs("root.style.backgroundColor='#FAF7F0';") }
+                            EditorTool("浅灰") { runJs("root.style.backgroundColor='#F4F6F4';") }
+                            EditorTool("透明") { runJs("root.style.backgroundColor='transparent';") }
+                        }
+                        Text("正文排版", color = ink, fontSize = 11.sp, modifier = Modifier.padding(top = 7.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("字号14") { runJs("root.querySelectorAll('p').forEach(e=>e.style.fontSize='14px');") }
+                            EditorTool("字号16") { runJs("root.querySelectorAll('p').forEach(e=>e.style.fontSize='16px');") }
+                            EditorTool("字号18") { runJs("root.querySelectorAll('p').forEach(e=>e.style.fontSize='18px');") }
+                            EditorTool("行距1.6") { runJs("root.querySelectorAll('p').forEach(e=>e.style.lineHeight='1.6');") }
+                            EditorTool("行距1.8") { runJs("root.querySelectorAll('p').forEach(e=>e.style.lineHeight='1.8');") }
+                            EditorTool("行距2.0") { runJs("root.querySelectorAll('p').forEach(e=>e.style.lineHeight='2');") }
+                        }
+                        Text("画布留白", color = ink, fontSize = 11.sp, modifier = Modifier.padding(top = 7.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            EditorTool("无留白") { runJs("root.style.padding='0';") }
+                            EditorTool("左右12") { runJs("root.style.padding='0 12px';") }
+                            EditorTool("左右18") { runJs("root.style.padding='0 18px';") }
+                            EditorTool("左右24") { runJs("root.style.padding='0 24px';") }
+                        }
+                        Text("以上画布参数只影响当前文章正文样式，不会修改其他文章。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp))
                     }
                     EditorPanel.DOCUMENT -> {
                         Text("文章管理", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 7.dp))
