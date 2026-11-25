@@ -2,8 +2,8 @@ from pathlib import Path
 import re
 p=Path("source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/LayoutScreen.kt")
 s=p.read_text(encoding="utf-8")
-if "import androidx.compose.material.icons.outlined.Article\n" not in s:
- s=s.replace("import androidx.compose.material.icons.Icons\n","import androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.outlined.Article\n")
+if "import androidx.compose.material.icons.outlined.Palette\\n" not in s:
+ s=s.replace("import androidx.compose.material.icons.Icons\\n","import androidx.compose.material.icons.Icons\\nimport androidx.compose.material.icons.outlined.Palette\\n")
 if "import androidx.compose.foundation.Image\n" not in s:
  s=s.replace("import androidx.compose.foundation.BorderStroke\n","import androidx.compose.foundation.BorderStroke\nimport androidx.compose.foundation.Image\n")
 if "import androidx.compose.ui.res.painterResource\n" not in s:
@@ -17,15 +17,15 @@ private fun TopBar(vm: AppViewModel) {
         Spacer(Modifier.weight(1f))
         Text(vm.charCount.toString() + "字", color = AppColors.TextDim, fontSize = 12.sp)
         Spacer(Modifier.width(8.dp))
-        // Dedicated Xiumi-style editor entry stays immediately LEFT of the Edit action.
+        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
+        Spacer(Modifier.width(2.dp))
+        // Xiumi-style article layout entry: palette icon immediately RIGHT of Edit.
         IconButton(
             onClick = { vm.screen = "article_editor" },
             modifier = Modifier.size(42.dp)
         ) {
-            Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(22.dp))
+            Icon(Icons.Outlined.Palette, contentDescription = "秀米式文章排版", tint = AppColors.TextMain, modifier = Modifier.size(22.dp))
         }
-        Spacer(Modifier.width(2.dp))
-        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
     }
 }'''
 s,n=re.subn(r'@Composable\nprivate fun TopBar\(vm: AppViewModel\) \{.*?\n\}',lambda m:toolbar,s,count=1,flags=re.S)
