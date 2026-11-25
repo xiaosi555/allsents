@@ -142,8 +142,8 @@ selection_helpers = '''                             function ensureEditorId(el){
 '''
 s = replace_once(
     s,
-    '''                             function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
-                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}''',
+    '''                            function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
+                            function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}''',
     selection_helpers + '''                             function saveSelection(){
                                const sel=window.getSelection();
                                if(sel&&sel.rangeCount){
