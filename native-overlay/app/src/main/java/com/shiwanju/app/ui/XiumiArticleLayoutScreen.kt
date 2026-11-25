@@ -30,7 +30,7 @@ private data class XiumiMaterial(val name:String,val detail:String,val value:Str
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun XiumiArticleLayoutScreen(vm:AppViewModel,onBack:()->Unit) {
+fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  val initial=remember { vm.data.articles.maxByOrNull { it.updatedAt } }
  var id by remember { mutableStateOf(initial?.id ?: vm.newId()) }
  var title by remember { mutableStateOf(initial?.title.orEmpty()) }
