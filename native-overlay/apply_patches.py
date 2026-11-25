@@ -2239,7 +2239,13 @@ patch("ui/MyScreens.kt",[
                             vm.setLayoutSpacing(targetId, spacing)
                         },
                         valueRange = 0f..100f,
-                        steps = 19
+                        steps = 19,
+                        modifier = Modifier.height(28.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF252A30),
+                            activeTrackColor = Color(0xFF3987F7),
+                            inactiveTrackColor = Color(0xFFD8DDE4)
+                        )
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("紧凑 0 dp", color = AppColors.MyDim, fontSize = 11.sp)
