@@ -92,11 +92,12 @@ private fun captureTemplateThumbnail(view: WebView, context: Context, template: 
     }.onFailure { android.util.Log.w("ArticleEditor", "模板缩略图生成失败", it) }
 }
 
-private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit) {
+private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit, private val onText: (Boolean) -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
     @JavascriptInterface fun blockSelected(value: String) { main.post { onBlock(value) } }
     @JavascriptInterface fun imageSelected(value: String) { main.post { onImage(value) } }
+    @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
 }
 
 private enum class EditorPanel(val label: String) {
@@ -162,6 +163,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var blockRadius by remember { mutableStateOf("8px") }
     var multiSelectMode by remember { mutableStateOf(false) }
     var selectedImageHtml by remember { mutableStateOf("") }
+    var selectedTextActive by remember { mutableStateOf(false) }
+    var floatingMenu by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
     var showCustomImageCrop by remember { mutableStateOf(false) }
     var customCropAsset by remember { mutableStateOf<MediaAsset?>(null) }
@@ -882,6 +885,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
 
+            Box(Modifier.weight(1f).fillMaxWidth().background(Color(0xFFE9ECE9))) {
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -896,7 +900,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         addJavascriptInterface(ArticleEditorBridge(
                             { value -> html = value; saved = false; pendingSave++ },
                             { value -> selectedBlockHtml = value },
-                            { value -> selectedImageHtml = value }
+                            { value -> selectedImageHtml = value },
+                            { value -> selectedTextActive = value; if (value) floatingMenu = "" }
                         ), "NativeEditor")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
@@ -979,7 +984,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function updateMultiDragHandle(preferred){const selected=Array.from(root.querySelectorAll('.selected-block'));selected.forEach(e=>e.draggable=false);const handle=preferred&&selected.includes(preferred)?preferred:selected[selected.length-1];if(handle)handle.draggable=true;}
                             function setMultiSelectMode(v){multiSelectMode=!!v;root.querySelectorAll('.selected-block').forEach(e=>{e.classList.remove('selected-block');e.draggable=false;});NativeEditor.blockSelected('');}
                             root.addEventListener('click',function(ev){
-                              if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}
+                              if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.textSelected('0');}
+                              else {if(activeImage){activeImage.classList.remove('selected-image');activeImage=null;NativeEditor.imageSelected('');}NativeEditor.textSelected(ev.target!==root?'1':'0');}
                               let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;
                               if(e&&e!==root){
                                 if(multiSelectMode){e.classList.toggle('selected-block');updateMultiDragHandle(e);NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>cleanBlockHtml(x)).join(''));}
@@ -1046,11 +1052,81 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         tag = "article-editor"
                     }
                 },
-                modifier = Modifier.weight(1f).fillMaxWidth().background(Color(0xFFE9ECE9)),
+                modifier = Modifier.fillMaxSize(),
                 update = { editor = it }
             )
+            if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive)) {
+                Surface(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), shape = RoundedCornerShape(18.dp), color = Color.White, shadowElevation = 12.dp, border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE7EBE8))) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (selectedImageHtml.isNotBlank()) "图片工具" else "文字工具", color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""; runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');") }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = Color.Gray, fontSize = 11.sp) }
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (selectedImageHtml.isNotBlank()) {
+                                Box {
+                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "image-width") "" else "image-width" }) { Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp) }
+                                    DropdownMenu(expanded = floatingMenu == "image-width", onDismissRequest = { floatingMenu = "" }) {
+                                        listOf("100%" to "原宽", "75%" to "四分之三", "50%" to "一半").forEach { (v, label) -> DropdownMenuItem(text = { Text("@LABEL@  @V@".replace("@LABEL@", label).replace("@V@", v)) }, onClick = { runJs("setSelectedImageWidth('@V@')".replace("@V@", v)); floatingMenu = "" }) }
+                                    }
+                                }
+                                Box {
+                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "image-crop") "" else "image-crop" }) { Text("▧ 裁切 ▾", color = ink, fontSize = 11.sp) }
+                                    DropdownMenu(expanded = floatingMenu == "image-crop", onDismissRequest = { floatingMenu = "" }) {
+                                        listOf("1:1", "4:3", "16:9").forEach { ratio -> DropdownMenuItem(text = { Text("裁切 " + ratio) }, onClick = { runJs("cropSelectedImage('" + ratio + "')"); floatingMenu = "" }) }
+                                        DropdownMenuItem(text = { Text("自定义像素裁切") }, onClick = { openCustomImageCrop(); floatingMenu = "" })
+                                        DropdownMenuItem(text = { Text("恢复原始比例") }, onClick = { runJs("resetSelectedImageCrop()"); floatingMenu = "" })
+                                    }
+                                }
+                                TextButton(onClick = { runJs("rotateSelectedImage()") }) { Text("↻ 旋转", color = ink, fontSize = 11.sp) }
+                                Box {
+                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "image-style") "" else "image-style" }) { Text("◒ 外观 ▾", color = ink, fontSize = 11.sp) }
+                                    DropdownMenu(expanded = floatingMenu == "image-style", onDismissRequest = { floatingMenu = "" }) {
+                                        DropdownMenuItem(text = { Text("圆角") }, onClick = { runJs("setSelectedImageRadius('10px')"); floatingMenu = "" })
+                                        DropdownMenuItem(text = { Text("直角") }, onClick = { runJs("setSelectedImageRadius('0')"); floatingMenu = "" })
+                                        DropdownMenuItem(text = { Text("细边框") }, onClick = { runJs("setSelectedImageBorder('1px solid #dfe5e1')"); floatingMenu = "" })
+                                        DropdownMenuItem(text = { Text("无边框") }, onClick = { runJs("setSelectedImageBorder('0')"); floatingMenu = "" })
+                                    }
+                                }
+                                TextButton(onClick = { imageReplacementPicker.launch(arrayOf("image/*")) }) { Text("▧ 替换", color = ink, fontSize = 11.sp) }
+                                TextButton(onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
+                                TextButton(onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
+                            } else {
+                                Box {
+                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
+                                    DropdownMenu(expanded = floatingMenu == "text-size", onDismissRequest = { floatingMenu = "" }) {
+                                        listOf("12", "14", "16", "18", "20", "22", "24", "28", "32").forEach { px -> DropdownMenuItem(text = { Text(px + " px") }, onClick = { runJs("styleSelectedParagraph('fontSize','" + px + "px')"); floatingMenu = "" }) }
+                                    }
+                                }
+                                Box {
+                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "text-font") "" else "text-font" }) { Text("文 字体 ▾", color = ink, fontSize = 11.sp) }
+                                    DropdownMenu(expanded = floatingMenu == "text-font", onDismissRequest = { floatingMenu = "" }) {
+                                        listOf("PingFang SC" to "苹方", "Microsoft YaHei" to "微软雅黑", "SimSun" to "宋体", "SimHei" to "黑体", "KaiTi" to "楷体", "serif" to "衬线", "sans-serif" to "无衬线").forEach { (font, label) -> DropdownMenuItem(text = { Text(label) }, onClick = { runJs("styleSelectedParagraph('fontFamily'," + JSONObject.quote(font) + ")"); floatingMenu = "" }) }
+                                    }
+                                }
+                                Box {
+                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "text-color") "" else "text-color" }) { Text("● 颜色 ▾", color = ink, fontSize = 11.sp) }
+                                    DropdownMenu(expanded = floatingMenu == "text-color", onDismissRequest = { floatingMenu = "" }) {
+                                        listOf("#222222" to "黑色", "#666666" to "灰色", "#159765" to "绿色", "#C84B4B" to "红色", "#3978B7" to "蓝色", "#D69A35" to "橙色", "#8056A8" to "紫色").forEach { (hex, label) -> DropdownMenuItem(text = { Text("● " + label + " " + hex, color = Color(android.graphics.Color.parseColor(hex))) }, onClick = { runJs("styleSelectedParagraph('color','" + hex + "')"); floatingMenu = "" }) }
+                                    }
+                                }
+                                TextButton(onClick = { command("bold") }) { Text("B", color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                                TextButton(onClick = { command("italic") }) { Text("I", color = ink, fontSize = 14.sp) }
+                                TextButton(onClick = { command("underline") }) { Text("U", color = ink, fontSize = 14.sp) }
+                                TextButton(onClick = { command("strikeThrough") }) { Text("S", color = ink, fontSize = 14.sp) }
+                                TextButton(onClick = { command("justifyLeft") }) { Text("≡", color = ink, fontSize = 15.sp) }
+                                TextButton(onClick = { command("justifyCenter") }) { Text("☷", color = ink, fontSize = 15.sp) }
+                                TextButton(onClick = { command("insertUnorderedList") }) { Text("☷•", color = ink, fontSize = 12.sp) }
+                                TextButton(onClick = { showFindReplace = true }) { Text("⌕", color = ink, fontSize = 15.sp) }
+                                TextButton(onClick = { activePanel = EditorPanel.TEXT; selectedTextActive = false }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                            }
+                        }
+                    }
+                }
+            }
+            }
 
-            if (!previewMode) {
+            if (!previewMode && selectedImageHtml.isBlank() && !selectedTextActive) {
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                     .background(Color.White)
