@@ -57,6 +57,7 @@ new = """                                    } else {
                                         showCanvasPopup = false
                                         toolPanelHeightDp = when (panel) {
                                             EditorPanel.TEXT -> 260f
+                                            EditorPanel.TEXT2 -> 330f
                                             EditorPanel.TITLE -> 210f
                                             EditorPanel.IMAGE -> 230f
                                             EditorPanel.LAYOUT -> 220f
