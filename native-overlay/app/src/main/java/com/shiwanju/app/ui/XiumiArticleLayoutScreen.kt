@@ -230,7 +230,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
    XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\n02  第二步\n03  第三步"))
    XiumiDock.COMPONENT -> listOf(XiumiMaterial("关注引导","公众号关注提示","关注公众号｜拾万句"),XiumiMaterial("作者信息","作者署名","文 / 拾万句"),XiumiMaterial("二维码","二维码占位","［二维码图片］"))
-   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释")) + vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) } + importedMaterials
+   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释")) + vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) }
    XiumiDock.THEME -> listOf(XiumiMaterial("薄荷绿","清新绿色","mint"),XiumiMaterial("暖阳橙","温暖橙色","orange"),XiumiMaterial("海盐蓝","清爽蓝色","blue"))
    XiumiDock.FAVORITE -> vm.data.styles.filter { it.isFavorite }.map { XiumiMaterial(it.name,it.category,it.html) }
   }
@@ -268,7 +268,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Column(Modifier.fillMaxWidth().padding(bottom=7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F6)).clickable {
        if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else showMaterialPreview=material
       }.padding(9.dp)) {
-       Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(vm.data.styles.any { it.name==material.name && it.category==dock.label && it.isFavorite }) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { val existing=vm.data.styles.firstOrNull { it.name==material.name && it.category==dock.label }; if(existing!=null) vm.saveStyle(existing.copy(isFavorite=!existing.isFavorite,updatedAt=System.currentTimeMillis().toString())) else vm.saveStyle(StyleModule(vm.newId(),material.name,dock.label,material.value,System.currentTimeMillis().toString(),isFavorite=true,type="component")) }) }
+       Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(vm.data.styles.any { it.name==material.name && it.html==material.value && it.isFavorite }) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { val existing=vm.data.styles.firstOrNull { it.name==material.name && it.html==material.value }; if(existing!=null) vm.saveStyle(existing.copy(isFavorite=!existing.isFavorite,updatedAt=System.currentTimeMillis().toString())) else vm.saveStyle(StyleModule(vm.newId(),material.name,dock.label,material.value,System.currentTimeMillis().toString(),isFavorite=true,type="component")) }) }
        Text(material.detail,fontSize=10.sp,color=Color.Gray)
        if(dock!=XiumiDock.THEME) Text("＋ 添加",fontSize=10.sp,color=accent,modifier=Modifier.padding(top=4.dp))
       }
@@ -466,12 +466,12 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   if(properties && compact) ModalBottomSheet(onDismissRequest={properties=false}) {
    Column(Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=10.dp)) {
     Text("属性设置 · $selected",fontSize=16.sp,fontWeight=FontWeight.Bold)
-    Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
-    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=12.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
-    FilterChip(bold,{bold=!bold},{Text("粗体")})
-    Text("内边距 ${contentPadding.toInt()} dp",fontSize=12.sp); Slider(contentPadding,{contentPadding=it},valueRange=12f..40f)
-    Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it},valueRange=0f..3f)
-    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=12.sp); Slider(cornerRadius,{cornerRadius=it},valueRange=0f..18f)
+    Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f)
+    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=12.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
+    FilterChip(bold,{bold=!bold;updateSelectedBlock { b -> b.copy(bold=bold) }},{Text("粗体")})
+    Text("内边距 ${contentPadding.toInt()} dp",fontSize=12.sp); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f)
+    Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f)
+    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=12.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f)
     Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) { listOf("左对齐","居中","右对齐").forEach { option -> Text(option,color=if(align==option) accent else Color.Gray,modifier=Modifier.clickable { align=option }.padding(vertical=8.dp)) } }
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
    }
