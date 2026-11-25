@@ -58,9 +58,6 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var showBlockEditor by remember { mutableStateOf(false) }
  var blockDraft by remember { mutableStateOf("") }
  var selectedType by remember { mutableStateOf("正文") }
- var selectedType by remember { mutableStateOf("正文") }
- var showBlockEditor by remember { mutableStateOf(false) }
- var blockDraft by remember { mutableStateOf("") }
  var showMaterialPreview by remember { mutableStateOf<XiumiMaterial?>(null) }
  var favoriteMaterials by remember { mutableStateOf(setOf<String>()) }
  var importedMaterials by remember { mutableStateOf(listOf<XiumiMaterial>()) }
@@ -131,7 +128,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
    XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\n02  第二步\n03  第三步"))
    XiumiDock.COMPONENT -> listOf(XiumiMaterial("关注引导","公众号关注提示","关注公众号｜拾万句"),XiumiMaterial("作者信息","作者署名","文 / 拾万句"),XiumiMaterial("二维码","二维码占位","［二维码图片］"))
-   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释"))
+   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释")) + importedMaterials
    XiumiDock.THEME -> listOf(XiumiMaterial("薄荷绿","清新绿色","mint"),XiumiMaterial("暖阳橙","温暖橙色","orange"),XiumiMaterial("海盐蓝","清爽蓝色","blue"))
    XiumiDock.FAVORITE -> (vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) } + importedMaterials).filter { it.name in favoriteMaterials }
   }
@@ -146,6 +143,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     undo=listOf(""); redo=emptyList(); dirty=true; preview=false
    }) { Text("新建") }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
+   TextButton(onClick={exportLauncher.launch("${title.ifBlank { "文章" }}.txt")}) { Text("导出") }
    TextButton(onClick={ { save() } }) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
    TextButton(onClick={properties=!properties}) { Text("属性") }
   }
@@ -166,7 +164,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
      materials.filter { search.isBlank() || it.name.contains(search) || it.detail.contains(search) }.forEach { material ->
       Column(Modifier.fillMaxWidth().padding(bottom=7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F6)).clickable {
-       if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else insert(material.value)
+       if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else if(dock==XiumiDock.TEMPLATE) showMaterialPreview=material else insert(material.value)
       }.padding(9.dp)) {
        Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(material.name in favoriteMaterials) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { favoriteMaterials=if(material.name in favoriteMaterials) favoriteMaterials-material.name else favoriteMaterials+material.name }) }
        Text(material.detail,fontSize=10.sp,color=Color.Gray)
@@ -296,6 +294,12 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
    },
    confirmButton={TextButton(onClick={showLayers=false}) { Text("完成") }}
+  )
+  if(showMaterialPreview!=null) AlertDialog(
+   onDismissRequest={showMaterialPreview=null}, title={Text("模板预览 · ${showMaterialPreview?.name.orEmpty()}")},
+   text={Text(showMaterialPreview?.value.orEmpty(),fontSize=13.sp,color=Color(0xFF333333))},
+   confirmButton={TextButton(onClick={showMaterialPreview?.let { changeBody(it.value); selectedSnippet="" };showMaterialPreview=null}) { Text("套用模板") }},
+   dismissButton={TextButton(onClick={showMaterialPreview=null}) { Text("关闭") }}
   )
   if(showBlockEditor) AlertDialog(
    onDismissRequest={showBlockEditor=false}, title={Text("独立编辑 · $selectedType")},
