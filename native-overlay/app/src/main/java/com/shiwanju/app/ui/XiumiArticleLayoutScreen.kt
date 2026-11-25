@@ -331,6 +331,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Column(Modifier.fillMaxWidth().defaultMinSize(minHeight=300.dp)) {
        if(blocks.isEmpty()) Text("从左侧素材中心添加标题、正文、图片或卡片。",fontSize=13.sp,color=Color.Gray,modifier=Modifier.padding(vertical=20.dp))
        blocks.forEachIndexed { index, block ->
+        val imageAsset=vm.data.mediaAssets.firstOrNull { block.content.contains("/assets/\${it.id}") }
+        val imageBitmap=remember(imageAsset?.id) { imageAsset?.let { runCatching { BitmapFactory.decodeFile(File(context.filesDir,it.relativePath).absolutePath) }.getOrNull() } }
         Column(Modifier.fillMaxWidth().padding(vertical=5.dp).clip(RoundedCornerShape(block.radius.dp))
          .border(if(block.id==selectedBlockId) 1.5.dp else block.border.dp,if(block.id==selectedBlockId) accent else Color(0xFFE1E3E5),RoundedCornerShape(block.radius.dp))
          .background(if(block.type=="卡片") Color(0xFFF5F6F6) else Color.Transparent)
@@ -339,6 +341,10 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
          Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
           Text(block.type,fontSize=9.sp,color=accent,modifier=Modifier.weight(1f))
           Text("编辑属性",fontSize=9.sp,color=Color.Gray,modifier=Modifier.clickable { selectedBlockId=block.id; selected=block.type; properties=true })
+         }
+         if(block.type=="图片") {
+          if(imageBitmap!=null) Image(imageBitmap.asImageBitmap(),contentDescription=imageAsset?.fileName,modifier=Modifier.fillMaxWidth().heightIn(max=280.dp),contentScale=ContentScale.Fit)
+          else Text("图片素材引用 · \${imageAsset?.fileName ?: "请导入或替换图片"}",fontSize=11.sp,color=Color.Gray)
          }
          OutlinedTextField(block.content,{ value ->
           val next=blocks.toMutableList(); next[index]=block.copy(content=value); syncBlocks(next)
@@ -356,7 +362,10 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Text("文 / $author",fontSize=11.sp,color=Color.Gray,modifier=Modifier.padding(vertical=12.dp))
       if(blocks.isEmpty()) Text("正文预览将在这里显示。",fontSize=fontSize.sp,color=foreground)
       blocks.forEach { block ->
-       Text(block.content,fontSize=if(block.type=="标题") (block.fontSize+6).sp else block.fontSize.sp,
+       val imageAsset=vm.data.mediaAssets.firstOrNull { block.content.contains("/assets/\${it.id}") }
+       val imageBitmap=remember(imageAsset?.id) { imageAsset?.let { runCatching { BitmapFactory.decodeFile(File(context.filesDir,it.relativePath).absolutePath) }.getOrNull() } }
+       if(block.type=="图片" && imageBitmap!=null) Image(imageBitmap.asImageBitmap(),contentDescription=imageAsset?.fileName,modifier=Modifier.fillMaxWidth().heightIn(max=360.dp).padding(vertical=block.padding.dp),contentScale=ContentScale.Fit)
+       else Text(if(block.type=="图片") imageAsset?.fileName ?: "图片素材" else block.content,fontSize=if(block.type=="标题") (block.fontSize+6).sp else block.fontSize.sp,
         lineHeight=(block.fontSize*block.lineSpace).sp,color=Color(block.color),
         fontWeight=if(block.bold || block.type=="标题") FontWeight.Bold else FontWeight.Normal,
         textAlign=when(block.align) { "居中"->TextAlign.Center; "右对齐"->TextAlign.End; else->TextAlign.Start },
