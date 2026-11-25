@@ -1419,6 +1419,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Text(customCropAsset!!.fileName, color = Color.Gray, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (customCropPreviewBitmap != null) {
                         val cropBitmap = customCropPreviewBitmap!!
+                        val latestCropLeft by rememberUpdatedState(cropLeft)
+                        val latestCropTop by rememberUpdatedState(cropTop)
+                        val latestCropWidth by rememberUpdatedState(cropWidth)
+                        val latestCropHeight by rememberUpdatedState(cropHeight)
                         Box(
                             modifier = Modifier.fillMaxWidth()
                                 .aspectRatio(cropBitmap.width.toFloat() / cropBitmap.height.toFloat())
@@ -1431,16 +1435,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 contentScale = ContentScale.FillBounds
                             )
                             Canvas(
-                                modifier = Modifier.fillMaxSize().pointerInput(cropLeft, cropTop, cropWidth, cropHeight) {
+                                modifier = Modifier.fillMaxSize().pointerInput(cropBitmap) {
                                     var dragMode = -1
                                     detectDragGestures(
                                         onDragStart = { point ->
                                             val w = size.width.toFloat().coerceAtLeast(1f)
                                             val h = size.height.toFloat().coerceAtLeast(1f)
-                                            val l = cropLeft * w
-                                            val t = cropTop * h
-                                            val r = (cropLeft + cropWidth) * w
-                                            val b = (cropTop + cropHeight) * h
+                                            val l = latestCropLeft * w
+                                            val t = latestCropTop * h
+                                            val r = (latestCropLeft + latestCropWidth) * w
+                                            val b = (latestCropTop + latestCropHeight) * h
                                             val handles = listOf(
                                                 Offset(l, t), Offset(r, t), Offset(l, b), Offset(r, b)
                                             )
@@ -1466,34 +1470,34 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                             val minSide = 0.10f
                                             when (dragMode) {
                                                 0 -> {
-                                                    val right = cropLeft + cropWidth
-                                                    val bottom = cropTop + cropHeight
-                                                    cropLeft = (cropLeft + dx).coerceIn(0f, right - minSide)
-                                                    cropTop = (cropTop + dy).coerceIn(0f, bottom - minSide)
+                                                    val right = latestCropLeft + latestCropWidth
+                                                    val bottom = latestCropTop + latestCropHeight
+                                                    cropLeft = (latestCropLeft + dx).coerceIn(0f, right - minSide)
+                                                    cropTop = (latestCropTop + dy).coerceIn(0f, bottom - minSide)
                                                     cropWidth = right - cropLeft
                                                     cropHeight = bottom - cropTop
                                                 }
                                                 1 -> {
-                                                    val bottom = cropTop + cropHeight
-                                                    val right = (cropLeft + cropWidth + dx).coerceIn(cropLeft + minSide, 1f)
-                                                    cropTop = (cropTop + dy).coerceIn(0f, bottom - minSide)
+                                                    val bottom = latestCropTop + latestCropHeight
+                                                    val right = (latestCropLeft + latestCropWidth + dx).coerceIn(latestCropLeft + minSide, 1f)
+                                                    cropTop = (latestCropTop + dy).coerceIn(0f, bottom - minSide)
                                                     cropWidth = right - cropLeft
                                                     cropHeight = bottom - cropTop
                                                 }
                                                 2 -> {
-                                                    val right = cropLeft + cropWidth
-                                                    val bottom = (cropTop + cropHeight + dy).coerceIn(cropTop + minSide, 1f)
-                                                    cropLeft = (cropLeft + dx).coerceIn(0f, right - minSide)
+                                                    val right = latestCropLeft + latestCropWidth
+                                                    val bottom = (latestCropTop + latestCropHeight + dy).coerceIn(latestCropTop + minSide, 1f)
+                                                    cropLeft = (latestCropLeft + dx).coerceIn(0f, right - minSide)
                                                     cropWidth = right - cropLeft
                                                     cropHeight = bottom - cropTop
                                                 }
                                                 3 -> {
-                                                    cropWidth = (cropWidth + dx).coerceIn(minSide, 1f - cropLeft)
-                                                    cropHeight = (cropHeight + dy).coerceIn(minSide, 1f - cropTop)
+                                                    cropWidth = (cropWidth + dx).coerceIn(minSide, 1f - latestCropLeft)
+                                                    cropHeight = (cropHeight + dy).coerceIn(minSide, 1f - latestCropTop)
                                                 }
                                                 4 -> {
-                                                    cropLeft = (cropLeft + dx).coerceIn(0f, 1f - cropWidth)
-                                                    cropTop = (cropTop + dy).coerceIn(0f, 1f - cropHeight)
+                                                    cropLeft = (latestCropLeft + dx).coerceIn(0f, 1f - latestCropWidth)
+                                                    cropTop = (latestCropTop + dy).coerceIn(0f, 1f - latestCropHeight)
                                                 }
                                             }
                                         }
