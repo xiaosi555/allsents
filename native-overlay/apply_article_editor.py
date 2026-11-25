@@ -134,6 +134,26 @@ replace_once(p,
         if (raw == null || migrated != loaded || migrated != data) saveData(migrated)
         return migrated''', "one-time default style migration")
 
+# Recover from an interrupted save before falling back to seed data. A valid backup
+# takes precedence whenever the primary file is absent or cannot be parsed.
+replace_once(p,
+'''    fun loadData(): AppData {
+        val raw: AppData? = runCatching {
+            if (dataFile.exists()) gson.fromJson(dataFile.readText(Charsets.UTF_8), AppData::class.java) else null
+        }.getOrNull()''',
+'''    fun loadData(): AppData {
+        val backupFile = File(ctx.filesDir, "app_data.json.bak")
+        val primaryRaw: AppData? = runCatching {
+            if (dataFile.exists()) gson.fromJson(dataFile.readText(Charsets.UTF_8), AppData::class.java) else null
+        }.getOrNull()
+        val backupRaw: AppData? = if (primaryRaw == null && backupFile.exists()) {
+            runCatching { gson.fromJson(backupFile.readText(Charsets.UTF_8), AppData::class.java) }.getOrNull()
+        } else null
+        if (primaryRaw == null && backupRaw != null) {
+            runCatching { backupFile.copyTo(dataFile, overwrite = true) }
+        }
+        val raw: AppData? = primaryRaw ?: backupRaw''', "primary/backup data recovery")
+
 # Make business-data writes fail visibly and avoid truncating the previous JSON on interrupted writes.
 p = DATA / "Store.kt"
 replace_once(p,
@@ -452,6 +472,8 @@ checks = [
     (DATA / "Store.kt", "styleSeedApplied = raw.styleSeedApplied"),
     (DATA / "Store.kt", "fun saveData(d: AppData): Boolean"),
     (DATA / "Store.kt", "output.fd.sync()"),
+    (DATA / "Store.kt", "val backupRaw: AppData?"),
+    (DATA / "Store.kt", "backupFile.copyTo(dataFile, overwrite = true)"),
     (UI / "AppViewModel.kt", "if (!store.saveData(updated))"),
     (UI / "AppViewModel.kt", "fun saveArticle("),
     (UI / "AppViewModel.kt", "fun deleteArticle("),
