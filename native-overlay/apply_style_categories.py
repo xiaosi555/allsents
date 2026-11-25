@@ -301,6 +301,10 @@ def verify_editor_tool_callbacks():
         if "onClick" not in args and not source.startswith("{", tail_index):
             missing.append((source.count("\n", 0, match.start()) + 1, "missing click callback"))
     if missing:
+        lines = source.splitlines()
+        for line_number, reason in missing:
+            print(f"EDITOR_TOOL_WIRING_ERROR line {line_number}: {reason}")
+            print(lines[line_number - 1] if 0 < line_number <= len(lines) else "<line unavailable>")
         raise SystemExit("EditorTool callback validation failed: " + repr(missing))
     print(f"EditorTool callback validation passed: {len(calls)} actionable tool calls")
     for line_number, line in enumerate(source.splitlines(), 1):
