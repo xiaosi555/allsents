@@ -34,7 +34,7 @@ main = re.sub(
     main
 )
 # Remove the generic legacy key so only the two explicit editor identities remain.
-main = re.sub(r'^\s*"article_editor"\s*->\s*ArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}\s*\n', "", main, flags=re.M)
+main = re.sub(r'^[ \t]*"article_editor"\s*->\s*ArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}[ \t]*\n', "", main, flags=re.M)
 if '"xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }' not in main:
     route = '                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }'
     if route not in main:
