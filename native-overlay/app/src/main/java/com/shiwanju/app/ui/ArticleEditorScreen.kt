@@ -973,6 +973,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function moveSelectedImageInGroup(dir){if(!activeImage)return;const cell=activeImage.closest('td,th');if(!cell)return;const sibling=dir<0?cell.previousElementSibling:cell.nextElementSibling;if(!sibling)return;if(dir<0)cell.parentNode.insertBefore(cell,sibling);else cell.parentNode.insertBefore(sibling,cell);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function selectedParagraph(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|BLOCKQUOTE|LI|PRE)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
                             function styleSelectedParagraph(prop,value){restoreSelection();const e=selectedParagraph();if(!e)return;e.style[prop]=value;commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function styleSelectionOrParagraph(prop,value){const sel=window.getSelection();if(sel&&!sel.isCollapsed){const styles={};styles[prop]=value;applyInlineStyle(styles);}else styleSelectedParagraph(prop,value);}
                             function replaceAllText(search,replacement){if(!search)return 0;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,count=0;while(node=walker.nextNode()){if(node.nodeValue.includes(search)){const parts=node.nodeValue.split(search);count+=parts.length-1;node.nodeValue=parts.join(replacement);}}if(count){commitHistory();NativeEditor.changed(root.innerHTML);}return count;}
                             let formatClipboard=null;
                             function selectedTextElement(){const sel=window.getSelection();let e=sel&&sel.anchorNode?(sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode):null;while(e&&e!==root&&!/^(P|H1|H2|H3|H4|SPAN|STRONG|B|EM|I|U)$/.test(e.tagName))e=e.parentElement;return e&&e!==root?e:null;}
@@ -1103,23 +1104,24 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 TextButton(onClick = { imageReplacementPicker.launch(arrayOf("image/*")) }) { Text("▧ 替换", color = ink, fontSize = 11.sp) }
                                 TextButton(onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
                                 TextButton(onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
+                                TextButton(onClick = { selectedImageHtml = ""; activePanel = EditorPanel.IMAGE }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                             } else {
                                 Box {
                                     TextButton(onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-size", onDismissRequest = { floatingMenu = "" }) {
-                                        listOf("12", "14", "16", "18", "20", "22", "24", "28", "32").forEach { px -> DropdownMenuItem(text = { Text(px + " px") }, onClick = { runJs("styleSelectedParagraph('fontSize','" + px + "px')"); floatingMenu = "" }) }
+                                        listOf("12", "14", "16", "18", "20", "22", "24", "28", "32").forEach { px -> DropdownMenuItem(text = { Text(px + " px") }, onClick = { runJs("styleSelectionOrParagraph('fontSize','" + px + "px')"); floatingMenu = "" }) }
                                     }
                                 }
                                 Box {
                                     TextButton(onClick = { floatingMenu = if (floatingMenu == "text-font") "" else "text-font" }) { Text("文 字体 ▾", color = ink, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-font", onDismissRequest = { floatingMenu = "" }) {
-                                        listOf("PingFang SC" to "苹方", "Microsoft YaHei" to "微软雅黑", "SimSun" to "宋体", "SimHei" to "黑体", "KaiTi" to "楷体", "serif" to "衬线", "sans-serif" to "无衬线").forEach { (font, label) -> DropdownMenuItem(text = { Text(label) }, onClick = { runJs("styleSelectedParagraph('fontFamily'," + JSONObject.quote(font) + ")"); floatingMenu = "" }) }
+                                        listOf("PingFang SC" to "苹方", "Microsoft YaHei" to "微软雅黑", "SimSun" to "宋体", "SimHei" to "黑体", "KaiTi" to "楷体", "serif" to "衬线", "sans-serif" to "无衬线").forEach { (font, label) -> DropdownMenuItem(text = { Text(label) }, onClick = { runJs("styleSelectionOrParagraph('fontFamily'," + JSONObject.quote(font) + ")"); floatingMenu = "" }) }
                                     }
                                 }
                                 Box {
                                     TextButton(onClick = { floatingMenu = if (floatingMenu == "text-color") "" else "text-color" }) { Text("● 颜色 ▾", color = ink, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-color", onDismissRequest = { floatingMenu = "" }) {
-                                        listOf("#222222" to "黑色", "#666666" to "灰色", "#159765" to "绿色", "#C84B4B" to "红色", "#3978B7" to "蓝色", "#D69A35" to "橙色", "#8056A8" to "紫色").forEach { (hex, label) -> DropdownMenuItem(text = { Text("● " + label + " " + hex, color = Color(android.graphics.Color.parseColor(hex))) }, onClick = { runJs("styleSelectedParagraph('color','" + hex + "')"); floatingMenu = "" }) }
+                                        listOf("#222222" to "黑色", "#666666" to "灰色", "#159765" to "绿色", "#C84B4B" to "红色", "#3978B7" to "蓝色", "#D69A35" to "橙色", "#8056A8" to "紫色").forEach { (hex, label) -> DropdownMenuItem(text = { Text("● " + label + " " + hex, color = Color(android.graphics.Color.parseColor(hex))) }, onClick = { runJs("styleSelectionOrParagraph('color','" + hex + "')"); floatingMenu = "" }) }
                                     }
                                 }
                                 TextButton(onClick = { command("bold") }) { Text("B", color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
