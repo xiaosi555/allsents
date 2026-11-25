@@ -163,6 +163,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var cropHeight by remember { mutableFloatStateOf(0.90f) }
     var previewAsset by remember { mutableStateOf<MediaAsset?>(null) }
     var templateSearchText by remember { mutableStateOf("") }
+    var templateLibraryTab by remember { mutableStateOf("full") }
     var favoriteTemplatesOnly by remember { mutableStateOf(false) }
     var templateTagFilter by remember { mutableStateOf("") }
     var templateSortByName by remember { mutableStateOf(false) }
@@ -174,8 +175,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
     }.sortedByDescending { it.updatedAt }
     val filteredMediaAssets = vm.data.mediaAssets.filter { mediaSearchText.isBlank() || it.fileName.contains(mediaSearchText, true) || it.mimeType.contains(mediaSearchText, true) }.sortedByDescending { it.createdAt }
-    val availableTemplateTags = vm.data.styles.filter { it.category == "整篇模板" }.flatMap { it.tags }.map { it.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
-    val filteredTemplates = vm.data.styles.filter { it.category == "整篇模板" && (!favoriteTemplatesOnly || it.isFavorite) && (templateTagFilter.isBlank() || it.tags.any { tag -> tag.equals(templateTagFilter, true) }) && (templateSearchText.isBlank() || it.name.contains(templateSearchText, true) || it.tags.any { tag -> tag.contains(templateSearchText, true) }) }
+    val templateLibraryItems = vm.data.styles.filter { style ->
+        when (templateLibraryTab) {
+            "full" -> style.type == "full" || style.category == "整篇模板"
+            "combination" -> style.type == "combination"
+            else -> style.type != "full" && style.category != "整篇模板" && style.type != "combination"
+        }
+    }
+    val availableTemplateTags = templateLibraryItems.flatMap { it.tags }.map { it.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
+    val filteredTemplates = templateLibraryItems.filter { (!favoriteTemplatesOnly || it.isFavorite) && (templateTagFilter.isBlank() || it.tags.any { tag -> tag.equals(templateTagFilter, true) }) && (templateSearchText.isBlank() || it.name.contains(templateSearchText, true) || it.tags.any { tag -> tag.contains(templateSearchText, true) }) }
         .let { list -> if (templateSortByName) list.sortedBy { it.name.lowercase(Locale.ROOT) } else list.sortedWith(compareByDescending<StyleModule> { it.isFavorite }.thenByDescending { it.updatedAt }) }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val previewBitmap = remember(previewAsset?.id) {
@@ -1152,7 +1160,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }.onFailure { vm.toast("模板包导出失败：${it.message ?: "无法读取素材"}") }
                         }
                     }
-                    Text("我的整篇模板", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        EditorTool("整篇模板", templateLibraryTab == "full") { templateLibraryTab = "full"; templateTagFilter = "" }
+                        EditorTool("局部组件", templateLibraryTab == "component") { templateLibraryTab = "component"; templateTagFilter = "" }
+                        EditorTool("组合组件", templateLibraryTab == "combination") { templateLibraryTab = "combination"; templateTagFilter = "" }
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板名称或标签") })
                         EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
@@ -1181,7 +1194,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     ) {
                                         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text("整篇模板", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                                                val isFullTemplate = template.type == "full" || template.category == "整篇模板"
+                                                Text(if (isFullTemplate) "整篇模板" else if (template.type == "combination") "组合组件" else "局部组件", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Medium)
                                                 Text(if (template.isFavorite) "★" else "☆", color = if (template.isFavorite) accent else Color.Gray, modifier = Modifier.clickable { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) })
                                             }
                                             Text(template.name, color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -1209,7 +1223,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                             if (template.tags.isNotEmpty()) Text(template.tags.take(2).joinToString(" · "), color = Color(0xFF87958C), fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                                 TextButton(onClick = { templatePreview = template }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("预览", fontSize = 10.sp, color = accent) }
-                                                TextButton(onClick = { fullTemplateConfirm = template }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("应用", fontSize = 10.sp, color = accent) }
+                                                if (isFullTemplate) {
+                                                    TextButton(onClick = { fullTemplateConfirm = template }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("应用全文", fontSize = 10.sp, color = accent) }
+                                                } else {
+                                                    TextButton(onClick = { insert(template.html) }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("插入", fontSize = 10.sp, color = accent) }
+                                                    if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
+                                                        TextButton(onClick = { runJs("replaceSelectedBlockWithHtml(${JSONObject.quote(template.html)})") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("替换模块", fontSize = 10.sp, color = accent) }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1295,7 +1316,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { templatePreview = null }) { Text("关闭", color = accent) }
-                        TextButton(onClick = { fullTemplateConfirm = template; templatePreview = null }) { Text("应用模板", color = accent) }
+                        if (template.type == "full" || template.category == "整篇模板") {
+                            TextButton(onClick = { fullTemplateConfirm = template; templatePreview = null }) { Text("应用全文", color = accent) }
+                        } else {
+                            TextButton(onClick = { insert(template.html); templatePreview = null }) { Text("插入组件", color = accent) }
+                            if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
+                                TextButton(onClick = { runJs("replaceSelectedBlockWithHtml(${JSONObject.quote(template.html)})"); templatePreview = null }) { Text("替换模块", color = accent) }
+                            }
+                        }
                     }
                 }
             }
