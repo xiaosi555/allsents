@@ -33,15 +33,13 @@ main = re.sub(
     '"article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }',
     main
 )
+# Remove the generic legacy key so only the two explicit editor identities remain.
+main = re.sub(r'^\s*"article_editor"\s*->\s*ArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}\s*\n', "", main, flags=re.M)
 if '"xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }' not in main:
-    legacy = '                        "article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }'
-    if legacy in main:
-        main = main.replace(legacy, '                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }\n' + legacy, 1)
-    else:
-        route = '                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }'
-        if route not in main:
-            raise SystemExit("Cannot locate Xiumi route in MainActivity.")
-        main = main.replace(route, route + '\n                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }', 1)
+    route = '                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }'
+    if route not in main:
+        raise SystemExit("Cannot locate Xiumi route in MainActivity.")
+    main = main.replace(route, route + '\n                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }', 1)
 
 # Remove the old misleading wrapper that made the classic editor look like a Xiumi screen.
 editor = EDITOR.read_text(encoding="utf-8")
@@ -54,6 +52,8 @@ if removed > 1:
     raise SystemExit("Found multiple legacy XiumiArticleEditorScreen wrappers.")
 if "fun XiumiArticleEditorScreen" in editor:
     raise SystemExit("Legacy XiumiArticleEditorScreen alias remains in ArticleEditorScreen.kt.")
+if "醒图 · " not in editor:
+    raise SystemExit("醒图 editor identity label was not applied.")
 # Make the restored editor visibly identify itself as 醒图.
 editor = editor.replace(
     'Text(if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))',
@@ -102,7 +102,6 @@ check_main = MAIN.read_text(encoding="utf-8")
 for token in (
     '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)',
     '"xingtu_article_editor" -> ArticleEditorScreen(vm)',
-    '"article_editor" -> ArticleEditorScreen(vm)',
 ):
     if token not in check_main:
         raise SystemExit("Independent editor route verification failed: " + token)
@@ -110,4 +109,6 @@ if "fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit)" not in EDITOR
     raise SystemExit("醒图 ArticleEditorScreen composable is missing.")
 if "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)" not in XIUMI.read_text(encoding="utf-8"):
     raise SystemExit("Independent XiumiArticleLayoutScreen composable is missing.")
+if '"article_editor"' in check_main:
+    raise SystemExit("Generic article_editor route remains; use the explicit 醒图 route.")
 print("Verified separate editors: 醒图 camera -> ArticleEditorScreen; 秀米 palette -> XiumiArticleLayoutScreen; Edit remains between them.")
