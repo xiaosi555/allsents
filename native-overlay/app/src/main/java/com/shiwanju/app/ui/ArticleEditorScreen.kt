@@ -209,7 +209,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
 
     fun openCustomImageCrop() {
-        val match = Regex("""https://editor\\.local/assets/([A-Za-z0-9_-]+)""").find(selectedImageHtml)
+        val match = Regex("""https://editor\.local/assets/([A-Za-z0-9_-]+)""").find(selectedImageHtml)
         val asset = match?.groupValues?.getOrNull(1)?.let { id -> vm.data.mediaAssets.firstOrNull { it.id == id } }
         if (asset == null) {
             vm.toast("自定义像素裁切仅支持已导入素材库的本地图片")
