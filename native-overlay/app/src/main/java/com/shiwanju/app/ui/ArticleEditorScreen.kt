@@ -180,6 +180,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var blockWidth by remember { mutableStateOf("100%") }
     var blockBackground by remember { mutableStateOf("#F4F7F5") }
     var blockBorder by remember { mutableStateOf("#E2E9E4") }
+    var blockBorderWidth by remember { mutableStateOf("1") }
+    var blockBorderStyle by remember { mutableStateOf("solid") }
     var blockRadius by remember { mutableStateOf("8px") }
     var blockShadow by remember { mutableStateOf("none") }
     var blockAlign by remember { mutableStateOf("left") }
@@ -1086,7 +1088,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
                             function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);commitHistory();NativeEditor.changed(root.innerHTML);}
-                            function applySelectedBlockStyle(padding,margin,width,bg,border,radius,shadow,align,opacity){const e=selectedBlock();if(!e)return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.margin=margin+' auto';e.style.width=width;e.style.maxWidth='100%';e.style.backgroundColor=bg;e.style.border='1px solid '+border;e.style.borderRadius=radius;e.style.boxShadow=shadow;e.style.textAlign=align;e.style.opacity=String(Math.max(0,Math.min(100,Number(opacity))))/100;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}
+                            function applySelectedBlockStyle(padding,margin,width,bg,border,borderWidth,borderStyle,radius,shadow,align,opacity){const e=selectedBlock();if(!e)return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.margin=margin+' auto';e.style.width=width;e.style.maxWidth='100%';e.style.background='none';e.style.background=bg;e.style.border=borderWidth+'px '+borderStyle+' '+border;e.style.borderRadius=radius;e.style.boxShadow=shadow;e.style.textAlign=align;e.style.opacity=String(Math.max(0,Math.min(100,Number(opacity))))/100;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}
                             function selectedTable(){const e=selectedBlock();return e?(e.tagName==='TABLE'?e:e.querySelector('table')):null;}
                             function addTableRow(){const t=selectedTable();if(!t||!t.rows.length)return;const r=t.rows[t.rows.length-1];const n=r.cloneNode(true);Array.from(n.cells).forEach(c=>c.innerHTML='<br>');r.parentNode.insertBefore(n,r.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -2398,6 +2400,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     OutlinedTextField(blockMargin, { blockMargin = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("上下间距（例如 12px）") })
                     OutlinedTextField(blockBackground, { blockBackground = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("背景色（HEX 或 transparent）") })
                     OutlinedTextField(blockBorder, { blockBorder = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框颜色（HEX）") })
+                    OutlinedTextField(blockBorderWidth, { blockBorderWidth = it.filter { c -> c.isDigit() }.take(1) }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框宽度（0–8 px）") })
+                    OutlinedTextField(blockBorderStyle, { blockBorderStyle = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框样式（solid / dashed / dotted）") })
                     OutlinedTextField(blockRadius, { blockRadius = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("圆角（例如 8px）") })
                     OutlinedTextField(blockShadow, { blockShadow = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("阴影（none / 0 2px 8px #0002）") })
                     OutlinedTextField(blockAlign, { blockAlign = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("内容对齐（left / center / right / justify）") })
@@ -2409,15 +2413,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             val widthValue = Regex("""^(?:auto|\d{1,3}(?:\.\d{1,2})?(?:px|%))$""")
                             val colorValue = Regex("""^#[0-9a-fA-F]{6}$""")
                             val shadowValue = Regex("""^(?:none|0(?:px)?\s+\d{1,3}px\s+\d{1,3}px\s+#[0-9a-fA-F]{3,8})$""")
-                            val bgValid = blockBackground == "transparent" || colorValue.matches(blockBackground)
+                            val gradientValue = Regex("""^linear-gradient\\((?:45|90|135|180)deg,\\s*#[0-9a-fA-F]{6}\\s+\\d{1,3}%,\\s*#[0-9a-fA-F]{6}\\s+\\d{1,3}%\\)$""")
+                            val bgValid = blockBackground == "transparent" || colorValue.matches(blockBackground) || gradientValue.matches(blockBackground)
+                            val borderWidthValue = blockBorderWidth.toIntOrNull()?.let { it in 0..8 } == true
+                            val borderStyleValid = blockBorderStyle in listOf("solid", "dashed", "dotted")
+                            val radiusValue = Regex("""^\\d{1,3}(?:\\.\\d{1,2})?(?:px|%)(?:\\s+\\d{1,3}(?:\\.\\d{1,2})?(?:px|%)){0,3}$""")
                             val alignValid = blockAlign in listOf("left", "center", "right", "justify")
                             val opacityValid = blockOpacity.toIntOrNull()?.let { it in 0..100 } == true
                             if (!dimension.matches(blockPadding) || !dimension.matches(blockMargin) || !widthValue.matches(blockWidth) ||
-                                !dimension.matches(blockRadius) || !colorValue.matches(blockBorder) || !bgValid ||
-                                !shadowValue.matches(blockShadow) || !alignValid || !opacityValid) {
+                                !radiusValue.matches(blockRadius) || !colorValue.matches(blockBorder) || !bgValid ||
+                                !borderWidthValue || !borderStyleValid || !shadowValue.matches(blockShadow) || !alignValid || !opacityValid) {
                                 vm.toast("请检查宽度、间距、阴影、对齐和颜色格式")
                             } else {
-                                runJs("applySelectedBlockStyle(${JSONObject.quote(blockPadding)},${JSONObject.quote(blockMargin)},${JSONObject.quote(blockWidth)},${JSONObject.quote(blockBackground)},${JSONObject.quote(blockBorder)},${JSONObject.quote(blockRadius)},${JSONObject.quote(blockShadow)},${JSONObject.quote(blockAlign)},${JSONObject.quote(blockOpacity)})")
+                                runJs("applySelectedBlockStyle(${JSONObject.quote(blockPadding)},${JSONObject.quote(blockMargin)},${JSONObject.quote(blockWidth)},${JSONObject.quote(blockBackground)},${JSONObject.quote(blockBorder)},${JSONObject.quote(blockBorderWidth)},${JSONObject.quote(blockBorderStyle)},${JSONObject.quote(blockRadius)},${JSONObject.quote(blockShadow)},${JSONObject.quote(blockAlign)},${JSONObject.quote(blockOpacity)})")
                                 showBlockProperties = false
                                 vm.toast("模块样式已更新")
                             }
