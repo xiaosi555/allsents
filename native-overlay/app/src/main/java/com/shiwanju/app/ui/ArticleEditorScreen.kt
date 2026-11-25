@@ -741,6 +741,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
                                 Text("快速操作", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 3.dp))
+                EditorTool("立即保存") { saveDocument(true); showMoreTools = false }
                 EditorTool("撤销") { runJs("undoEditor()") }
                 EditorTool("重做") { runJs("redoEditor()") }
                 EditorTool("预览", previewMode) {
