@@ -27,15 +27,15 @@ s = EDITOR.read_text(encoding="utf-8")
 s = replace_once(
     s,
     '''private enum class EditorPanel(val label: String) {
-    TEXT("文字"), IMAGE("图片"), LAYOUT("布局"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
+    TEXT("文字"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }''',
     '''private enum class EditorPanel(val label: String, val icon: String) {
-    TEXT("文字", "Aa"), IMAGE("图片", "▧"), LAYOUT("布局", "▦"),
-    COMPONENT("组件", "▣"), SVG("SVG", "✧"), LAYER("图层", "▤"),
+    TEXT("文字", "Aa"), TITLE("标题", "T"), IMAGE("图片", "▧"), LAYOUT("布局", "▦"),
+    CARD("卡片", "▣"), COMPONENT("组件", "▤"), SVG("SVG", "✧"), LAYER("图层", "▥"),
     STYLE("图文收藏", "☆"), TEMPLATE("图文模板", "▩"), DOCUMENT("文档", "≡"),
     CANVAS("画布", "▧")
 }''',
-    "add compact visual identifiers to all ten tool categories"
+    "add compact visual identifiers to all twelve tool categories"
 )
 
 s = replace_once(
@@ -97,4 +97,4 @@ if missing:
     raise SystemExit("Stage C2 validation failed: " + ", ".join(missing))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Stage C2 validation passed: coordinate conversion, IME boundary, ten category labels and persistent dock.")
+print("Stage C2 validation passed: coordinate conversion, IME boundary, twelve category labels and persistent dock.")
