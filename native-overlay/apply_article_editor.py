@@ -556,7 +556,8 @@ checks = [
     (UI / "ArticleEditorScreen.kt", "multiSelectMode"),
     (UI / "ArticleEditorScreen.kt", "fullTemplateConfirm"),
     (UI / "XiumiArticleLayoutScreen.kt", "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)"),
-    (JAVA / "MainActivity.kt", '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)'),\n    (JAVA / "MainActivity.kt", '"article_editor" -> XiumiArticleEditorScreen(vm)')
+    (JAVA / "MainActivity.kt", '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)'),
+    (JAVA / "MainActivity.kt", '"article_editor" -> XiumiArticleEditorScreen(vm)')
 ]
 for path, token in checks:
     if token not in path.read_text(encoding="utf-8"):
