@@ -1798,6 +1798,47 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
                     }
+                // Keep the primary editor navigation visible above the full-screen tool-sheet window.
+                Row(
+                    Modifier.fillMaxWidth().height(50.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(Color(0xFF181818)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        EditorPanel.values().forEach { panel ->
+                            TextButton(
+                                onClick = {
+                                    activePanel = panel
+                                    floatingMenu = ""
+                                    if (panel == EditorPanel.CANVAS) {
+                                        showToolPopup = false
+                                        showCanvasPopup = true
+                                        toolPopupOffset = Offset.Zero
+                                    } else {
+                                        showCanvasPopup = false
+                                        showToolPopup = true
+                                    }
+                                    if (panel == EditorPanel.LAYER) refreshLayerItems()
+                                },
+                                contentPadding = PaddingValues(horizontal = 9.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    panel.label,
+                                    color = if (activePanel == panel) Color.White else Color(0xFF777777),
+                                    fontSize = if (activePanel == panel) 15.sp else 13.sp,
+                                    fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
                     }
                     }
                     }
