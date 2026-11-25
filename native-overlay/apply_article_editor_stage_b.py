@@ -222,7 +222,7 @@ required = [
     "function reportSelection()",
     "saveSelection();reportSelection();",
     "if (!previewMode) {",
-    "showToolPopup && selectedImageHtml.isBlank()",
+    "showToolPopup && activePanel != EditorPanel.CANVAS",
     "heightIn(min = 100.dp, max = 300.dp)",
     "root.contains(savedRange.commonAncestorContainer)"
 ]
