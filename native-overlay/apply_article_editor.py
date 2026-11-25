@@ -161,8 +161,15 @@ replace_once(p,
             previous.summary != x.summary || previous.author != x.author || previous.coverAssetId != x.coverAssetId ||
             previous.category != x.category || previous.tags != x.tags || previous.status != x.status || previous.isFavorite != x.isFavorite
         )
-        val now = System.currentTimeMillis().toString()
-        val revisions = if (changed) {
+        val nowMillis = System.currentTimeMillis()
+        val now = nowMillis.toString()
+        // Coalesce rapid autosaves: keep the earliest pre-edit state and create at most one snapshot per five-minute window.
+        val lastRevisionAt = d.articleRevisions.asSequence()
+            .filter { it.articleId == x.id }
+            .mapNotNull { it.createdAt.toLongOrNull() }
+            .maxOrNull()
+        val shouldCreateRevision = changed && (lastRevisionAt == null || nowMillis - lastRevisionAt >= 5 * 60 * 1000L)
+        val revisions = if (shouldCreateRevision) {
             (d.articleRevisions + ArticleRevision(
                 id = newId(), articleId = previous!!.id, title = previous.title, html = previous.html,
                 createdAt = now, note = "自动保存快照", subtitle = previous.subtitle, summary = previous.summary,
