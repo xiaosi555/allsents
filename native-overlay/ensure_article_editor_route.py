@@ -29,7 +29,7 @@ if "import com.shiwanju.app.ui.XiumiArticleLayoutScreen" not in main:
     main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen", 1)
 
 main = re.sub(
-    r'"article_editor"\\s*->\\s*XiumiArticleEditorScreen\\(vm\\) \\{ vm\\.screen = "layout" \\}',
+    r'"article_editor"\s*->\s*XiumiArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}',
     '"article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }',
     main
 )
@@ -46,7 +46,7 @@ if '"xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }'
 # Remove the old misleading wrapper that made the classic editor look like a Xiumi screen.
 editor = EDITOR.read_text(encoding="utf-8")
 wrapper_pattern = re.compile(
-    r'\\n// 独立秀米式文章编辑页面入口：.*?\\n@Composable\\nfun XiumiArticleEditorScreen\\(vm: AppViewModel, onBack: \\(\\) -> Unit\\) \\{\\n    ArticleEditorScreen\\(vm = vm, onBack = onBack\\)\\n\\}\\n',
+    r'\n// 独立秀米式文章编辑页面入口：.*?\n@Composable\nfun XiumiArticleEditorScreen\(vm: AppViewModel, onBack: \(\) -> Unit\) \{\n    ArticleEditorScreen\(vm = vm, onBack = onBack\)\n\}\n',
     re.S
 )
 editor, removed = wrapper_pattern.subn("\\n", editor)
@@ -67,7 +67,7 @@ if "import androidx.compose.material.icons.outlined.PhotoCamera" not in layout:
     anchor = "import androidx.compose.material.icons.Icons"
     if anchor not in layout:
         raise SystemExit("Cannot add the camera icon import.")
-    layout = layout.replace(anchor, anchor + "\\nimport androidx.compose.material.icons.outlined.PhotoCamera", 1)
+    layout = layout.replace(anchor, anchor + "\nimport androidx.compose.material.icons.outlined.PhotoCamera", 1)
 
 camera = '''        IconButton(
             onClick = { vm.screen = "xingtu_article_editor" },
