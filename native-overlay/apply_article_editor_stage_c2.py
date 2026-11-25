@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Stage C2: keep the editor's floating selection toolbar within the visible
-canvas/IME-safe area. The category dock is now authored at the bottom of the
-editor panel and the canvas has its own draggable floating-window title bar.
+"""Stage C2: keep selection tools IME-safe and validate the bottom tool sheet
+plus the separate draggable Canvas-tools dialog. The article canvas itself
+remains the normal central editing surface.
 """
 from pathlib import Path
 
@@ -56,13 +56,14 @@ s = replace_once(
 )
 
 required = [
-    "Modifier.width(canvasWindowWidth).height(canvasWindowHeight)",
+    "modifier = Modifier.fillMaxSize()",
+    "Dialog(onDismissRequest = { showCanvasPopup = false })",
     "detectDragGestures",
-    "按住标题栏拖动",
+    "Text(\"画布工具\"",
+    "heightIn(min = 100.dp, max = 300.dp)",
     "CompositionLocalProvider(LocalEditorToolDark provides true)",
     "EditorPanel.values().forEach { panel ->",
     "height(50.dp)",
-    "height(115.dp)",
     "WindowInsets.ime.getBottom(this).toDp()",
     "val selectionTopDp = selectionState.y.dp",
     "if (!previewMode) {",
@@ -73,4 +74,4 @@ if missing:
     raise SystemExit("Stage C2 validation failed: " + ", ".join(missing))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Stage C2 validation passed: draggable canvas window, layout-style bottom dock and IME-safe selection toolbar.")
+print("Stage C2 validation passed: draggable Canvas-tools dialog, adaptive bottom tool sheet, fixed bottom category dock and IME-safe selection toolbar.")
