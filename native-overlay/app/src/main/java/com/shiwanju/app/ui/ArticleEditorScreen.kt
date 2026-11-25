@@ -455,6 +455,25 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") }
         }
     }
+    val layoutImagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) runCatching {
+            val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+            if (!mime.startsWith("image/")) error("所选文件不是图片")
+            val ext = when (mime.lowercase(Locale.ROOT)) {
+                "image/png" -> "png"; "image/webp" -> "webp"; "image/gif" -> "gif"; "image/heic" -> "heic"; else -> "jpg"
+            }
+            var id = vm.newId()
+            while (vm.data.mediaAssets.any { it.id == id }) id = vm.newId()
+            val dir = File(context.filesDir, "article_media").apply { mkdirs() }
+            val target = File(dir, "$id.$ext")
+            context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } }
+                ?: error("图片读取失败")
+            val asset = MediaAsset(id, target.name, mime, "article_media/${target.name}", target.length(), System.currentTimeMillis().toString())
+            vm.saveMediaAsset(asset)
+            layoutBuilderImageAssetId = id
+            vm.toast("图片已加入素材库并选为首栏图片")
+        }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") }
+    }
     val imageReplacementPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) runCatching {
             if (selectedImageHtml.isBlank()) error("请先选中要替换的图片")
@@ -2316,7 +2335,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             onClick = { layoutBuilderImageAssetId = "" },
                             label = { Text("不使用图片") }
                         )
-                        TextButton(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
+                        TextButton(onClick = { layoutImagePicker.launch(arrayOf("image/*")) }) {
                             Text("导入图片", color = accent)
                         }
                     }
