@@ -1304,7 +1304,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             // Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.
             if (!previewMode) {
                 Row(
-                    Modifier.fillMaxWidth().height(50.dp).align(Alignment.BottomCenter)
+                    Modifier.fillMaxWidth().height(50.dp)
                         .background(Color(0xFF181818)),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceAround
