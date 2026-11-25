@@ -76,7 +76,7 @@ private fun saveXiumiVersion(context:android.content.Context,articleId:String,ti
  val prefs=context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE)
  val history=runCatching { JSONArray(prefs.getString("versions_$articleId","[]")) }.getOrDefault(JSONArray())
  val latest=history.optJSONObject(history.length()-1)
- if(latest?.optString("body")==body && latest.optString("title")==title) return
+ if(latest!=null && latest.optString("body")==body && latest.optString("title")==title) return
  history.put(JSONObject().put("timestamp",timestamp).put("title",title).put("body",body).put("blocks",prefs.getString("blocks_$articleId","[]")))
  val trimmed=JSONArray()
  for(i in maxOf(0,history.length()-30) until history.length()) trimmed.put(history.getJSONObject(i))
@@ -230,6 +230,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    val dir=File(context.filesDir,"article_media").apply { if(!exists()) mkdirs() }
    val target=File(dir,"$assetId.$ext")
    context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
+   if(target.length()>20L*1024*1024) { target.delete(); error("单张图片不能超过 20 MB") }
    val asset=MediaAsset(assetId,target.name,mime,"article_media/${target.name}",target.length(),System.currentTimeMillis().toString())
    vm.saveMediaAsset(asset)
    insert("<img src='https://editor.local/assets/$assetId' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
