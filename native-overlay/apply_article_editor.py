@@ -137,7 +137,7 @@ replace_once(p,
 # Make business-data writes fail visibly and avoid truncating the previous JSON on interrupted writes.
 p = DATA / "Store.kt"
 if "import java.io.FileOutputStream" not in p.read_text(encoding="utf-8"):
-    replace_once(p, "import java.io.File\\n", "import java.io.File\\nimport java.io.FileOutputStream\\nimport java.io.IOException\\n", "Store atomic-write imports")
+    replace_once(p, "import java.io.File\n", "import java.io.File\nimport java.io.FileOutputStream\nimport java.io.IOException\n", "Store atomic-write imports")
 replace_once(p,
 '''    fun saveData(d: AppData) {
         runCatching { dataFile.writeText(gson.toJson(d), Charsets.UTF_8) }
