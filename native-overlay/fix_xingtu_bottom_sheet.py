@@ -47,7 +47,7 @@ if dock_start >= 0:
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Preserve the 100dp initial/collapsed total height and the 350dp maximum.
+# Preserve the 180dp initial/collapsed total height and the 350dp maximum.
 old = """                                    } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
@@ -55,11 +55,11 @@ old = """                                    } else {
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()"""
 new = """                                    } else {
                                         showCanvasPopup = false
-                                        toolPanelHeightDp = 100f
+                                        toolPanelHeightDp = 180f
                                         showToolPopup = true
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()"""
-if "toolPanelHeightDp = 100f" not in s:
+if "toolPanelHeightDp = 180f" not in s:
     if s.count(old) != 1:
         raise SystemExit(f"Expected one primary navigation open handler, found {s.count(old)}")
     s = s.replace(old, new, 1)
@@ -91,8 +91,8 @@ nested_state = """    val toolPanelScrollState = rememberScrollState()
                     toolPanelHeightDp = currentHeight + consumedDp
                     return Offset(0f, with(toolPanelDensity) { (-consumedDp).dp.toPx() })
                 }
-                if (deltaDp > 0f && toolPanelScrollState.value == 0 && currentHeight > 100f) {
-                    val consumedDp = minOf(deltaDp, currentHeight - 100f)
+                if (deltaDp > 0f && toolPanelScrollState.value == 0 && currentHeight > 150f) {
+                    val consumedDp = minOf(deltaDp, currentHeight - 150f)
                     toolPanelHeightDp = currentHeight - consumedDp
                     return Offset(0f, with(toolPanelDensity) { consumedDp.dp.toPx() })
                 }
@@ -106,7 +106,7 @@ if "val toolPanelNestedScrollConnection" not in s:
     s = s.replace(state_anchor, state_anchor + "\n" + nested_state, 1)
 
 # Do not consume the already-small 100dp panel with navigation-bar inset padding.
-# The 100dp total includes the 26dp drag handle; the remaining 74dp belongs to
+# The 180dp total includes the 26dp drag handle; the remaining 74dp belongs to
 # the visible panel body (44dp header plus visible content).
 old_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding())'
 new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).nestedScroll(toolPanelNestedScrollConnection))'
@@ -117,6 +117,23 @@ elif new_panel not in s:
 
 old_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp))'
 new_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanelScrollState).padding(horizontal = 13.dp, vertical = 4.dp))'
+
+# The secondary-navigation/header row is also a dedicated drag surface. This
+# keeps the primary dock separate while allowing gestures to begin directly on
+# the secondary navigation instead of requiring a swipe in the content list.
+header_drag = """.pointerInput(panel) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp().value }
+                                toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 350f)
+                            }
+                        }"""
+header_pattern = r'(Row\\(Modifier\\.fillMaxWidth\\(\\)\\.height\\(44\\.dp\\)\\))'
+if header_drag not in s:
+    s, header_count = re.subn(header_pattern, r'\\1' + header_drag, s, count=1)
+    if header_count != 1:
+        raise SystemExit("Could not locate the 44dp secondary-navigation/header row for direct swipe resizing")
+
 if old_scroll in s:
     s = s.replace(old_scroll, new_scroll, 1)
 elif new_scroll not in s:
@@ -125,8 +142,8 @@ elif new_scroll not in s:
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "non-modal popup": "PopupProperties(focusable = false" in s,
-    "100dp initial height": "mutableFloatStateOf(100f)" in s and "toolPanelHeightDp = 100f" in s,
-    "350dp maximum": "coerceIn(100f, 350f)" in s,
+    "180dp initial height": "mutableFloatStateOf(180f)" in s and "toolPanelHeightDp = 180f" in s,
+    "150dp collapsed minimum and 350dp maximum": "coerceIn(150f, 350f)" in s,
     "smooth height animation": "tween(durationMillis = 180)" in s,
     "nested swipe resizing": "toolPanelNestedScrollConnection" in s and ".nestedScroll(toolPanelNestedScrollConnection)" in s,
     "content scroll shares nested state": ".verticalScroll(toolPanelScrollState)" in s,
@@ -139,4 +156,4 @@ if failed:
     raise SystemExit("Xingtu bottom-sheet validation failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Xingtu bottom sheet fixed: visible 100dp initial total height, nested swipe expand/collapse, independent content scroll, 350dp maximum, smooth animation and separate primary dock.")
+print("Xingtu bottom sheet fixed: visible 180dp initial total height, nested swipe expand/collapse, independent content scroll, 350dp maximum, smooth animation and separate primary dock.")
