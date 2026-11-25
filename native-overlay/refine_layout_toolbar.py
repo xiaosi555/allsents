@@ -21,7 +21,6 @@ private fun TopBar(vm: AppViewModel) {
         IconButton(
             onClick = { vm.screen = "article_editor" },
             modifier = Modifier.size(42.dp)
-                .semantics { contentDescription = "打开秀米式文章编辑器" }
         ) {
             Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(22.dp))
         }
