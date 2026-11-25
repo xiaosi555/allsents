@@ -140,6 +140,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_theme_colors.py
 
+      - name: Normalize page system-bar safe areas
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/fix_page_safe_areas.py
+
       - name: Apply existing UI refinements
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_ui_refinements.py
