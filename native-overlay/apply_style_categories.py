@@ -264,51 +264,49 @@ def verify_editor_tool_callbacks():
     import re
     path = java / "ui/ArticleEditorScreen.kt"
     source = path.read_text(encoding="utf-8")
-    signature = re.search(r"private fun EditorTool\\(label: String, selected: Boolean = false, onClick: \\(\\) -> Unit\\)", source)
+    signature = re.search(r"private fun EditorTool\(label: String, selected: Boolean = false, onClick: \(\) -> Unit\)", source)
     if not signature:
         raise SystemExit("EditorTool definition/signature is missing or changed unexpectedly")
-    calls = list(re.finditer(r"\\bEditorTool\\s*\\(", source))
+    calls = list(re.finditer(r"\bEditorTool\s*\(", source))
     missing = []
     for match in calls:
-        start = match.end()
+        i = match.end()
         depth = 1
-        quote = None
+        in_string = False
         escaped = False
-        i = start
         while i < len(source) and depth:
             ch = source[i]
-            if quote:
+            if in_string:
                 if escaped:
                     escaped = False
-                elif ch == "\\\\":
+                elif ch == "\\":
                     escaped = True
-                elif ch == quote:
-                    quote = None
+                elif ch == '"':
+                    in_string = False
             else:
-                if ch in ("\\\\"'", '"'):
-                    quote = ch
+                if ch == '"':
+                    in_string = True
                 elif ch == "(":
                     depth += 1
                 elif ch == ")":
                     depth -= 1
             i += 1
         if depth:
-            missing.append((source.count("\\n", 0, match.start()) + 1, "unclosed EditorTool call"))
+            missing.append((source.count("\n", 0, match.start()) + 1, "unclosed EditorTool call"))
             continue
-        args = source[start:i-1]
-        tail = i
-        while tail < len(source) and source[tail].isspace():
-            tail += 1
-        if "onClick" not in args and not source.startswith("{", tail):
-            missing.append((source.count("\\n", 0, match.start()) + 1, "missing click callback"))
+        args = source[match.end():i-1]
+        tail_index = i
+        while tail_index < len(source) and source[tail_index].isspace():
+            tail_index += 1
+        if "onClick" not in args and not source.startswith("{", tail_index):
+            missing.append((source.count("\n", 0, match.start()) + 1, "missing click callback"))
     if missing:
         raise SystemExit("EditorTool callback validation failed: " + repr(missing))
     print(f"EditorTool callback validation passed: {len(calls)} actionable tool calls")
-    lines = source.splitlines()
-    for index, line in enumerate(lines):
+    for line_number, line in enumerate(source.splitlines(), 1):
         if "private fun EditorTool(" in line:
             print("EditorTool signature:", line.strip())
         if "排序：按名称" in line:
-            print(f"Verified template sort action at line {index + 1}: {line.strip()}")
+            print(f"Verified template sort action at line {line_number}: {line.strip()}")
 
 verify_editor_tool_callbacks()
