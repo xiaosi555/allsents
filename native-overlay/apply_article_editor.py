@@ -136,8 +136,6 @@ replace_once(p,
 
 # Make business-data writes fail visibly and avoid truncating the previous JSON on interrupted writes.
 p = DATA / "Store.kt"
-if "import java.io.FileOutputStream" not in p.read_text(encoding="utf-8"):
-    replace_once(p, "import java.io.File\n", "import java.io.File\nimport java.io.FileOutputStream\nimport java.io.IOException\n", "Store atomic-write imports")
 replace_once(p,
 '''    fun saveData(d: AppData) {
         runCatching { dataFile.writeText(gson.toJson(d), Charsets.UTF_8) }
@@ -146,16 +144,16 @@ replace_once(p,
         val temp = File(ctx.filesDir, "app_data.json.tmp")
         val backup = File(ctx.filesDir, "app_data.json.bak")
         return try {
-            FileOutputStream(temp).use { output ->
+            java.io.FileOutputStream(temp).use { output ->
                 output.write(gson.toJson(d).toByteArray(Charsets.UTF_8))
                 output.fd.sync()
             }
             if (backup.exists()) backup.delete()
             val hadOriginal = dataFile.exists()
-            if (hadOriginal && !dataFile.renameTo(backup)) throw IOException("无法备份原数据文件")
+            if (hadOriginal && !dataFile.renameTo(backup)) throw java.io.IOException("无法备份原数据文件")
             if (!temp.renameTo(dataFile)) {
                 if (hadOriginal && backup.exists()) backup.renameTo(dataFile)
-                throw IOException("无法提交新数据文件")
+                throw java.io.IOException("无法提交新数据文件")
             }
             if (backup.exists()) backup.delete()
             true
