@@ -1044,6 +1044,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                               e.draggable=!locked;
                               commitHistory();NativeEditor.changed(root.innerHTML);
                             }
+                            function moveLayer(id,dir){
+                              const e=Array.from(root.children).find(x=>x.dataset.editorId===id);
+                              if(!e)return;
+                              if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);
+                              else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);
+                              commitHistory();NativeEditor.changed(root.innerHTML);
+                            }
                             function selectedBlock(){return root.querySelector('.selected-block');}
                             function cleanBlockHtml(e){const c=e.cloneNode(true);c.classList.remove('selected-block');c.draggable=false;return c.outerHTML;}
                             function replaceSelectedBlockWithHtml(v){const e=selectedBlock();if(!e)return;const box=document.createElement('div');box.innerHTML=v;const frag=document.createDocumentFragment();while(box.firstChild)frag.appendChild(box.firstChild);const first=frag.firstElementChild;e.replaceWith(frag);if(first){first.classList.add('selected-block');NativeEditor.blockSelected(cleanBlockHtml(first));}commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -1519,12 +1526,57 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                     EditorPanel.LAYER -> {
-                        Text("图层与模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 7.dp))
-                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("图层与模块 · 当前文章正文的顶层内容列表", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 7.dp))
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            EditorTool("刷新图层") { refreshLayerItems() }
+                            Text("共 ${layerItems.size} 层", color = Color.Gray, fontSize = 10.sp)
+                            Spacer(Modifier.weight(1f))
                             EditorTool(if (multiSelectMode) "退出多选" else "多选组合", multiSelectMode) {
                                 multiSelectMode = !multiSelectMode
                                 runJs("setMultiSelectMode(${multiSelectMode})")
                                 selectedBlockHtml = ""
+                            }
+                        }
+                        if (layerItems.isEmpty()) {
+                            Text("点击「刷新图层」读取当前文章模块。可逐层选中、调整顺序、隐藏或锁定。", color = Color(0xFF8B948D), fontSize = 11.sp, modifier = Modifier.padding(vertical = 6.dp))
+                        } else {
+                            layerItems.forEachIndexed { index, layer ->
+                                Row(
+                                    Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(RoundedCornerShape(8.dp))
+                                        .background(if (index % 2 == 0) AppColors.Field else AppColors.Panel)
+                                        .padding(horizontal = 7.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text("${index + 1}. ${layer.name.ifBlank { "未命名模块" }}", color = ink, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("${layer.tag.uppercase(Locale.ROOT)} · ${if (layer.visible) "显示" else "隐藏"} · ${if (layer.locked) "已锁定" else "可编辑"}", color = AppColors.TextDim, fontSize = 9.sp)
+                                    }
+                                    TextButton(onClick = { editor?.evaluateJavascript("selectLayer(${JSONObject.quote(layer.id)})", null) }, contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp)) { Text("选中", color = accent, fontSize = 9.sp) }
+                                    TextButton(onClick = {
+                                        val visible = !layer.visible
+                                        runJs("setLayerVisibility(${JSONObject.quote(layer.id)},${visible})")
+                                        layerItems = layerItems.map { if (it.id == layer.id) it.copy(visible = visible) else it }
+                                    }, contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp)) { Text(if (layer.visible) "隐藏" else "显示", color = ink, fontSize = 9.sp) }
+                                    TextButton(onClick = {
+                                        val locked = !layer.locked
+                                        runJs("setLayerLocked(${JSONObject.quote(layer.id)},${locked})")
+                                        layerItems = layerItems.map { if (it.id == layer.id) it.copy(locked = locked) else it }
+                                    }, contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp)) { Text(if (layer.locked) "解锁" else "锁定", color = ink, fontSize = 9.sp) }
+                                    TextButton(onClick = { runJs("moveLayer(${JSONObject.quote(layer.id)},-1)"); refreshLayerItems() }, contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)) { Text("↑", color = ink, fontSize = 12.sp) }
+                                    TextButton(onClick = { runJs("moveLayer(${JSONObject.quote(layer.id)},1)"); refreshLayerItems() }, contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)) { Text("↓", color = ink, fontSize = 12.sp) }
+                                }
+                            }
+                        }
+                        FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
+                                EditorTool("模块样式") { showBlockProperties = true }
+                                EditorTool("复制模块") { runJs("duplicateSelectedBlock()"); refreshLayerItems() }
+                                EditorTool("删除模块") { runJs("deleteSelectedBlock()"); selectedBlockHtml = ""; refreshLayerItems() }
+                                EditorTool("保存为样式") {
+                                    vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
+                                    vm.toast("已保存到「我的 - 样式」")
+                                }
                             }
                             if (selectedBlockHtml.isNotBlank() && multiSelectMode) {
                                 EditorTool("保存组合样式") {
@@ -1534,21 +1586,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     runJs("setMultiSelectMode(false)")
                                 }
                             }
-                            if (selectedBlockHtml.isNotBlank() && !multiSelectMode) {
-                                EditorTool("模块上移") { runJs("moveSelectedBlock(-1)") }
-                                EditorTool("模块下移") { runJs("moveSelectedBlock(1)") }
-                                EditorTool("模块样式") { showBlockProperties = true }
-                                EditorTool("复制模块") { runJs("duplicateSelectedBlock()") }
-                                EditorTool("删除模块") { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }
-                                EditorTool("保存为样式") {
-                                    vm.saveStyle(StyleModule(vm.newId(), "我的模块", "自定义组件", selectedBlockHtml, System.currentTimeMillis().toString()))
-                                    vm.toast("已保存到「我的 - 样式」")
-                                }
-                            }
                             EditorTool("插入链接") { dialogValue = ""; linkInsertType = "link"; showLink = true }
-                        }
-                        if (selectedBlockHtml.isBlank() && !multiSelectMode) {
-                            Text("在画布中点选一个模块，或开启多选组合。选中后这里会显示对应的模块操作。", color = Color(0xFF8B948D), fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
                         }
                     }
                     EditorPanel.CANVAS -> {
