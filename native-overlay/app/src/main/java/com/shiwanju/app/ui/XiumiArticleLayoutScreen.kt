@@ -50,9 +50,9 @@ private data class XiumiBlock(
 )
 private fun classifyXiumiBlock(value:String):String = when {
  value.trimStart().startsWith("<img") || value.startsWith("![") || value.startsWith("［图片") -> "图片"
+ value.contains("［点击展开］") || value.contains("［卡片") || value.contains("SVG") -> "SVG"
  value.contains("卡片") || value.startsWith("▧") || value.startsWith("▢") -> "卡片"
- value.contains("［点击展开］") || value.contains("［卡片") -> "SVG"
- value.contains("关注公众号") || value.contains("文 /") -> "组件"
+ value.contains("关注公众号") || value.contains("文 /") || value.contains("栏布局") || value.contains("步骤") || value.contains("二维码") -> "组件"
  value.startsWith("【") || value.startsWith("#") || value.startsWith("01 ") -> "标题"
  else -> "正文"
 }
