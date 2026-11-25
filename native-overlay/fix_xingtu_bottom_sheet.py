@@ -105,8 +105,8 @@ if "val toolPanelNestedScrollConnection" not in s:
         raise SystemExit("Could not locate the unique tool panel density state")
     s = s.replace(state_anchor, state_anchor + "\n" + nested_state, 1)
 
-# Do not consume the already-small 100dp panel with navigation-bar inset padding.
-# The 180dp total includes the 26dp drag handle; the remaining 74dp belongs to
+# Keep the panel body clear of inner navigation-bar inset padding.
+# The 180dp total includes the 26dp drag handle; the remaining 154dp belongs to
 # the visible panel body (44dp header plus visible content).
 old_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding())'
 new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).nestedScroll(toolPanelNestedScrollConnection))'
@@ -130,7 +130,7 @@ header_drag = """.pointerInput(panel) {
                         }"""
 header_pattern = r'(Row\\(Modifier\\.fillMaxWidth\\(\\)\\.height\\(44\\.dp\\)\\))'
 if header_drag not in s:
-    s, header_count = re.subn(header_pattern, r'\\1' + header_drag, s, count=1)
+    s, header_count = re.subn(header_pattern, r'\1' + header_drag, s, count=1)
     if header_count != 1:
         raise SystemExit("Could not locate the 44dp secondary-navigation/header row for direct swipe resizing")
 
