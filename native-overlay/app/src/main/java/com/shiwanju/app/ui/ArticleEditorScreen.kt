@@ -755,9 +755,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
                 Text(if (previewMode) "编辑" else "预览", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
-            TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 7.dp, vertical = 4.dp)) {
-                Text("工具", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            }
         }
         androidx.compose.foundation.layout.Box(
             Modifier.fillMaxWidth().height(1.dp).background(AppColors.Line)
@@ -835,16 +832,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 .verticalScroll(rememberScrollState()).padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text("全部编辑工具", color = ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                                TextButton(onClick = { showMoreTools = false }) { Text("完成", color = accent) }
-                            }
                             FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                                 verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
-                                Text("编辑与剪贴板", color = Color(0xFF7B847E), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().padding(top = 3.dp))
                 EditorTool("立即保存") { saveDocument(true); showMoreTools = false }
                 EditorTool("撤销") { runJs("undoEditor()") }
                 EditorTool("重做") { runJs("redoEditor()") }
