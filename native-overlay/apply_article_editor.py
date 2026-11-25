@@ -259,13 +259,33 @@ replace_once(p,
     fun deleteArticle(id: String) = updateData { d ->
         d.copy(articles = d.articles.filterNot { it.id == id }, articleRevisions = d.articleRevisions.filterNot { it.articleId == id })
     }
-    fun restoreArticleRevision(revision: ArticleRevision) {
-        val current = data.articles.firstOrNull { it.id == revision.articleId } ?: return
-        saveArticle(current.copy(
+    fun restoreArticleRevision(revision: ArticleRevision): Boolean = updateData { d ->
+        val current = d.articles.firstOrNull { it.id == revision.articleId } ?: return@updateData d
+        val sameAsRevision = current.title == revision.title && current.html == revision.html &&
+            current.subtitle == revision.subtitle && current.summary == revision.summary &&
+            current.author == revision.author && current.coverAssetId == revision.coverAssetId &&
+            current.category == revision.category && current.tags == revision.tags &&
+            current.status == revision.status && current.isFavorite == revision.isFavorite
+        val now = System.currentTimeMillis().toString()
+        val history = if (sameAsRevision) d.articleRevisions else {
+            val snapshot = ArticleRevision(
+                id = newId(), articleId = current.id, title = current.title, html = current.html,
+                createdAt = now, note = "恢复前自动快照", subtitle = current.subtitle, summary = current.summary,
+                author = current.author, coverAssetId = current.coverAssetId, category = current.category,
+                tags = current.tags, status = current.status, isFavorite = current.isFavorite
+            )
+            val retained = (d.articleRevisions.filter { it.articleId == current.id } + snapshot).takeLast(30)
+            d.articleRevisions.filterNot { it.articleId == current.id } + retained
+        }
+        val restored = current.copy(
             title = revision.title, html = revision.html, subtitle = revision.subtitle, summary = revision.summary,
             author = revision.author, coverAssetId = revision.coverAssetId, category = revision.category,
-            tags = revision.tags, status = revision.status, isFavorite = revision.isFavorite, updatedAt = System.currentTimeMillis().toString()
-        ))
+            tags = revision.tags, status = revision.status, isFavorite = revision.isFavorite, updatedAt = now
+        )
+        d.copy(
+            articles = d.articles.map { if (it.id == current.id) restored else it },
+            articleRevisions = history
+        )
     }
     fun saveMediaAsset(asset: MediaAsset) = updateData { d ->
         val i = d.mediaAssets.indexOfFirst { it.id == asset.id }
@@ -477,6 +497,8 @@ checks = [
     (DATA / "Store.kt", "backupFile.copyTo(dataFile, overwrite = true)"),
     (UI / "AppViewModel.kt", "if (!store.saveData(updated))"),
     (UI / "AppViewModel.kt", "fun updateData(block: (AppData) -> AppData): Boolean"),
+    (UI / "AppViewModel.kt", "note = \"恢复前自动快照\""),
+    (UI / "AppViewModel.kt", "fun restoreArticleRevision(revision: ArticleRevision): Boolean"),
     (UI / "AppViewModel.kt", "return true"),
     (UI / "AppViewModel.kt", "fun saveArticle("),
     (UI / "AppViewModel.kt", "fun deleteArticle("),
