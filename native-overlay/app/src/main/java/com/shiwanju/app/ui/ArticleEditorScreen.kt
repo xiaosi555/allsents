@@ -1387,7 +1387,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 },
                                 color = ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
                             )
-                            TextButton(onClick = {
+                            TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = {
                                 selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""
                                 selectionState = EditorSelectionState()
                                 runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
@@ -1396,22 +1396,22 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (selectedImageHtml.isNotBlank()) {
                                 Box {
-                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "image-width") "" else "image-width" }) { Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "image-width") "" else "image-width" }) { Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "image-width", onDismissRequest = { floatingMenu = "" }) {
                                         listOf("100%" to "原宽", "75%" to "四分之三", "50%" to "一半").forEach { (v, label) -> DropdownMenuItem(text = { Text("@LABEL@  @V@".replace("@LABEL@", label).replace("@V@", v)) }, onClick = { runJs("setSelectedImageWidth('@V@')".replace("@V@", v)); floatingMenu = "" }) }
                                     }
                                 }
                                 Box {
-                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "image-crop") "" else "image-crop" }) { Text("▧ 裁切 ▾", color = ink, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "image-crop") "" else "image-crop" }) { Text("▧ 裁切 ▾", color = ink, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "image-crop", onDismissRequest = { floatingMenu = "" }) {
                                         listOf("1:1", "4:3", "16:9").forEach { ratio -> DropdownMenuItem(text = { Text("裁切 " + ratio) }, onClick = { runJs("cropSelectedImage('" + ratio + "')"); floatingMenu = "" }) }
                                         DropdownMenuItem(text = { Text("自定义像素裁切") }, onClick = { openCustomImageCrop(); floatingMenu = "" })
                                         DropdownMenuItem(text = { Text("恢复原始比例") }, onClick = { runJs("resetSelectedImageCrop()"); floatingMenu = "" })
                                     }
                                 }
-                                TextButton(onClick = { runJs("rotateSelectedImage()") }) { Text("↻ 旋转", color = ink, fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("rotateSelectedImage()") }) { Text("↻ 旋转", color = ink, fontSize = 11.sp) }
                                 Box {
-                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "image-style") "" else "image-style" }) { Text("◒ 外观 ▾", color = ink, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "image-style") "" else "image-style" }) { Text("◒ 外观 ▾", color = ink, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "image-style", onDismissRequest = { floatingMenu = "" }) {
                                         DropdownMenuItem(text = { Text("圆角") }, onClick = { runJs("setSelectedImageRadius('10px')"); floatingMenu = "" })
                                         DropdownMenuItem(text = { Text("直角") }, onClick = { runJs("setSelectedImageRadius('0')"); floatingMenu = "" })
@@ -1419,65 +1419,65 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         DropdownMenuItem(text = { Text("无边框") }, onClick = { runJs("setSelectedImageBorder('0')"); floatingMenu = "" })
                                     }
                                 }
-                                TextButton(onClick = { imageReplacementPicker.launch(arrayOf("image/*")) }) { Text("▧ 替换", color = ink, fontSize = 11.sp) }
-                                TextButton(onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
-                                TextButton(onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
-                                TextButton(onClick = { selectedImageHtml = ""; activePanel = EditorPanel.IMAGE }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { imageReplacementPicker.launch(arrayOf("image/*")) }) { Text("▧ 替换", color = ink, fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { selectedImageHtml = ""; activePanel = EditorPanel.IMAGE }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                             } else if (selectedTextActive) {
                                 Box {
-                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-size", onDismissRequest = { floatingMenu = "" }) {
                                         listOf("12", "14", "16", "18", "20", "22", "24", "28", "32").forEach { px -> DropdownMenuItem(text = { Text(px + " px") }, onClick = { runJs("styleSelectionOrParagraph('fontSize','" + px + "px')"); floatingMenu = "" }) }
                                     }
                                 }
                                 Box {
-                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "text-font") "" else "text-font" }) { Text("文 字体 ▾", color = ink, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "text-font") "" else "text-font" }) { Text("文 字体 ▾", color = ink, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-font", onDismissRequest = { floatingMenu = "" }) {
                                         listOf("PingFang SC" to "苹方", "Microsoft YaHei" to "微软雅黑", "SimSun" to "宋体", "SimHei" to "黑体", "KaiTi" to "楷体", "serif" to "衬线", "sans-serif" to "无衬线").forEach { (font, label) -> DropdownMenuItem(text = { Text(label) }, onClick = { runJs("styleSelectionOrParagraph('fontFamily'," + JSONObject.quote(font) + ")"); floatingMenu = "" }) }
                                     }
                                 }
                                 Box {
-                                    TextButton(onClick = { floatingMenu = if (floatingMenu == "text-color") "" else "text-color" }) { Text("● 颜色 ▾", color = ink, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "text-color") "" else "text-color" }) { Text("● 颜色 ▾", color = ink, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-color", onDismissRequest = { floatingMenu = "" }) {
                                         listOf("#222222" to "黑色", "#666666" to "灰色", "#159765" to "绿色", "#C84B4B" to "红色", "#3978B7" to "蓝色", "#D69A35" to "橙色", "#8056A8" to "紫色").forEach { (hex, label) -> DropdownMenuItem(text = { Text("● " + label + " " + hex, color = Color(android.graphics.Color.parseColor(hex))) }, onClick = { runJs("styleSelectionOrParagraph('color','" + hex + "')"); floatingMenu = "" }) }
                                     }
                                 }
-                                TextButton(onClick = { command("bold") }) { Text("B", color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
-                                TextButton(onClick = { command("italic") }) { Text("I", color = ink, fontSize = 14.sp) }
-                                TextButton(onClick = { command("underline") }) { Text("U", color = ink, fontSize = 14.sp) }
-                                TextButton(onClick = { command("strikeThrough") }) { Text("S", color = ink, fontSize = 14.sp) }
-                                TextButton(onClick = { command("justifyLeft") }) { Text("≡", color = ink, fontSize = 15.sp) }
-                                TextButton(onClick = { command("justifyCenter") }) { Text("☷", color = ink, fontSize = 15.sp) }
-                                TextButton(onClick = { command("insertUnorderedList") }) { Text("☷•", color = ink, fontSize = 12.sp) }
-                                TextButton(onClick = { showFindReplace = true }) { Text("⌕", color = ink, fontSize = 15.sp) }
-                                TextButton(onClick = { activePanel = EditorPanel.TEXT; selectedTextActive = false }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("bold") }) { Text("B", color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("italic") }) { Text("I", color = ink, fontSize = 14.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("underline") }) { Text("U", color = ink, fontSize = 14.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("strikeThrough") }) { Text("S", color = ink, fontSize = 14.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("justifyLeft") }) { Text("≡", color = ink, fontSize = 15.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("justifyCenter") }) { Text("☷", color = ink, fontSize = 15.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("insertUnorderedList") }) { Text("☷•", color = ink, fontSize = 12.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { showFindReplace = true }) { Text("⌕", color = ink, fontSize = 15.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { activePanel = EditorPanel.TEXT; selectedTextActive = false }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                             } else {
                                 when (selectionState.kind) {
                                     EditorSelectionKind.TABLE -> {
-                                        TextButton(onClick = { runJs("addTableRow()") }) { Text("＋ 行", color = accent, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("removeTableRow()") }) { Text("－ 行", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("addTableColumn()") }) { Text("＋ 列", color = accent, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("removeTableColumn()") }) { Text("－ 列", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = { activePanel = EditorPanel.COMPONENT }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("addTableRow()") }) { Text("＋ 行", color = accent, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("removeTableRow()") }) { Text("－ 行", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("addTableColumn()") }) { Text("＋ 列", color = accent, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("removeTableColumn()") }) { Text("－ 列", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { activePanel = EditorPanel.COMPONENT }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                                     }
                                     EditorSelectionKind.MULTI_BLOCK -> {
-                                        TextButton(onClick = { runJs("moveSelectedBlock(-1)") }) { Text("上移", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("moveSelectedBlock(1)") }) { Text("下移", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = {
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("moveSelectedBlock(-1)") }) { Text("上移", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("moveSelectedBlock(1)") }) { Text("下移", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = {
                                             if (selectedBlockHtml.isNotBlank()) {
                                                 vm.saveStyle(StyleModule(vm.newId(), "组合组件", "组合组件", selectedBlockHtml, System.currentTimeMillis().toString(), type = "combination"))
                                                 vm.toast("已保存组合组件")
                                             } else vm.toast("请先选择要组合的模块")
                                         }) { Text("保存组合", color = accent, fontSize = 11.sp) }
-                                        TextButton(onClick = { activePanel = EditorPanel.LAYER }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { activePanel = EditorPanel.LAYER }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                                     }
                                     else -> {
-                                        TextButton(onClick = { runJs("moveSelectedBlock(-1)") }) { Text("上移", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("moveSelectedBlock(1)") }) { Text("下移", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = { showBlockProperties = true }) { Text("样式", color = accent, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("duplicateSelectedBlock()") }) { Text("复制", color = ink, fontSize = 11.sp) }
-                                        TextButton(onClick = { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }) { Text("删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
-                                        TextButton(onClick = { activePanel = EditorPanel.COMPONENT }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("moveSelectedBlock(-1)") }) { Text("上移", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("moveSelectedBlock(1)") }) { Text("下移", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { showBlockProperties = true }) { Text("样式", color = accent, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("duplicateSelectedBlock()") }) { Text("复制", color = ink, fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("deleteSelectedBlock()"); selectedBlockHtml = "" }) { Text("删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
+                                        TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { activePanel = EditorPanel.COMPONENT }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                                     }
                                 }
                             }
