@@ -194,16 +194,17 @@ replace_once(p,
         if (!ui.mediaInit) applyDefaultMediaOnce()
         rebuild()
     }''',
-'''    fun updateData(block: (AppData) -> AppData) {
+'''    fun updateData(block: (AppData) -> AppData): Boolean {
         val updated = block(data)
         if (!store.saveData(updated)) {
             toast("数据保存失败，原有数据未被覆盖，请检查设备存储空间后重试")
-            return
+            return false
         }
         data = updated
         validateSelections()
         if (!ui.mediaInit) applyDefaultMediaOnce()
         rebuild()
+        return true
     }''', "transactional data updates")
 
 # Shared business actions.
@@ -475,6 +476,8 @@ checks = [
     (DATA / "Store.kt", "val backupRaw: AppData?"),
     (DATA / "Store.kt", "backupFile.copyTo(dataFile, overwrite = true)"),
     (UI / "AppViewModel.kt", "if (!store.saveData(updated))"),
+    (UI / "AppViewModel.kt", "fun updateData(block: (AppData) -> AppData): Boolean"),
+    (UI / "AppViewModel.kt", "return true"),
     (UI / "AppViewModel.kt", "fun saveArticle("),
     (UI / "AppViewModel.kt", "fun deleteArticle("),
     (UI / "AppViewModel.kt", "fun saveMediaAsset("),
