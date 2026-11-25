@@ -6,56 +6,45 @@ ROOT = Path(".")
 JAVA = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app"
 MAIN = JAVA / "MainActivity.kt"
 LAYOUT = JAVA / "ui/LayoutScreen.kt"
-EDITOR = JAVA / "ui/ArticleEditorScreen.kt"
+EDITOR = JAVA / "ui/XiumiArticleLayoutScreen.kt"
 
 if not EDITOR.is_file():
-    raise SystemExit("ArticleEditorScreen.kt is missing; refusing to build without the destination screen.")
-
+    raise SystemExit("Independent XiumiArticleLayoutScreen.kt is missing; refusing to build.")
 main = MAIN.read_text(encoding="utf-8")
-if "import com.shiwanju.app.ui.XiumiArticleEditorScreen" not in main:
+if "import com.shiwanju.app.ui.XiumiArticleLayoutScreen" not in main:
     anchor = "import com.shiwanju.app.ui.LayoutScreen"
     if anchor not in main:
-        raise SystemExit("Cannot add XiumiArticleEditorScreen import: LayoutScreen import anchor missing.")
-    main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.XiumiArticleEditorScreen", 1)
-
+        raise SystemExit("Cannot add XiumiArticleLayoutScreen import.")
+    main = main.replace(anchor, anchor + "\nimport com.shiwanju.app.ui.XiumiArticleLayoutScreen", 1)
+main = re.sub(r'import com\\.shiwanju\\.app\\.ui\\.XiumiArticleEditorScreen\\n', '', main)
 route = """when (vm.screen) {
-                        "article_editor" -> XiumiArticleEditorScreen(vm) { vm.screen = "layout" }
+                        "article_editor" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }
                         "layout" -> LayoutScreen(vm)
                         else -> MyScreen(vm)
                     }"""
-if '"article_editor" -> XiumiArticleEditorScreen(vm)' not in main:
+if '"article_editor" -> XiumiArticleLayoutScreen(vm)' not in main:
     patterns = [
-        re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)'),
-        re.compile(r'if\s*\(vm\.screen\s*==\s*"layout"\)\s*\{\s*LayoutScreen\(vm\)\s*\}\s*else\s*\{\s*MyScreen\(vm\)\s*\}', re.S),
+        re.compile(r'if\\s*\\(vm\\.screen\\s*==\\s*"layout"\\)\\s*LayoutScreen\\(vm\\)\\s*else\\s*MyScreen\\(vm\\)'),
+        re.compile(r'when\\s*\\(vm\\.screen\\)\\s*\\{[^}]*"layout"\\s*->\\s*LayoutScreen\\(vm\\)[^}]*else\\s*->\\s*MyScreen\\(vm\\)[^}]*\\}', re.S)
     ]
-    match = next((m for pattern in patterns if (m := pattern.search(main))), None)
+    match = next((m for p in patterns if (m := p.search(main))), None)
     if not match:
-        raise SystemExit("Cannot find the MainActivity screen dispatcher. Actual screen lines: " + repr([x.strip() for x in main.splitlines() if "LayoutScreen(vm)" in x or "MyScreen(vm)" in x]))
+        raise SystemExit("Cannot locate MainActivity screen dispatcher.")
     main = main[:match.start()] + route + main[match.end():]
-
 MAIN.write_text(main, encoding="utf-8")
 
 layout = LAYOUT.read_text(encoding="utf-8")
-if 'contentDescription = "秀米式文章排版"' not in layout:
-    raise SystemExit("Layout page Xiumi-style palette icon is missing.")
-if 'onClick = { vm.screen = "article_editor" }' not in layout:
-    raise SystemExit("Layout page palette icon has no navigation click handler.")
+if 'contentDescription = "秀米式文章排版"' not in layout or 'vm.screen = "article_editor"' not in layout:
+    raise SystemExit("Palette entry is missing from LayoutScreen.")
 if 'ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)' not in layout:
-    raise SystemExit("Layout page Edit action anchor missing.")
+    raise SystemExit("Existing Edit entry missing; preserve it.")
 icon_at = layout.find('contentDescription = "秀米式文章排版"')
 edit_at = layout.find('ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)')
-if icon_at < 0 or edit_at < 0 or icon_at < edit_at:
-    raise SystemExit("Xiumi palette icon must be positioned immediately RIGHT of the Edit action.")
-if 'vm.screen = "article_editor"' not in layout:
-    raise SystemExit("Layout page article editor route target is missing.")
-
+if icon_at < edit_at:
+    raise SystemExit("Palette entry must remain to the right of Edit.")
 check = MAIN.read_text(encoding="utf-8")
-if '"article_editor" -> XiumiArticleEditorScreen(vm)' not in check:
-    raise SystemExit("MainActivity article_editor route verification failed.")
-if '"layout" -> LayoutScreen(vm)' not in check:
-    raise SystemExit("MainActivity layout return route verification failed.")
-if "import com.shiwanju.app.ui.XiumiArticleEditorScreen" not in check:
-    raise SystemExit("MainActivity XiumiArticleEditorScreen import verification failed.")
-if 'fun XiumiArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit)' not in EDITOR.read_text(encoding="utf-8"):
-    raise SystemExit("Dedicated Xiumi editor screen entry is missing.")
-print("Article editor navigation verified: visible palette icon RIGHT of Edit -> click -> XiumiArticleEditorScreen -> back to LayoutScreen.")
+for token in ['"article_editor" -> XiumiArticleLayoutScreen(vm)', '"layout" -> LayoutScreen(vm)', "import com.shiwanju.app.ui.XiumiArticleLayoutScreen"]:
+    if token not in check: raise SystemExit("Route verification failed: " + token)
+if "fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit)" not in EDITOR.read_text(encoding="utf-8"):
+    raise SystemExit("Independent Xiumi editor composable missing.")
+print("Independent Xiumi editor route verified: palette -> XiumiArticleLayoutScreen -> original layout.")
