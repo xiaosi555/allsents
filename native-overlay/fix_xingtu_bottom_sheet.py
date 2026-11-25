@@ -36,7 +36,7 @@ new = """                                    } else {
                                         showToolPopup = true
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()"""
-if new not in s:
+if "toolPanelHeightDp = 100f" not in s:
     if s.count(old) != 1:
         raise SystemExit(f"Expected one primary navigation open handler, found {s.count(old)}")
     s = s.replace(old, new, 1)
