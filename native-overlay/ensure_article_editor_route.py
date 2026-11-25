@@ -36,16 +36,16 @@ if '"article_editor" -> XiumiArticleEditorScreen(vm)' not in main:
 MAIN.write_text(main, encoding="utf-8")
 
 layout = LAYOUT.read_text(encoding="utf-8")
-if 'contentDescription = "文章编辑器"' not in layout:
-    raise SystemExit("Layout page article editor icon is missing.")
+if 'contentDescription = "秀米式文章排版"' not in layout:
+    raise SystemExit("Layout page Xiumi-style palette icon is missing.")
 if 'onClick = { vm.screen = "article_editor" }' not in layout:
-    raise SystemExit("Layout page article editor icon has no navigation click handler.")
+    raise SystemExit("Layout page palette icon has no navigation click handler.")
 if 'ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)' not in layout:
     raise SystemExit("Layout page Edit action anchor missing.")
-icon_at = layout.find('contentDescription = "文章编辑器"')
+icon_at = layout.find('contentDescription = "秀米式文章排版"')
 edit_at = layout.find('ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing)')
-if icon_at < 0 or edit_at < 0 or icon_at > edit_at:
-    raise SystemExit("Article editor icon must be positioned immediately before the Edit action.")
+if icon_at < 0 or edit_at < 0 or icon_at < edit_at:
+    raise SystemExit("Xiumi palette icon must be positioned immediately RIGHT of the Edit action.")
 if 'vm.screen = "article_editor"' not in layout:
     raise SystemExit("Layout page article editor route target is missing.")
 
@@ -58,4 +58,4 @@ if "import com.shiwanju.app.ui.XiumiArticleEditorScreen" not in check:
     raise SystemExit("MainActivity XiumiArticleEditorScreen import verification failed.")
 if 'fun XiumiArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit)' not in EDITOR.read_text(encoding="utf-8"):
     raise SystemExit("Dedicated Xiumi editor screen entry is missing.")
-print("Article editor navigation verified: visible icon LEFT of Edit -> click -> XiumiArticleEditorScreen -> back to LayoutScreen.")
+print("Article editor navigation verified: visible palette icon RIGHT of Edit -> click -> XiumiArticleEditorScreen -> back to LayoutScreen.")
