@@ -1182,8 +1182,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
                 update = { editor = it }
             )
-                }
-            }
             if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||
                     selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
                     selectionState.kind == EditorSelectionKind.COMPONENT || selectionState.kind == EditorSelectionKind.LAYOUT)) {
