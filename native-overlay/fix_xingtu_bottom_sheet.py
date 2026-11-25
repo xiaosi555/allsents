@@ -24,7 +24,7 @@ if dock_count == 1:
     s = s[:start] + s[end:]
 elif dock_count == 0:
     import re
-    dock_heights = [m.start() for m in re.finditer(r"height\\(50\\.dp\\)", s)]
+    dock_heights = [m.start() for m in re.finditer(r"height\(50\.dp\)", s)]
     if len(dock_heights) == 2:
         second = dock_heights[1]
         row_start = s.rfind("Row(", 0, second)
