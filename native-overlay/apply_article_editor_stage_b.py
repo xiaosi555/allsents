@@ -163,9 +163,9 @@ s = replace_once(
 
 s = replace_once(
     s,
-    '''                               }
-                             });
-                             function clearDragTarget(){''',
+    '''                              }
+                            });
+                            function clearDragTarget(){''',
     '''                               }
                                reportSelection();
                              });
