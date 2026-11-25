@@ -174,6 +174,14 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
   val next=blocks.toMutableList(); next[index]=transform(next[index]); blocks=next; dirty=true
  }
+ fun restoreBody(value:String) {
+  val previous=blocks.toMutableList()
+  blocks=value.split("\n\n").filter { it.isNotBlank() }.map { chunk ->
+   val match=previous.firstOrNull { it.content==chunk }
+   if(match!=null) { previous.remove(match); match } else XiumiBlock(vm.newId(),classifyXiumiBlock(chunk),chunk)
+  }
+  body=value; selectedBlockId=""; selectedSnippet=""
+ }
  BackHandler { if(dirty) save(); onBack() }
  val materials=remember(dock,vm.data.styles,importedMaterials,favoriteMaterials) {
   when(dock) {
@@ -184,9 +192,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
    XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\n02  第二步\n03  第三步"))
    XiumiDock.COMPONENT -> listOf(XiumiMaterial("关注引导","公众号关注提示","关注公众号｜拾万句"),XiumiMaterial("作者信息","作者署名","文 / 拾万句"),XiumiMaterial("二维码","二维码占位","［二维码图片］"))
-   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释")) + importedMaterials + importedMaterials
+   XiumiDock.TEMPLATE -> listOf(XiumiMaterial("简约文章","标题、正文、引用","【文章标题】\n\n导语内容\n\n正文内容\n\n“引用内容”"),XiumiMaterial("清新图文","图片与正文","【图文标题】\n［封面图片］\n\n正文内容"),XiumiMaterial("知识卡片","知识点卡片","01｜知识点标题\n知识点解释")) + vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) } + importedMaterials
    XiumiDock.THEME -> listOf(XiumiMaterial("薄荷绿","清新绿色","mint"),XiumiMaterial("暖阳橙","温暖橙色","orange"),XiumiMaterial("海盐蓝","清爽蓝色","blue"))
-   XiumiDock.FAVORITE -> (vm.data.styles.map { XiumiMaterial(it.name,it.category,it.html) } + importedMaterials).filter { it.name in favoriteMaterials }
+   XiumiDock.FAVORITE -> vm.data.styles.filter { it.isFavorite }.map { XiumiMaterial(it.name,it.category,it.html) }
   }
  }
  Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4))) {
@@ -218,11 +226,11 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Text(dock.label,fontSize=10.sp,color=accent,modifier=Modifier.padding(top=3.dp,bottom=8.dp))
     OutlinedTextField(search,{search=it},Modifier.fillMaxWidth().heightIn(min=42.dp),singleLine=true,placeholder={Text("搜索",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=11.sp),shape=RoundedCornerShape(7.dp))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
-     materials.filter { search.isBlank() || it.name.contains(search) || it.detail.contains(search) }.forEach { material ->
+     materials.filter { search.isBlank() || it.name.contains(search,true) || it.detail.contains(search,true) || it.value.contains(search,true) }.forEach { material ->
       Column(Modifier.fillMaxWidth().padding(bottom=7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F6)).clickable {
        if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else showMaterialPreview=material
       }.padding(9.dp)) {
-       Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(material.name in favoriteMaterials) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { favoriteMaterials=if(material.name in favoriteMaterials) favoriteMaterials-material.name else favoriteMaterials+material.name }) }
+       Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(vm.data.styles.any { it.name==material.name && it.category==dock.label && it.isFavorite }) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { val existing=vm.data.styles.firstOrNull { it.name==material.name && it.category==dock.label }; if(existing!=null) vm.saveStyle(existing.copy(isFavorite=!existing.isFavorite,updatedAt=System.currentTimeMillis().toString())) else vm.saveStyle(StyleModule(vm.newId(),material.name,dock.label,material.value,System.currentTimeMillis().toString(),isFavorite=true,type="component")) }) }
        Text(material.detail,fontSize=10.sp,color=Color.Gray)
        if(dock!=XiumiDock.THEME) Text("＋ 添加",fontSize=10.sp,color=accent,modifier=Modifier.padding(top=4.dp))
       }
@@ -422,8 +430,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
   }
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
-   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.size>1) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true;selectedSnippet=""} })
-   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true;selectedSnippet=""} })
+   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.size>1) {redo=redo+body;val snapshot=undo.last();undo=undo.dropLast(1);restoreBody(snapshot);dirty=true} })
+   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;val snapshot=redo.last();redo=redo.dropLast(1);restoreBody(snapshot);dirty=true} })
    Text("复制",fontSize=11.sp,color=if(selectedSnippet.isNotBlank()) accent else Color.LightGray,modifier=Modifier.clickable { if(selectedBlockId.isNotBlank()) clipboard.setText(AnnotatedString(blocks.firstOrNull { it.id==selectedBlockId }?.content.orEmpty())) })
    Text("粘贴",fontSize=11.sp,color=accent,modifier=Modifier.clickable { clipboard.getText()?.text?.takeIf { it.isNotBlank() }?.let { insert(it) } })
    listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable {
