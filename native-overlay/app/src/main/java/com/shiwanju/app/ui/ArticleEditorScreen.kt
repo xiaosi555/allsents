@@ -56,6 +56,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -134,6 +136,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var webReady by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
     var showToolPopup by remember { mutableStateOf(false) }
+    var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }
+    val toolPanelDensity = LocalDensity.current
+    val animatedToolPanelHeight by androidx.compose.animation.core.animateDpAsState(
+        targetValue = toolPanelHeightDp.dp,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 180),
+        label = "toolPanelHeight"
+    )
     var showCanvasPopup by remember { mutableStateOf(false) }
     var toolPopupOffset by remember { mutableStateOf(Offset.Zero) }
     var activeCategory by remember { mutableStateOf("") }
@@ -1346,12 +1355,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             if (!previewMode) {
             if (showToolPopup && activePanel != EditorPanel.CANVAS) {
-                Dialog(
+                Popup(
+                    alignment = Alignment.BottomCenter,
                     onDismissRequest = { showToolPopup = false },
-                    properties = DialogProperties(usePlatformDefaultWidth = false)
+                    properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false, clippingEnabled = false)
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 300.dp).padding(bottom = 50.dp).background(Color(0xFF181818)).navigationBarsPadding()) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -1360,7 +1370,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
-                        Column(Modifier.fillMaxWidth().heightIn(min = 40.dp, max = 250.dp).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
+                        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
@@ -1859,6 +1869,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
+                                        toolPanelHeightDp = 100f
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
                                 },
@@ -1879,7 +1890,19 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     }
                     }
-
+                    Box(
+                        Modifier.fillMaxWidth().height(26.dp)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp() }
+                                    toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 350f)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(Modifier.width(42.dp).height(4.dp).background(Color(0xFF777777), RoundedCornerShape(50)))
+                    }
                 }
             }
             }
