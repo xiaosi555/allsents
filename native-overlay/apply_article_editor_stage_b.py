@@ -148,7 +148,7 @@ selection_helpers = '''                             function ensureEditorId(el){
 '''
 s = replace_once(
     s,
-    '''                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}''',
+    '''                            function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}''',
     '''                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.querySelectorAll('[data-editor-id]').forEach(n=>n.removeAttribute('data-editor-id'));c.removeAttribute('data-editor-id');c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');ensureEditorId(c);NativeEditor.blockSelected(cleanBlockHtml(c));reportSelection();commitHistory();NativeEditor.changed(root.innerHTML);}''',
     "regenerate stable IDs when duplicating blocks"
 )
