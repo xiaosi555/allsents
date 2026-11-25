@@ -165,7 +165,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
       Column(Modifier.fillMaxWidth().padding(bottom=7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F6)).clickable {
        if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else insert(material.value)
       }.padding(9.dp)) {
-       Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold); Text(material.detail,fontSize=10.sp,color=Color.Gray)
+       Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(material.name in favoriteMaterials) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { favoriteMaterials=if(material.name in favoriteMaterials) favoriteMaterials-material.name else favoriteMaterials+material.name }) }
+       Text(material.detail,fontSize=10.sp,color=Color.Gray)
        if(dock!=XiumiDock.THEME) Text("＋ 添加",fontSize=10.sp,color=accent,modifier=Modifier.padding(top=4.dp))
       }
      }
