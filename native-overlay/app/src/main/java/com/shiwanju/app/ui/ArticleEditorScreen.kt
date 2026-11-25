@@ -111,7 +111,7 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
 }
 
 private enum class EditorPanel(val label: String) {
-    TEXT("文字"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
+    TEXT("文字"), TEXT2("文字2"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }
 
 private val LocalEditorToolDark = compositionLocalOf { false }
@@ -123,6 +123,160 @@ private data class EditorLayerItem(
     val visible: Boolean,
     val locked: Boolean
 )
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Text2EditorPanel(
+    onInsertText: (String) -> Unit,
+    onCommand: (String, String?) -> Unit,
+    onApplyCss: (String, String) -> Unit,
+    onApplyColor: (String, Boolean) -> Unit,
+    onRecognize: () -> Unit
+) {
+    var textValue by remember { mutableStateOf("") }
+    var mainTab by remember { mutableStateOf("字体") }
+    var styleTab by remember { mutableStateOf("文本") }
+    var selectedColor by remember { mutableStateOf("#222222") }
+    var fontSize by remember { mutableFloatStateOf(18f) }
+    var opacity by remember { mutableFloatStateOf(100f) }
+    var strokeWidth by remember { mutableFloatStateOf(2f) }
+    var blur by remember { mutableFloatStateOf(8f) }
+    var distance by remember { mutableFloatStateOf(4f) }
+    var angle by remember { mutableFloatStateOf(45f) }
+    var glowWidth by remember { mutableFloatStateOf(8f) }
+    var radius by remember { mutableFloatStateOf(8f) }
+    var lineSpacing by remember { mutableFloatStateOf(1.6f) }
+    var letterSpacing by remember { mutableFloatStateOf(0f) }
+    var outlineMode by remember { mutableStateOf("单层") }
+    val colors = listOf("#D9D9D9", "#222222", "#777777", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
+    @Composable fun colorRow() {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            listOf("禁用", "取色", "渐变").forEachIndexed { i, label ->
+                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(0xFFF0F0F0)).clickable { if (i == 1) onRecognize() }, contentAlignment = Alignment.Center) {
+                    Text(if (i == 0) "／" else if (i == 1) "⌁" else "✦", color = Color(0xFF555555), fontSize = 17.sp)
+                }
+            }
+            colors.forEach { color ->
+                Box(Modifier.size(30.dp).clip(CircleShape)
+                    .background(Color(android.graphics.Color.parseColor(color)))
+                    .then(if (selectedColor == color) Modifier.border(2.dp, Color.Black, CircleShape) else Modifier.border(1.dp, Color(0xFFD5D5D5), CircleShape))
+                    .clickable { selectedColor = color; onApplyColor(color, styleTab == "背景") })
+            }
+        }
+    }
+    @Composable fun parameter(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
+        Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, Modifier.width(54.dp), color = Color(0xFF555555), fontSize = 12.sp)
+            Slider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
+            Text(value.toInt().toString() + suffix, Modifier.width(42.dp), color = Color(0xFF333333), fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        }
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
+            BasicTextField(value = textValue, onValueChange = { textValue = it }, singleLine = true, modifier = Modifier.weight(1f).padding(start = 4.dp),
+                textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFF222222), fontSize = 14.sp),
+                decorationBox = { inner -> Box { if (textValue.isEmpty()) Text("点击输入文字", color = Color(0xFFAAAAAA), fontSize = 14.sp); inner() } })
+            listOf("×", "识", "✓").forEachIndexed { i, symbol ->
+                Box(Modifier.padding(start = 7.dp).size(30.dp).clip(CircleShape).background(if (i == 2) Color.Black else Color(0xFFEAEAEA)).clickable {
+                    when (i) { 0 -> textValue = ""; 1 -> onRecognize(); else -> if (textValue.isNotBlank()) { onInsertText(textValue); textValue = "" } }
+                }, contentAlignment = Alignment.Center) {
+                    Text(symbol, color = if (i == 2) Color.White else Color(0xFF555555), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
+            listOf("字体", "样式", "排版").forEach { tab ->
+                Column(Modifier.clickable { mainTab = tab }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(tab, color = if (mainTab == tab) Color.Black else Color(0xFFAAAAAA), fontSize = 14.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
+                    Box(Modifier.padding(top = 4.dp).width(22.dp).height(3.dp).clip(RoundedCornerShape(4.dp)).background(if (mainTab == tab) Color(0xFF3987F7) else Color.Transparent))
+                }
+            }
+        }
+        if (mainTab == "字体") {
+            Text("选择字体", color = Color(0xFF777777), fontSize = 11.sp)
+            val fonts = listOf("系统默认", "微软雅黑", "苹方", "思源黑体", "宋体", "楷体", "仿宋", "黑体", "圆体", "衬线", "无衬线", "等宽")
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                fonts.forEach { font ->
+                    Box(Modifier.weight(1f).widthIn(min = 78.dp).height(48.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFFF2F2F2))
+                        .clickable { onCommand("fontName", when (font) { "宋体" -> "SimSun"; "楷体" -> "KaiTi"; "黑体", "微软雅黑" -> "Microsoft YaHei"; "仿宋" -> "FangSong"; "等宽" -> "monospace"; "衬线" -> "serif"; "无衬线" -> "sans-serif"; else -> "sans-serif" }) },
+                        contentAlignment = Alignment.Center) { Text(font, color = Color(0xFF333333), fontSize = 12.sp) }
+                }
+            }
+        } else if (mainTab == "样式") {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
+                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.Black else Color(0xFFAAAAAA), fontSize = 12.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
+                }
+            }
+            if (styleTab == "描边") {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    listOf("单层", "多层").forEach { label ->
+                        TextButton(onClick = { outlineMode = label }) { Text(label, color = if (outlineMode == label) Color.Black else Color.Gray, fontSize = 11.sp) }
+                    }
+                }
+            }
+            colorRow()
+            when (styleTab) {
+                "文本" -> {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                        listOf("B" to "粗体", "I" to "斜体", "U" to "下划线", "S" to "删除线").forEachIndexed { i, item ->
+                            Column(Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0)).clickable {
+                                onCommand(listOf("bold", "italic", "underline", "strikeThrough")[i], null)
+                            }.padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(item.first, color = Color.Black, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                                Text(item.second, color = Color(0xFF777777), fontSize = 10.sp)
+                            }
+                        }
+                    }
+                    parameter("字号", fontSize, 8f, 72f, "px") { fontSize = it; onApplyCss("font-size", it.toInt().toString() + "px") }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("字号微调", color = Color(0xFF555555), fontSize = 11.sp); Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(8f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }) { Text("−") }
+                        Text(fontSize.toInt().toString(), color = Color.Black)
+                        TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(72f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }) { Text("＋") }
+                    }
+                    parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                }
+                "描边" -> {
+                    parameter("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px") }
+                    parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                }
+                "阴影" -> {
+                    parameter("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + selectedColor) }
+                    parameter("距离", distance, 0f, 30f, "px") { distance = it; onApplyCss("text-shadow", it.toString() + "px " + it + "px " + blur + "px " + selectedColor) }
+                    parameter("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance) .toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + selectedColor) }
+                    parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                }
+                "发光" -> {
+                    parameter("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + selectedColor) }
+                    parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                }
+                "背景" -> {
+                    parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("background-color", selectedColor) }
+                    parameter("圆角", radius, 0f, 40f, "px") { radius = it; onApplyCss("border-radius", it.toString() + "px") }
+                }
+            }
+        } else {
+            val alignItems = listOf("居左", "居中", "居右", "水平对齐", "居顶", "居中", "居底", "垂直对齐")
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                alignItems.forEachIndexed { index, label ->
+                    Column(Modifier.weight(1f).widthIn(min = 64.dp).clip(RoundedCornerShape(8.dp))
+                        .background(if (index == 1) Color.Black else Color(0xFFF0F0F0))
+                        .clickable {
+                            when (index) { 0 -> onCommand("justifyLeft", null); 1 -> onCommand("justifyCenter", null); 2 -> onCommand("justifyRight", null); 3 -> onCommand("justifyFull", null)
+                                4 -> onApplyCss("vertical-align", "top"); 5 -> onApplyCss("vertical-align", "middle"); 6 -> onApplyCss("vertical-align", "bottom"); else -> onApplyCss("vertical-align", "middle") }
+                        }.padding(vertical = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(listOf("☰", "≡", "☷", "↔", "↑", "↕", "↓", "↕")[index], color = if (index == 1) Color.White else Color(0xFF444444), fontSize = 17.sp)
+                        Text(label, color = if (index == 1) Color.White else Color(0xFF555555), fontSize = 10.sp)
+                    }
+                }
+            }
+            parameter("行间距", lineSpacing, 1f, 3f, "x") { lineSpacing = it; onApplyCss("line-height", it.toString()) }
+            parameter("字间距", letterSpacing, -2f, 12f, "px") { letterSpacing = it; onApplyCss("letter-spacing", it.toString() + "px") }
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -1487,6 +1641,25 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                         Text("本地图片已复制到应用私有目录；网络图片仍依赖原图链接可访问。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))
                     }
+                    EditorPanel.TEXT2 -> {
+                        Text2EditorPanel(
+                            onInsertText = { value ->
+                                val escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;")
+                                insert("<p style='margin:0 0 12px;font-size:18px;line-height:1.6'>" + escaped + "</p>")
+                            },
+                            onCommand = { name, value -> command(name, value) },
+                            onApplyCss = { property, value ->
+                                val prop = property.replace("'", "")
+                                val css = value.replace("'", "")
+                                runJs("restoreSelection();(function(){var sel=window.getSelection();if(!sel||!sel.rangeCount)return;var range=sel.getRangeAt(0);if(range.collapsed){var node=range.startContainer;var el=node.nodeType===1?node:node.parentElement;if(el)el.style.setProperty('" + prop + "','" + css + "');return;}var span=document.createElement('span');span.style.setProperty('" + prop + "','" + css + "');try{range.surroundContents(span);}catch(e){var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);}saveSelection();})();")
+                            },
+                            onApplyColor = { color, background ->
+                                val commandName = if (background) "hiliteColor" else "foreColor"
+                                runJs("restoreSelection();document.execCommand('" + commandName + "',false,'" + color + "');saveSelection();")
+                            },
+                            onRecognize = { vm.toast("文本识别：请先选择图片，再使用图片文字识别") }
+                        )
+                    }
                     EditorPanel.TITLE -> {
                         Text("标题样式 · 选择后插入画布，可直接修改文字", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1869,7 +2042,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
-                                        toolPanelHeightDp = 100f
+                                        toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 100f
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
                                 },
