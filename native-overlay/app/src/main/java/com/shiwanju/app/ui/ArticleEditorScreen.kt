@@ -6,7 +6,9 @@ import android.os.Handler
 import android.os.Looper
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ComponentCallbacks2
 import android.content.Context
+import android.content.res.Configuration
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
@@ -599,9 +601,25 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     LaunchedEffect(title, html, articleId, pendingSave, webReady) {
         if (!webReady || showArticleList) return@LaunchedEffect
         saved = false
-        delay(1100)
+        delay(750)
         saveDocument()
     }
+
+    // Persist the latest WebView HTML when Android hides the app UI (background/recents).
+    val saveOnBackground by rememberUpdatedState(newValue = { saveDocument() })
+    DisposableEffect(context) {
+        val appContext = context.applicationContext
+        val callbacks = object : ComponentCallbacks2 {
+            override fun onTrimMemory(level: Int) {
+                if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) saveOnBackground()
+            }
+            override fun onLowMemory() = Unit
+            override fun onConfigurationChanged(newConfig: Configuration) = Unit
+        }
+        appContext.registerComponentCallbacks(callbacks)
+        onDispose { appContext.unregisterComponentCallbacks(callbacks) }
+    }
+
     BackHandler {
         when {
             showArticleList -> showArticleList = false
@@ -867,12 +885,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor img.selected-image{outline:2px solid #159765;outline-offset:2px}
                             </style></head><body><header id="previewHeader"></header><div id="editor" contenteditable="true" spellcheck="true"></div>
                             <script>
-                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let dragSource=null;let dragTarget=null;let activeImage=null;
-                            function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshots.push(value);if(snapshots.length>60)snapshots.shift();historyIndex=snapshots.length-1;}
+                            const root=document.getElementById('editor');let savedRange=null;let timer=null;let snapshots=['<p><br></p>'];let historyIndex=0;let snapshotChars=snapshots[0].length;let dragSource=null;let dragTarget=null;let activeImage=null;
+                            function commitHistory(){const value=root.innerHTML;if(snapshots[historyIndex]===value)return;snapshots=snapshots.slice(0,historyIndex+1);snapshotChars=snapshots.reduce((n,item)=>n+item.length,0);snapshots.push(value);snapshotChars+=value.length;while((snapshots.length>40||snapshotChars>8*1024*1024)&&snapshots.length>2){const removed=snapshots.shift();snapshotChars-=removed.length;historyIndex=Math.max(0,historyIndex-1);}historyIndex=snapshots.length-1;}
                             function restoreHistoryCaret(){root.focus();const r=document.createRange();r.selectNodeContents(root);r.collapse(false);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(r);saveSelection();}
                             function undoEditor(){commitHistory();if(historyIndex<=0)return;historyIndex--;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
                             function redoEditor(){if(historyIndex>=snapshots.length-1)return;historyIndex++;root.innerHTML=snapshots[historyIndex];restoreHistoryCaret();NativeEditor.changed(root.innerHTML);}
-                            function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';snapshots=[root.innerHTML];historyIndex=0;activeImage=null;NativeEditor.imageSelected('');NativeEditor.blockSelected('');saveSelection();}
+                            function setEditorHtml(v){root.innerHTML=v||'<p><br></p>';snapshots=[root.innerHTML];historyIndex=0;snapshotChars=snapshots[0].length;activeImage=null;NativeEditor.imageSelected('');NativeEditor.blockSelected('');saveSelection();}
                             function setEditable(v){root.contentEditable=!!v;if(!v){root.querySelectorAll('.selected-block,.selected-image').forEach(e=>e.classList.remove('selected-block','selected-image'));activeImage=null;NativeEditor.blockSelected('');NativeEditor.imageSelected('');}}
                             function setPreviewInfo(t,sub,author,summary){const h=document.getElementById('previewHeader');h.innerHTML='';if(!t&&!sub&&!author&&!summary){h.style.display='none';return;}h.style.display='block';if(t){const e=document.createElement('h1');e.textContent=t;h.appendChild(e);}if(sub){const e=document.createElement('p');e.className='sub';e.textContent=sub;h.appendChild(e);}const meta=[author,summary].filter(Boolean).join(' · ');if(meta){const e=document.createElement('p');e.className='meta';e.textContent=meta;h.appendChild(e);}}
                             function setSelectedImageWidth(v){if(!activeImage)return;activeImage.style.width=v;activeImage.style.maxWidth='100%';activeImage.style.height='auto';commitHistory();NativeEditor.changed(root.innerHTML);}function setSelectedImageObjectPosition(v){if(!activeImage)return;activeImage.style.objectPosition=v;commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
