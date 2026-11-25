@@ -347,7 +347,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
          "上移" -> moveSelected(-1)
          "下移" -> moveSelected(1)
          "复制" -> insert(selectedSnippet)
-         "删除" -> { editSelected { "" }; selectedSnippet=""; selected="正文" }
+         "删除" -> { syncBlocks(blocks.filterNot { it.id==selectedBlockId }); selectedBlockId=""; selectedSnippet=""; selected="正文" }
         }
        }.padding(horizontal=4.dp,vertical=3.dp))
      }
