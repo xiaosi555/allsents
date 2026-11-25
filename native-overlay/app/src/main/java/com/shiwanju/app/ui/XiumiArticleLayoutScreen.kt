@@ -334,8 +334,10 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
   }
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
-   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.isNotEmpty()) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true} })
-   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true} })
+   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.size>1) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true;selectedSnippet=""} })
+   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true;selectedSnippet=""} })
+   Text("复制",fontSize=11.sp,color=if(selectedSnippet.isNotBlank()) accent else Color.LightGray,modifier=Modifier.clickable { if(selectedSnippet.isNotBlank()) clipboard.setText(AnnotatedString(selectedSnippet)) })
+   Text("粘贴",fontSize=11.sp,color=accent,modifier=Modifier.clickable { clipboard.getText()?.text?.takeIf { it.isNotBlank() }?.let { insert(it) } })
    listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable {
     selected=label
     if(label=="图层") showLayers=true
