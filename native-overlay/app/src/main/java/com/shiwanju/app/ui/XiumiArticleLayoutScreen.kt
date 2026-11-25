@@ -57,15 +57,18 @@ private fun classifyXiumiBlock(value:String):String = when {
 }
 private fun readXiumiBlocks(context:android.content.Context,articleId:String,body:String,newId:()->String):List<XiumiBlock> {
  val raw=context.getSharedPreferences("xiumi_editor",android.content.Context.MODE_PRIVATE).getString("blocks_$articleId",null)
- if(!raw.isNullOrBlank()) runCatching {
-  val array=JSONArray(raw)
-  return (0 until array.length()).mapNotNull { i -> array.optJSONObject(i)?.let { o ->
-   XiumiBlock(o.optString("id",newId()),o.optString("type","正文"),o.optString("content"),
-    o.optDouble("fontSize",16.0).toFloat(),o.optDouble("lineSpace",1.8).toFloat(),o.optBoolean("bold"),
-    o.optString("align","左对齐"),o.optLong("color",0xFF333333),o.optDouble("padding",8.0).toFloat(),
-    o.optDouble("border",0.0).toFloat(),o.optDouble("radius",0.0).toFloat())
-  } }
- }.onFailure { android.util.Log.w("XiumiEditor","读取组件数据失败",it) }
+ if(!raw.isNullOrBlank()) {
+  val parsed=runCatching {
+   val array=JSONArray(raw)
+   (0 until array.length()).mapNotNull { i -> array.optJSONObject(i)?.let { o ->
+    XiumiBlock(o.optString("id",newId()),o.optString("type","正文"),o.optString("content"),
+     o.optDouble("fontSize",16.0).toFloat(),o.optDouble("lineSpace",1.8).toFloat(),o.optBoolean("bold"),
+     o.optString("align","左对齐"),o.optLong("color",0xFF333333),o.optDouble("padding",8.0).toFloat(),
+     o.optDouble("border",0.0).toFloat(),o.optDouble("radius",0.0).toFloat())
+   } }
+  }.getOrNull()
+  if(parsed!=null && parsed.joinToString("\n\n") { it.content }==body) return parsed
+ }
  return body.split("\n\n").filter { it.isNotBlank() }.map { XiumiBlock(newId(),classifyXiumiBlock(it),it) }
 }
 private fun writeXiumiBlocks(context:android.content.Context,articleId:String,blocks:List<XiumiBlock>) {
