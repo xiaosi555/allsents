@@ -245,7 +245,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     undo=listOf(""); redo=emptyList(); dirty=true; preview=false
    }) { Text("新建") }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
-   TextButton(onClick={exportLauncher.launch("${title.ifBlank { "文章" }}.txt")}) { Text("导出") }
+   TextButton(onClick={ val rows=JSONArray(); vm.data.styles.forEach { st -> rows.put(JSONObject().put("name",st.name).put("category",st.category).put("html",st.html).put("isFavorite",st.isFavorite).put("type",st.type).put("tags",JSONArray(st.tags))) }; pendingTemplateJson=JSONObject().put("format","shiwanju.styles.v1").put("styles",rows).toString(2); exportLauncher.launch("拾万句-秀米模板包.json") }) { Text("导出模板") }
    TextButton(onClick={ { save() } }) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
    TextButton(onClick={properties=!properties}) { Text("属性") }
   }
@@ -260,7 +260,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
    }
    Column(Modifier.width(if(compact) 116.dp else 224.dp).fillMaxHeight().background(Color.White).padding(horizontal=if(compact) 7.dp else 12.dp, vertical=12.dp)) {
-    Row(verticalAlignment=Alignment.CenterVertically) { Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31),modifier=Modifier.weight(1f)); Text("导入＋",fontSize=10.sp,color=accent,modifier=Modifier.clickable { importLauncher.launch(arrayOf("text/plain","text/markdown","text/html")) }) }
+    Row(verticalAlignment=Alignment.CenterVertically) { Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31),modifier=Modifier.weight(1f)); Row { Text("图片＋",fontSize=10.sp,color=accent,modifier=Modifier.clickable { imageImportLauncher.launch(arrayOf("image/*")) }); Spacer(Modifier.width(8.dp)); Text("导入＋",fontSize=10.sp,color=accent,modifier=Modifier.clickable { importLauncher.launch(arrayOf("text/plain","text/markdown","text/html","application/json")) }) } }
     Text(dock.label,fontSize=10.sp,color=accent,modifier=Modifier.padding(top=3.dp,bottom=8.dp))
     OutlinedTextField(search,{search=it},Modifier.fillMaxWidth().heightIn(min=42.dp),singleLine=true,placeholder={Text("搜索",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=11.sp),shape=RoundedCornerShape(7.dp))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
