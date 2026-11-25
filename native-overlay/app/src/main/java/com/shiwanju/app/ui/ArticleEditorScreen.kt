@@ -18,6 +18,12 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -1375,14 +1381,110 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Text("自定义像素裁切", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text(customCropAsset!!.fileName, color = Color.Gray, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (customCropPreviewBitmap != null) {
-                        Image(
-                            customCropPreviewBitmap!!.asImageBitmap(),
-                            contentDescription = "原图预览",
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 190.dp),
-                            contentScale = ContentScale.Fit
-                        )
+                        val cropBitmap = customCropPreviewBitmap!!
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                                .aspectRatio(cropBitmap.width.toFloat() / cropBitmap.height.toFloat())
+                                .clip(RoundedCornerShape(6.dp))
+                        ) {
+                            Image(
+                                cropBitmap.asImageBitmap(),
+                                contentDescription = "原图与裁切区域",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.FillBounds
+                            )
+                            Canvas(
+                                modifier = Modifier.fillMaxSize().pointerInput(cropLeft, cropTop, cropWidth, cropHeight) {
+                                    var dragMode = -1
+                                    detectDragGestures(
+                                        onDragStart = { point ->
+                                            val w = size.width.toFloat().coerceAtLeast(1f)
+                                            val h = size.height.toFloat().coerceAtLeast(1f)
+                                            val l = cropLeft * w
+                                            val t = cropTop * h
+                                            val r = (cropLeft + cropWidth) * w
+                                            val b = (cropTop + cropHeight) * h
+                                            val handles = listOf(
+                                                Offset(l, t), Offset(r, t), Offset(l, b), Offset(r, b)
+                                            )
+                                            val radius = 30.dp.toPx()
+                                            val nearest = handles.indices.minByOrNull { i ->
+                                                val dx = point.x - handles[i].x
+                                                val dy = point.y - handles[i].y
+                                                dx * dx + dy * dy
+                                            }
+                                            dragMode = if (nearest != null) {
+                                                val dx = point.x - handles[nearest].x
+                                                val dy = point.y - handles[nearest].y
+                                                if (dx * dx + dy * dy <= radius * radius) nearest
+                                                else if (point.x in l..r && point.y in t..b) 4 else -1
+                                            } else -1
+                                        },
+                                        onDragEnd = { dragMode = -1 },
+                                        onDragCancel = { dragMode = -1 },
+                                        onDrag = { change, amount ->
+                                            change.consume()
+                                            val dx = amount.x / size.width.toFloat().coerceAtLeast(1f)
+                                            val dy = amount.y / size.height.toFloat().coerceAtLeast(1f)
+                                            val minSide = 0.10f
+                                            when (dragMode) {
+                                                0 -> {
+                                                    val right = cropLeft + cropWidth
+                                                    val bottom = cropTop + cropHeight
+                                                    cropLeft = (cropLeft + dx).coerceIn(0f, right - minSide)
+                                                    cropTop = (cropTop + dy).coerceIn(0f, bottom - minSide)
+                                                    cropWidth = right - cropLeft
+                                                    cropHeight = bottom - cropTop
+                                                }
+                                                1 -> {
+                                                    val bottom = cropTop + cropHeight
+                                                    val right = (cropLeft + cropWidth + dx).coerceIn(cropLeft + minSide, 1f)
+                                                    cropTop = (cropTop + dy).coerceIn(0f, bottom - minSide)
+                                                    cropWidth = right - cropLeft
+                                                    cropHeight = bottom - cropTop
+                                                }
+                                                2 -> {
+                                                    val right = cropLeft + cropWidth
+                                                    val bottom = (cropTop + cropHeight + dy).coerceIn(cropTop + minSide, 1f)
+                                                    cropLeft = (cropLeft + dx).coerceIn(0f, right - minSide)
+                                                    cropWidth = right - cropLeft
+                                                    cropHeight = bottom - cropTop
+                                                }
+                                                3 -> {
+                                                    cropWidth = (cropWidth + dx).coerceIn(minSide, 1f - cropLeft)
+                                                    cropHeight = (cropHeight + dy).coerceIn(minSide, 1f - cropTop)
+                                                }
+                                                4 -> {
+                                                    cropLeft = (cropLeft + dx).coerceIn(0f, 1f - cropWidth)
+                                                    cropTop = (cropTop + dy).coerceIn(0f, 1f - cropHeight)
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            ) {
+                                val w = size.width
+                                val h = size.height
+                                val l = cropLeft * w
+                                val t = cropTop * h
+                                val r = (cropLeft + cropWidth) * w
+                                val b = (cropTop + cropHeight) * h
+                                val shade = Color.Black.copy(alpha = 0.48f)
+                                drawRect(shade, Offset.Zero, Size(w, t))
+                                drawRect(shade, Offset(0f, b), Size(w, h - b))
+                                drawRect(shade, Offset(0f, t), Size(l, b - t))
+                                drawRect(shade, Offset(r, t), Size(w - r, b - t))
+                                drawRect(Color.White, Offset(l, t), Size(r - l, b - t), style = Stroke(2.dp.toPx()))
+                                val handleRadius = 6.dp.toPx()
+                                listOf(Offset(l, t), Offset(r, t), Offset(l, b), Offset(r, b)).forEach { handle ->
+                                    drawCircle(Color.White, handleRadius + 2.dp.toPx(), handle)
+                                    drawCircle(Color(0xFF159765), handleRadius, handle)
+                                }
+                            }
+                        }
+                        Text("直接拖动框内区域可移动裁切框，拖动四角圆点可调整宽高；下方滑块可精确微调。", color = Color.Gray, fontSize = 10.sp)
                     } else {
-                        Text("无法生成预览，但仍可调整裁切区域。", color = Color.Gray, fontSize = 11.sp)
+                        Text("无法生成预览，但仍可使用下方滑块调整裁切区域。", color = Color.Gray, fontSize = 11.sp)
                     }
                     Text("裁切区域位置 · 左侧 ${String.format(Locale.getDefault(), "%.0f", cropLeft * 100)}%", color = ink, fontSize = 11.sp)
                     Slider(value = cropLeft, onValueChange = { cropLeft = it.coerceAtMost(1f - cropWidth) }, valueRange = 0f..(1f - cropWidth).coerceAtLeast(0f))
