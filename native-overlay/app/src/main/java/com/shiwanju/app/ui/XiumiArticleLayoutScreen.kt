@@ -55,6 +55,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var showImageInsert by remember { mutableStateOf(false) }
  var showLayers by remember { mutableStateOf(false) }
  var selectedSnippet by remember { mutableStateOf("") }
+ var showBlockEditor by remember { mutableStateOf(false) }
+ var blockDraft by remember { mutableStateOf("") }
+ var selectedType by remember { mutableStateOf("正文") }
  var selectedType by remember { mutableStateOf("正文") }
  var showBlockEditor by remember { mutableStateOf(false) }
  var blockDraft by remember { mutableStateOf("") }
@@ -282,7 +285,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      if(blocks.isEmpty()) Text("画布中还没有内容组件",fontSize=12.sp,color=Color.Gray)
      blocks.forEachIndexed { index, block ->
       Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp)).background(if(block==selectedSnippet) accent.copy(alpha=.10f) else Color.Transparent)
-       .clickable { selectedSnippet=block; selected="内容组件"; showLayers=false }.padding(9.dp),
+       .clickable { selectedSnippet=block; selectedType=when { block.startsWith("![") -> "图片"; block.contains("卡片") || block.startsWith("▧") -> "卡片"; block.contains("［点击展开］") || block.contains("［卡片") -> "SVG"; block.contains("关注公众号") || block.contains("文 /") -> "组件"; block.contains("【") -> "标题"; else -> "正文" }; selected=selectedType; showLayers=false; blockDraft=block; showBlockEditor=true }.padding(9.dp),
        verticalAlignment=Alignment.CenterVertically) {
        Text("\${index+1}",fontSize=10.sp,color=Color.Gray,modifier=Modifier.width(22.dp))
        Text(block.replace("\n"," / "),fontSize=11.sp,maxLines=2,modifier=Modifier.weight(1f))
@@ -293,6 +296,15 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
    },
    confirmButton={TextButton(onClick={showLayers=false}) { Text("完成") }}
+  )
+  if(showBlockEditor) AlertDialog(
+   onDismissRequest={showBlockEditor=false}, title={Text("独立编辑 · $selectedType")},
+   text={OutlinedTextField(blockDraft,{blockDraft=it},Modifier.fillMaxWidth(),minLines=5)},
+   confirmButton={TextButton(onClick={
+    if(selectedSnippet.isNotBlank()) { val at=body.lastIndexOf(selectedSnippet); if(at>=0) changeBody(body.substring(0,at)+blockDraft+body.substring(at+selectedSnippet.length)); selectedSnippet=blockDraft }
+    showBlockEditor=false
+   }) { Text("应用修改") }},
+   dismissButton={TextButton(onClick={showBlockEditor=false}) { Text("取消") }}
   )
   if(showImageInsert) AlertDialog(
    onDismissRequest={showImageInsert=false},
