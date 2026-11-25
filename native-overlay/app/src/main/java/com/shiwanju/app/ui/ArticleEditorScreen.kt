@@ -1074,7 +1074,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 update = { editor = it }
             )
             if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||
-                    selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK)) {
+                    selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
+                    selectionState.kind == EditorSelectionKind.COMPONENT || selectionState.kind == EditorSelectionKind.LAYOUT)) {
                 val toolbarHeight = 88.dp
                 val selectedTop = selectionState.y.dp
                 val floatingY = if (selectedTop > maxHeight * 0.56f) {
@@ -2274,8 +2275,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(11.dp))
-            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else AppColors.Field)
-            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.42f) else AppColors.MyLine, RoundedCornerShape(11.dp))
+            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else if (AppColors.IsDark) AppColors.Field else Color(0xFFF3F5F4))
+            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.42f) else if (AppColors.IsDark) AppColors.MyLine else Color(0xFFE5E7EB), RoundedCornerShape(11.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
