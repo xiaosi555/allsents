@@ -134,7 +134,7 @@ new_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanel
 # The secondary-navigation/header row is also a dedicated drag surface. This
 # keeps the primary dock separate while allowing gestures to begin directly on
 # the secondary navigation instead of requiring a swipe in the content list.
-header_drag = """.pointerInput(panel) {
+header_drag = """.pointerInput(Unit) {
                             detectDragGestures { change, dragAmount ->
                                 change.consume()
                                 val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp().value }
