@@ -1836,26 +1836,27 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                @Composable fun DockAction(glyph: String, label: String, onClick: () -> Unit, enabled: Boolean = true) {
+                listOf(
+                    Triple("↶", "撤销", { runJs("undoEditor()") }),
+                    Triple("↷", "重做", { runJs("redoEditor()") }),
+                    Triple("▤", "复制", { copyRichHtml() }),
+                    Triple("+", "文字", { insert("<p><br></p>") }),
+                    Triple("▧", "图片", { imagePicker.launch(arrayOf("image/*")) }),
+                    Triple("▦", "图层", { activePanel = EditorPanel.LAYER }),
+                    Triple("◉", "预览", {
+                        previewMode = true
+                        editor?.evaluateJavascript("setEditable(false);setPreviewInfo(${JSONObject.quote(title)},${JSONObject.quote(subtitle)},${JSONObject.quote(author)},${JSONObject.quote(summary)});", null)
+                    })
+                ).forEach { (glyph, label, action) ->
                     Column(
-                        Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled, onClick = onClick),
+                        Modifier.weight(1f).fillMaxHeight().clickable { action() },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(glyph, color = if (enabled) accent else Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                        Text(label, color = if (enabled) ink else Color.LightGray, fontSize = 9.sp)
+                        Text(glyph, color = accent, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                        Text(label, color = ink, fontSize = 9.sp)
                     }
                 }
-                DockAction("↶", "撤销", { runJs("undoEditor()") })
-                DockAction("↷", "重做", { runJs("redoEditor()") })
-                DockAction("▤", "复制", { copyRichHtml() })
-                DockAction("+", "文字", { insert("<p><br></p>") })
-                DockAction("▧", "图片", { imagePicker.launch(arrayOf("image/*")) })
-                DockAction("▦", "图层", { activePanel = EditorPanel.LAYER })
-                DockAction("◉", "预览", {
-                    previewMode = true
-                    editor?.evaluateJavascript("setEditable(false);setPreviewInfo(${JSONObject.quote(title)},${JSONObject.quote(subtitle)},${JSONObject.quote(author)},${JSONObject.quote(summary)});", null)
-                })
             }
         }
     }
