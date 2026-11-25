@@ -161,7 +161,10 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      val row=rows.optJSONObject(i) ?: continue
      var html=row.optString("html")
      idMap.forEach { (oldId,newId) -> html=html.replace("/assets/"+oldId,"/assets/"+newId) }
-     vm.saveStyle(StyleModule(vm.newId(),row.optString("name","导入模板"),row.optString("category","导入模板"),html,System.currentTimeMillis().toString(),isFavorite=row.optBoolean("isFavorite"),type=row.optString("type","component")))
+     val tagsArray=row.optJSONArray("tags") ?: JSONArray()
+     val safeTags=(0 until minOf(tagsArray.length(),30)).mapNotNull { tagsArray.optString(it).take(40).takeIf { tag -> tag.isNotBlank() } }
+     val thumbId=idMap[row.optString("thumbnail")].orEmpty()
+     vm.saveStyle(StyleModule(vm.newId(),row.optString("name","导入模板"),row.optString("category","导入模板"),html,System.currentTimeMillis().toString(),isFavorite=row.optBoolean("isFavorite"),type=row.optString("type","component"),thumbnail=thumbId,tags=safeTags))
     }
     vm.toast("模板包导入完成："+rows.length()+" 个模板、"+idMap.size+" 张图片")
    } else {
