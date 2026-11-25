@@ -101,7 +101,7 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
 }
 
 private enum class EditorPanel(val label: String) {
-    TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), LAYER("图层"), STYLE("样式"), TEMPLATE("模板"), DOCUMENT("文档")
+    TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档")
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -177,6 +177,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var templateLibraryTab by remember { mutableStateOf("full") }
     var favoriteTemplatesOnly by remember { mutableStateOf(false) }
     var templateTagFilter by remember { mutableStateOf("") }
+    var templateKindFilter by remember { mutableStateOf("") }
     var templateSortByName by remember { mutableStateOf(false) }
     var templatePreview by remember { mutableStateOf<StyleModule?>(null) }
     var editingTemplate by remember { mutableStateOf<StyleModule?>(null) }
@@ -184,7 +185,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var templateHtmlDraft by remember { mutableStateOf("") }
     var deletingTemplate by remember { mutableStateOf<StyleModule?>(null) }
     val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
-    val categoryStyles = vm.data.styles.filter { it.category == activeCategory }
+    val categoryStyles = vm.data.styles.filter { it.category == activeCategory && it.isFavorite }
     val filteredArticles = vm.data.articles.filter { article ->
         (articleFilter == "全部" || (articleFilter == "草稿" && article.status != "complete") || (articleFilter == "已完成" && article.status == "complete") || (articleFilter == "收藏" && article.isFavorite)) &&
             (searchText.isBlank() || article.title.contains(searchText, true) || article.summary.contains(searchText, true) || article.tags.any { tag -> tag.contains(searchText, true) } || article.category.contains(searchText, true))
@@ -198,7 +199,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
     val availableTemplateTags = templateLibraryItems.flatMap { it.tags }.map { it.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
-    val filteredTemplates = templateLibraryItems.filter { (!favoriteTemplatesOnly || it.isFavorite) && (templateTagFilter.isBlank() || it.tags.any { tag -> tag.equals(templateTagFilter, true) }) && (templateSearchText.isBlank() || it.name.contains(templateSearchText, true) || it.tags.any { tag -> tag.contains(templateSearchText, true) }) }
+    val filteredTemplates = templateLibraryItems.filter { style ->
+        val kindMatch = when (templateKindFilter) {
+            "标题" -> style.category.contains("标题") || style.name.contains("标题") || style.tags.any { it.contains("标题") }
+            "卡片" -> listOf("卡片", "引用", "提示").any { key -> style.category.contains(key) || style.name.contains(key) || style.tags.any { it.contains(key) } }
+            "图片" -> listOf("图片", "图集", "相册").any { key -> style.category.contains(key) || style.name.contains(key) || style.tags.any { it.contains(key) } }
+            "布局" -> listOf("布局", "整篇", "组合", "分栏").any { key -> style.category.contains(key) || style.name.contains(key) || style.tags.any { it.contains(key) } }
+            else -> true
+        }
+        kindMatch && (!favoriteTemplatesOnly || style.isFavorite) &&
+            (templateTagFilter.isBlank() || style.tags.any { tag -> tag.equals(templateTagFilter, true) }) &&
+            (templateSearchText.isBlank() || style.name.contains(templateSearchText, true) || style.tags.any { tag -> tag.contains(templateSearchText, true) })
+    }
         .let { list -> if (templateSortByName) list.sortedBy { it.name.lowercase(Locale.ROOT) } else list.sortedWith(compareByDescending<StyleModule> { it.isFavorite }.thenByDescending { it.updatedAt }) }
     val currentArticle = vm.data.articles.firstOrNull { it.id == articleId }
     val previewBitmap = remember(previewAsset?.id) {
@@ -1313,8 +1325,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                     EditorPanel.STYLE -> {
-                        Text("我的样式 · 选择分类后插入已保存模块", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
-                        if (categories.isEmpty()) Text("暂无样式分类，请在「我的 - 样式」中创建", color = Color.Gray, fontSize = 11.sp)
+                        Text("图文收藏 · 在图文模板卡片上点 ☆ 收藏后统一管理", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        if (categories.isEmpty() || vm.data.styles.none { it.isFavorite }) Text("暂无收藏。进入「图文模板」，点击模板卡片右上角的 ☆ 即可收藏。", color = Color.Gray, fontSize = 11.sp)
                         else {
                             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categories.forEach { category -> EditorTool(category, activeCategory == category) { activeCategory = category } }
@@ -1391,7 +1403,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                     EditorPanel.TEMPLATE -> {
-                        Text("快速模板 · 插入到当前光标位置", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        Text("图文模板 · 按标题、卡片、图片与布局分类选择", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             EditorTool("简约文章开头") { insert("<h1 style='font-size:25px;line-height:1.5;margin:18px 0'>在这里输入文章标题</h1><p style='color:#999;font-size:12px;margin-bottom:24px'>作者 · 拾万句</p><p>从这里开始写正文……</p>") }
                             EditorTool("杂志风标题") { insert("<section style='margin:24px 0;padding:18px 12px;border-top:2px solid #222;border-bottom:1px solid #aaa'><p style='font-size:24px;font-weight:700;letter-spacing:2px;margin:0'>SECTION TITLE</p><p style='font-size:11px;color:#999;letter-spacing:2px;margin:5px 0 0'>VOL. 01 / EDITORIAL</p></section>") }
@@ -1430,6 +1442,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             pendingExportStyleJson = pack.toString(2)
                             stylePackageExporter.launch("拾万句-样式模板包.json")
                             }.onFailure { vm.toast("模板包导出失败：${it.message ?: "无法读取素材"}") }
+                        }
+                    }
+                    Text("模板类型", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("全部", "标题", "卡片", "图片", "布局").forEach { kind ->
+                            EditorTool(kind, templateKindFilter == if (kind == "全部") "" else kind) { templateKindFilter = if (kind == "全部" || templateKindFilter == kind) "" else kind }
                         }
                     }
                     Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
