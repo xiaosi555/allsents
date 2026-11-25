@@ -1829,6 +1829,35 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
         }
+        if (!showArticleList && !previewMode) {
+            Row(
+                Modifier.fillMaxWidth().height(54.dp).background(AppColors.Panel)
+                    .navigationBarsPadding().padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                @Composable fun DockAction(glyph: String, label: String, onClick: () -> Unit, enabled: Boolean = true) {
+                    Column(
+                        Modifier.weight(1f).fillMaxHeight().clickable(enabled = enabled, onClick = onClick),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(glyph, color = if (enabled) accent else Color.LightGray, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+                        Text(label, color = if (enabled) ink else Color.LightGray, fontSize = 9.sp)
+                    }
+                }
+                DockAction("↶", "撤销", { runJs("undoEditor()") })
+                DockAction("↷", "重做", { runJs("redoEditor()") })
+                DockAction("▤", "复制", { copyRichHtml() })
+                DockAction("+", "文字", { insert("<p><br></p>") })
+                DockAction("▧", "图片", { imagePicker.launch(arrayOf("image/*")) })
+                DockAction("▦", "图层", { activePanel = EditorPanel.LAYER })
+                DockAction("◉", "预览", {
+                    previewMode = true
+                    editor?.evaluateJavascript("setEditable(false);setPreviewInfo(${JSONObject.quote(title)},${JSONObject.quote(subtitle)},${JSONObject.quote(author)},${JSONObject.quote(summary)});", null)
+                })
+            }
+        }
     }
 
     if (showHtmlImportPreview) {
