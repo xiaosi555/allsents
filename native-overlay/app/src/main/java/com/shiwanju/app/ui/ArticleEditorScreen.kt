@@ -105,11 +105,11 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
     @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
 }
 
-private val LocalEditorToolDark = compositionLocalOf { false }
-
 private enum class EditorPanel(val label: String) {
     TEXT("文字"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }
+
+private val LocalEditorToolDark = compositionLocalOf { false }
 
 private data class EditorLayerItem(
     val id: String,
