@@ -149,8 +149,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var lineSpace by remember { mutableFloatStateOf(1.8f) }
  var bold by remember { mutableStateOf(false) }
  var align by remember { mutableStateOf("左对齐") }
- var undo by remember { mutableStateOf(listOf("")) }
- var redo by remember { mutableStateOf(emptyList<String>()) }
+ var undo by remember { mutableStateOf(listOf(blocks)) }
+ var redo by remember { mutableStateOf(emptyList<List<XiumiBlock>>()) }
  fun save() {
   val now=System.currentTimeMillis().toString()
   val saved = ArticleDocument(id=id,title=title.ifBlank { "未命名文章" },html=body,createdAt=currentArticle?.createdAt ?: now,
@@ -169,7 +169,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    val match=old.firstOrNull { it.content==chunk }
    if(match!=null) { old.remove(match); match } else XiumiBlock(vm.newId(),classifyXiumiBlock(chunk),chunk)
   }
-  undo=(undo+body).takeLast(50); redo=emptyList()
+  undo=(undo+listOf(blocks)).takeLast(50); redo=emptyList()
   blocks=next; body=value; selectedSnippet=next.firstOrNull { it.id==selectedBlockId }?.content.orEmpty()
   dirty=true
  }
@@ -243,7 +243,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    TextButton(onClick={showArticlePicker=true}) { Text("文章") }
    TextButton(onClick={
     currentArticle=null; id=vm.newId(); title=""; subtitle=""; author="拾万句"; body=""; blocks=emptyList(); selectedBlockId=""; selectedSnippet=""
-    undo=listOf(""); redo=emptyList(); dirty=true; preview=false
+    undo=listOf(emptyList()); redo=emptyList(); dirty=true; preview=false
    }) { Text("新建") }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
    TextButton(onClick={ val rows=JSONArray(); vm.data.styles.forEach { st -> rows.put(JSONObject().put("name",st.name).put("category",st.category).put("html",st.html).put("isFavorite",st.isFavorite).put("type",st.type).put("tags",JSONArray(st.tags))) }; pendingTemplateJson=JSONObject().put("format","shiwanju.styles.v1").put("styles",rows).toString(2); exportLauncher.launch("拾万句-秀米模板包.json") }) { Text("导出模板") }
@@ -400,7 +400,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      vm.data.articles.sortedByDescending { it.updatedAt }.forEach { article ->
       Column(Modifier.fillMaxWidth().clickable {
        currentArticle=article; id=article.id; title=article.title; subtitle=article.subtitle; author=article.author
-       body=article.html; blocks=readXiumiBlocks(context,article.id,article.html,vm::newId); dirty=false; undo=listOf(""); redo=emptyList(); selectedSnippet=""; selectedBlockId=""; selected="正文"; showArticlePicker=false; preview=false
+       body=article.html; blocks=readXiumiBlocks(context,article.id,article.html,vm::newId); dirty=false; undo=listOf(blocks); redo=emptyList(); selectedSnippet=""; selectedBlockId=""; selected="正文"; showArticlePicker=false; preview=false
       }.padding(vertical=10.dp)) {
        Text(article.title.ifBlank { "未命名文章" },fontSize=13.sp,fontWeight=FontWeight.SemiBold)
        Text(article.updatedAt,fontSize=10.sp,color=Color.Gray)
@@ -478,8 +478,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
   }
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
-   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.size>1) {redo=redo+body;val snapshot=undo.last();undo=undo.dropLast(1);restoreBody(snapshot);dirty=true} })
-   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;val snapshot=redo.last();redo=redo.dropLast(1);restoreBody(snapshot);dirty=true} })
+   Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.size>1) {redo=redo+listOf(blocks);val snapshot=undo.last();undo=undo.dropLast(1);blocks=snapshot;body=snapshot.joinToString("\n\n") { it.content };selectedSnippet="";selectedBlockId="";dirty=true} })
+   Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+listOf(blocks);val snapshot=redo.last();redo=redo.dropLast(1);blocks=snapshot;body=snapshot.joinToString("\n\n") { it.content };selectedSnippet="";selectedBlockId="";dirty=true} })
    Text("复制",fontSize=11.sp,color=if(selectedSnippet.isNotBlank()) accent else Color.LightGray,modifier=Modifier.clickable { if(selectedBlockId.isNotBlank()) clipboard.setText(AnnotatedString(blocks.firstOrNull { it.id==selectedBlockId }?.content.orEmpty())) })
    Text("粘贴",fontSize=11.sp,color=accent,modifier=Modifier.clickable { clipboard.getText()?.text?.takeIf { it.isNotBlank() }?.let { insert(it) } })
    listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable {
