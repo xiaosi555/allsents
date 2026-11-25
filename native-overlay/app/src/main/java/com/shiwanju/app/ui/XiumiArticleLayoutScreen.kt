@@ -333,6 +333,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
     Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=12.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
     FilterChip(bold,{bold=!bold},{Text("粗体")})
+    Text("内边距 ${contentPadding.toInt()} dp",fontSize=12.sp); Slider(contentPadding,{contentPadding=it},valueRange=12f..40f)
+    Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it},valueRange=0f..3f)
+    Text("圆角 ${cornerRadius.toInt()} dp",fontSize=12.sp); Slider(cornerRadius,{cornerRadius=it},valueRange=0f..18f)
     Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) { listOf("左对齐","居中","右对齐").forEach { option -> Text(option,color=if(align==option) accent else Color.Gray,modifier=Modifier.clickable { align=option }.padding(vertical=8.dp)) } }
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
    }
