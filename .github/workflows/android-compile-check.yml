@@ -132,10 +132,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Fix status bar icon contrast
-        if: steps.source.outputs.present == 'true'
-        run: python3 native-overlay/fix_status_bar.py
-
       - name: Apply theme colors
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_theme_colors.py
@@ -175,6 +171,11 @@ jobs:
       - name: Enforce article editor navigation
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/ensure_article_editor_route.py
+
+      # Run last because route enforcement rewrites MainActivity; verify the final source.
+      - name: Apply and verify status bar icon contrast
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/fix_status_bar.py
 
 
       - name: Finalize Android resources and version
