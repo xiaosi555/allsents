@@ -1047,8 +1047,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     }
                                     EditorTool("预览") { previewAsset = asset }
                                     EditorTool("删") {
-                                        val used = html.contains(asset.id) || coverAssetId == asset.id || vm.data.articles.any { it.id != articleId && (it.html.contains(asset.id) || it.coverAssetId == asset.id) } || vm.data.styles.any { it.html.contains(asset.id) }
-                                        if (used) vm.toast("该图片仍被文章引用，不能删除")
+                                        val used = html.contains(asset.id) || coverAssetId == asset.id || vm.data.articles.any { it.id != articleId && (it.html.contains(asset.id) || it.coverAssetId == asset.id) } || vm.data.styles.any { it.html.contains(asset.id) || it.thumbnail == asset.id }
+                                        if (used) vm.toast("该图片仍被文章或模板缩略图引用，不能删除")
                                         else {
                                             val mediaRoot = File(context.filesDir, "article_media").canonicalFile
                                             val mediaFile = File(context.filesDir, asset.relativePath).canonicalFile
