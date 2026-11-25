@@ -237,7 +237,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      Text("＋",fontSize=18.sp,color=Color.Gray,modifier=Modifier.clickable { zoom=(zoom+.1f).coerceAtMost(1.4f) }.padding(horizontal=5.dp))
      Text("适宽",fontSize=10.sp,color=accent,modifier=Modifier.clickable { zoom=1f }.padding(start=6.dp))
     }
-    if(selectedSnippet.isNotBlank() && !preview) Row(
+    if(selectedBlockId.isNotBlank() && !preview) Row(
      Modifier.fillMaxWidth().padding(top=7.dp).clip(RoundedCornerShape(8.dp)).background(Color.White).padding(horizontal=8.dp,vertical=6.dp),
      verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)
     ) {
@@ -333,15 +333,14 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    title={Text("图层 / 内容结构")},
    text={
     Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
-     val blocks=body.split("\n\n").filter { it.isNotBlank() }
      if(blocks.isEmpty()) Text("画布中还没有内容组件",fontSize=12.sp,color=Color.Gray)
      blocks.forEachIndexed { index, block ->
-      Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp)).background(if(block==selectedSnippet) accent.copy(alpha=.10f) else Color.Transparent)
-       .clickable { selectedSnippet=block; selectedType=when { block.startsWith("![") -> "图片"; block.contains("卡片") || block.startsWith("▧") -> "卡片"; block.contains("［点击展开］") || block.contains("［卡片") -> "SVG"; block.contains("关注公众号") || block.contains("文 /") -> "组件"; block.contains("【") -> "标题"; else -> "正文" }; selected=selectedType; showLayers=false; blockDraft=block; showBlockEditor=true }.padding(9.dp),
+      Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp)).background(if(block.id==selectedBlockId) accent.copy(alpha=.10f) else Color.Transparent)
+       .clickable { selectedBlockId=block.id; selectedSnippet=block.content; selectedType=block.type; selected=block.type; fontSize=block.fontSize; lineSpace=block.lineSpace; bold=block.bold; align=block.align; foreground=Color(block.color); contentPadding=block.padding; borderWidth=block.border; cornerRadius=block.radius; showLayers=false; blockDraft=block.content; showBlockEditor=true }.padding(9.dp),
        verticalAlignment=Alignment.CenterVertically) {
        Text("\${index+1}",fontSize=10.sp,color=Color.Gray,modifier=Modifier.width(22.dp))
-       Text(block.replace("\n"," / "),fontSize=11.sp,maxLines=2,modifier=Modifier.weight(1f))
-       if(block==selectedSnippet) Text("选中",fontSize=10.sp,color=accent)
+       Text(block.content.replace("\n"," / "),fontSize=11.sp,maxLines=2,modifier=Modifier.weight(1f))
+       if(block.id==selectedBlockId) Text("选中",fontSize=10.sp,color=accent)
       }
       Divider()
      }
@@ -359,7 +358,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    onDismissRequest={showBlockEditor=false}, title={Text("独立编辑 · $selectedType")},
    text={OutlinedTextField(blockDraft,{blockDraft=it},Modifier.fillMaxWidth(),minLines=5)},
    confirmButton={TextButton(onClick={
-    if(selectedSnippet.isNotBlank()) { val at=body.lastIndexOf(selectedSnippet); if(at>=0) changeBody(body.substring(0,at)+blockDraft+body.substring(at+selectedSnippet.length)); selectedSnippet=blockDraft }
+    if(selectedBlockId.isNotBlank()) editSelected { blockDraft }
     showBlockEditor=false
    }) { Text("应用修改") }},
    dismissButton={TextButton(onClick={showBlockEditor=false}) { Text("取消") }}
@@ -397,7 +396,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
    Text("撤销",fontSize=11.sp,color=if(undo.size>1) accent else Color.LightGray,modifier=Modifier.clickable { if(undo.size>1) {redo=redo+body;body=undo.last();undo=undo.dropLast(1);dirty=true;selectedSnippet=""} })
    Text("重做",fontSize=11.sp,color=if(redo.isNotEmpty()) accent else Color.LightGray,modifier=Modifier.clickable { if(redo.isNotEmpty()) {undo=undo+body;body=redo.last();redo=redo.dropLast(1);dirty=true;selectedSnippet=""} })
-   Text("复制",fontSize=11.sp,color=if(selectedSnippet.isNotBlank()) accent else Color.LightGray,modifier=Modifier.clickable { if(selectedSnippet.isNotBlank()) clipboard.setText(AnnotatedString(selectedSnippet)) })
+   Text("复制",fontSize=11.sp,color=if(selectedSnippet.isNotBlank()) accent else Color.LightGray,modifier=Modifier.clickable { if(selectedBlockId.isNotBlank()) clipboard.setText(AnnotatedString(blocks.firstOrNull { it.id==selectedBlockId }?.content.orEmpty())) })
    Text("粘贴",fontSize=11.sp,color=accent,modifier=Modifier.clickable { clipboard.getText()?.text?.takeIf { it.isNotBlank() }?.let { insert(it) } })
    listOf("文字","图片","布局","组件","图层").forEach { label -> Text(label,fontSize=11.sp,color=if(selected==label) accent else Color.DarkGray,modifier=Modifier.clickable {
     selected=label
