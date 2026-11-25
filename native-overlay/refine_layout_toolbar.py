@@ -16,11 +16,17 @@ private fun TopBar(vm: AppViewModel) {
         Image(painter = painterResource(R.drawable.app_logo), contentDescription = "拾万句", contentScale = ContentScale.Fit, modifier = Modifier.size(width = 28.dp, height = 27.dp))
         Spacer(Modifier.weight(1f))
         Text(vm.charCount.toString() + "字", color = AppColors.TextDim, fontSize = 12.sp)
-        Spacer(Modifier.width(10.dp))
-        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
-        IconButton(onClick = { vm.screen = "article_editor" }, modifier = Modifier.size(38.dp)) {
-            Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(21.dp))
+        Spacer(Modifier.width(8.dp))
+        // Dedicated Xiumi-style editor entry stays immediately LEFT of the Edit action.
+        IconButton(
+            onClick = { vm.screen = "article_editor" },
+            modifier = Modifier.size(42.dp)
+                .semantics { contentDescription = "打开秀米式文章编辑器" }
+        ) {
+            Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(22.dp))
         }
+        Spacer(Modifier.width(2.dp))
+        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
     }
 }'''
 s,n=re.subn(r'@Composable\nprivate fun TopBar\(vm: AppViewModel\) \{.*?\n\}',lambda m:toolbar,s,count=1,flags=re.S)
