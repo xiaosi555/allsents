@@ -150,6 +150,7 @@ private fun Text2EditorPanel(
     var lineSpacing by remember { mutableFloatStateOf(1.6f) }
     var letterSpacing by remember { mutableFloatStateOf(0f) }
     var outlineMode by remember { mutableStateOf("单层") }
+    var selectedAlignment by remember { mutableIntStateOf(1) }
     val colors = listOf("#FF0000", "#000000", "#888888", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
     @Composable fun colorRow() {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -265,13 +266,14 @@ private fun Text2EditorPanel(
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 alignItems.forEachIndexed { index, label ->
                     Column(Modifier.weight(1f).widthIn(min = 64.dp).clip(RoundedCornerShape(8.dp))
-                        .background(if (index == 1) Color.Black else Color(0xFFF0F0F0))
+                        .background(if (selectedAlignment == index) Color.Black else Color(0xFFF0F0F0))
                         .clickable {
+                            selectedAlignment = index
                             when (index) { 0 -> onCommand("justifyLeft", null); 1 -> onCommand("justifyCenter", null); 2 -> onCommand("justifyRight", null); 3 -> onCommand("justifyFull", null)
                                 4 -> onApplyCss("vertical-align", "top"); 5 -> onApplyCss("vertical-align", "middle"); 6 -> onApplyCss("vertical-align", "bottom"); else -> onApplyCss("vertical-align", "middle") }
                         }.padding(vertical = 9.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(listOf("☰", "≡", "☷", "↔", "↑", "↕", "↓", "↕")[index], color = if (index == 1) Color.White else Color(0xFF444444), fontSize = 17.sp)
-                        Text(label, color = if (index == 1) Color.White else Color(0xFF555555), fontSize = 10.sp)
+                        Text(listOf("☰", "≡", "☷", "↔", "↑", "↕", "↓", "↕")[index], color = if (selectedAlignment == index) Color.White else Color(0xFF444444), fontSize = 17.sp)
+                        Text(label, color = if (selectedAlignment == index) Color.White else Color(0xFF555555), fontSize = 10.sp)
                     }
                 }
             }
@@ -1518,7 +1520,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false, clippingEnabled = false)
                 ) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(if (activePanel == EditorPanel.TEXT2) Color.White else Color(0xFF181818)).navigationBarsPadding()) {
+                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     if (activePanel != EditorPanel.TEXT2) Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -1527,7 +1529,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
-                        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
+                        Column(Modifier.fillMaxWidth().weight(1f).then(if (activePanel == EditorPanel.TEXT2) Modifier.background(Color.White) else Modifier).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp)) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
