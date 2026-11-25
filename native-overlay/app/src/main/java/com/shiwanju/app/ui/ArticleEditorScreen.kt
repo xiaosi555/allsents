@@ -733,7 +733,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(6.dp).clip(CircleShape).background(if (saved) accent else Color(0xFFE0A23B)))
-                    Text(if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
+                    Text("醒图 · " + if (saved) "已保存" else "自动保存中", color = AppColors.TextDim, fontSize = 10.sp, modifier = Modifier.padding(start = 5.dp))
                 }
             }
             TextButton(onClick = { runJs("undoEditor()") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 4.dp)) { Text("撤销", color = Color(0xFF59625C), fontSize = 11.sp) }
@@ -2678,11 +2678,6 @@ private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> 
 }
 
 
-// 独立秀米式文章编辑页面入口：复用已经验收过静态调用链的文章数据、WebView 画布与对象工具逻辑，避免复制第二套编辑引擎。
-@Composable
-fun XiumiArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
-    ArticleEditorScreen(vm = vm, onBack = onBack)
-}
 
 @Composable
 private fun EditorInputDialog(title: String, hint: String, value: String, onChange: (String) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
