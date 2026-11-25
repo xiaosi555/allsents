@@ -1365,7 +1365,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(templateSearchText, { templateSearchText = it }, modifier = Modifier.weight(1f), singleLine = true, placeholder = { Text("搜索模板名称或标签") })
                         EditorTool(if (favoriteTemplatesOnly) "仅收藏" else "全部", favoriteTemplatesOnly) { favoriteTemplatesOnly = !favoriteTemplatesOnly }
-                        EditorTool(label = if (templateSortByName) "按名称" else "按更新", selected = templateSortByName, onClick = { templateSortByName = !templateSortByName })
+                        EditorTool(if (templateSortByName) "按名称" else "按更新", templateSortByName) { templateSortByName = !templateSortByName }
                     }
                     if (availableTemplateTags.isNotEmpty()) {
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
