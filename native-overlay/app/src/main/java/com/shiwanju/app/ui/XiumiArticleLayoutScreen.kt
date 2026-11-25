@@ -116,13 +116,45 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var cornerRadius by remember { mutableFloatStateOf(3f) }
  val clipboard = LocalClipboardManager.current
  val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-  if(uri!=null) runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()?.let { imported ->
+  if(uri!=null) runCatching {
+   val raw=context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: error("文件为空")
+   if(raw.length>12*1024*1024) error("导入文件超过 12 MB")
    val name=uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')?.ifBlank { "导入素材" } ?: "导入素材"
-   importedMaterials=importedMaterials+XiumiMaterial(name,"导入文件 · ${imported.length} 字",imported)
-  }
+   if(raw.trimStart().startsWith("{")) {
+    val pack=JSONObject(raw)
+    if(pack.optString("format")!="shiwanju.styles.v1") error("不支持的模板包格式")
+    val rows=pack.optJSONArray("styles") ?: error("模板列表缺失")
+    if(rows.length()>100) error("单次最多导入 100 个模板")
+    for(i in 0 until rows.length()) {
+     val row=rows.optJSONObject(i) ?: continue
+     vm.saveStyle(StyleModule(vm.newId(),row.optString("name","导入模板"),row.optString("category","导入模板"),row.optString("html"),System.currentTimeMillis().toString(),isFavorite=row.optBoolean("isFavorite"),type=row.optString("type","component")))
+    }
+    vm.toast("模板包导入完成：\${rows.length()} 个模板")
+   } else {
+    vm.saveStyle(StyleModule(vm.newId(),name,dock.label,raw,System.currentTimeMillis().toString(),type=if(dock==XiumiDock.TEMPLATE) "full" else "component"))
+    importedMaterials=importedMaterials+XiumiMaterial(name,"导入文件 · \${raw.length} 字",raw)
+    vm.toast("素材已导入")
+   }
+  }.onFailure { vm.toast("导入失败：\${it.message ?: "文件格式错误"}") }
  }
- val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
-  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write("# ${title}\n\n${subtitle}\n\n${body}") } }
+ val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingTemplateJson) } ?: error("无法写入文件"); vm.toast("模板包已导出") }.onFailure { vm.toast("导出失败：\${it.message ?: "无法写入"}") }
+ }
+ val imageImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+  uris.forEach { uri -> runCatching {
+   val mime=context.contentResolver.getType(uri) ?: "image/jpeg"
+   if(!mime.startsWith("image/")) error("所选文件不是图片")
+   val ext=when(mime.lowercase()) { "image/png"->"png"; "image/webp"->"webp"; "image/gif"->"gif"; else->"jpg" }
+   var assetId=vm.newId()
+   while(vm.data.mediaAssets.any { it.id==assetId }) assetId=vm.newId()
+   val dir=File(context.filesDir,"article_media").apply { if(!exists()) mkdirs() }
+   val target=File(dir,"$assetId.$ext")
+   context.contentResolver.openInputStream(uri)?.use { input -> target.outputStream().use { output -> input.copyTo(output) } } ?: error("图片读取失败")
+   val asset=MediaAsset(assetId,target.name,mime,"article_media/\${target.name}",target.length(),System.currentTimeMillis().toString())
+   vm.saveMediaAsset(asset)
+   insert("<img src='https://editor.local/assets/$assetId' alt='\${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
+   vm.toast("图片已加入素材库")
+  }.onFailure { vm.toast("图片导入失败：\${it.message ?: "未知错误"}") } }
  }
  var imageUrl by remember { mutableStateOf("") }
  var imageAlt by remember { mutableStateOf("") }
