@@ -165,7 +165,16 @@ private fun Text2EditorPanel(
                 Box(Modifier.size(30.dp).clip(CircleShape)
                     .background(Color(android.graphics.Color.parseColor(color)))
                     .then(if (selectedColor == color) Modifier.border(2.dp, Color.Black, CircleShape) else Modifier.border(1.dp, Color(0xFFD5D5D5), CircleShape))
-                    .clickable { selectedColor = color; onApplyColor(color, styleTab == "背景") })
+                    .clickable {
+                        selectedColor = color
+                        when (styleTab) {
+                            "描边" -> onApplyCss("-webkit-text-stroke-color", color)
+                            "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color)
+                            "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color)
+                            "背景" -> onApplyColor(color, true)
+                            else -> onApplyColor(color, false)
+                        }
+                    })
             }
         }
     }
