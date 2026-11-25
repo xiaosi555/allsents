@@ -36,9 +36,10 @@ new = """                                    } else {
                                         showToolPopup = true
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()"""
-if s.count(old) != 1:
-    raise SystemExit(f"Expected one primary navigation open handler, found {s.count(old)}")
-s = s.replace(old, new, 1)
+if new not in s:
+    if s.count(old) != 1:
+        raise SystemExit(f"Expected one primary navigation open handler, found {s.count(old)}")
+    s = s.replace(old, new, 1)
 
 # Fail the build if future edits accidentally reintroduce a dock inside the sheet,
 # a modal/overlay configuration, or remove the bounded animated drag behavior.
