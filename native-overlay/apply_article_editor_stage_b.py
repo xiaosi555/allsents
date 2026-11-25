@@ -207,14 +207,8 @@ s = replace_once(
     "selectionchange bridge updates"
 )
 
-s = replace_once(
-    s,
-    '''            if (!previewMode && selectedImageHtml.isBlank() && !selectedTextActive) {
-            Column(''',
-    '''            if (!previewMode) {
-             Column(''',
-    "keep bottom tool dock visible while selection toolbar overlays canvas"
-)
+# Bottom navigation remains mounted independently of the adaptive tool sheet.
+
 
 EDITOR.write_text(s, encoding="utf-8")
 
@@ -228,6 +222,8 @@ required = [
     "function reportSelection()",
     "saveSelection();reportSelection();",
     "if (!previewMode) {",
+    "showToolPopup && selectedImageHtml.isBlank()",
+    "heightIn(min = 100.dp, max = 300.dp)",
     "root.contains(savedRange.commonAncestorContainer)"
 ]
 missing = [token for token in required if token not in result]
