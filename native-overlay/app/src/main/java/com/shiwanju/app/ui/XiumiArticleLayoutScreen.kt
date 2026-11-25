@@ -134,10 +134,10 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     vm.saveStyle(StyleModule(vm.newId(),name,dock.label,raw,System.currentTimeMillis().toString(),type=if(dock==XiumiDock.TEMPLATE) "full" else "component"))
        vm.toast("素材已导入")
    }
-  }.onFailure { vm.toast("导入失败：${it.message ?: "文件格式错误"}") }
+  }.onFailure { vm.toast("导入失败：" + (it.message ?: "文件格式错误")) }
  }
  val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingTemplateJson) } ?: error("无法写入文件"); vm.toast("模板包已导出") }.onFailure { vm.toast("导出失败：${it.message ?: "无法写入"}") }
+  if(uri!=null) runCatching { context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { it.write(pendingTemplateJson) } ?: error("无法写入文件"); vm.toast("模板包已导出") }.onFailure { vm.toast("导出失败：" + (it.message ?: "无法写入")) }
  }
 
  var imageUrl by remember { mutableStateOf("") }
@@ -196,7 +196,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    vm.saveMediaAsset(asset)
    insert("<img src='https://editor.local/assets/$assetId' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'>")
    vm.toast("图片已加入素材库")
-  }.onFailure { vm.toast("图片导入失败：${it.message ?: "未知错误"}") } }
+  }.onFailure { vm.toast("图片导入失败：" + (it.message ?: "未知错误")) } }
  }
  fun editSelected(transform:(String)->String) {
   val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
@@ -344,7 +344,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
          }
          if(block.type=="图片") {
           if(imageBitmap!=null) Image(imageBitmap.asImageBitmap(),contentDescription=imageAsset?.fileName,modifier=Modifier.fillMaxWidth().heightIn(max=280.dp),contentScale=ContentScale.Fit)
-          else Text("图片素材引用 · ${imageAsset?.fileName ?: "请导入或替换图片"}",fontSize=11.sp,color=Color.Gray)
+          else Text("图片素材引用 · " + (imageAsset?.fileName ?: "请导入或替换图片"),fontSize=11.sp,color=Color.Gray)
          }
          OutlinedTextField(block.content,{ value ->
           val next=blocks.toMutableList(); next[index]=block.copy(content=value); syncBlocks(next)
@@ -378,7 +378,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    if(properties && !compact) Column(Modifier.width(if(LocalConfiguration.current.screenWidthDp < 900) 184.dp else 224.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(horizontal=14.dp, vertical=14.dp)) {
     Text("属性面板",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31)); Text("当前对象 · $selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=10.dp)); Divider()
     Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f)
-    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
+    Text("行间距 " + "%.1f".format(lineSpace),fontSize=11.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
     FilterChip(bold,{bold=!bold;updateSelectedBlock { b -> b.copy(bold=bold) }},{Text("粗体",fontSize=10.sp)})
     Text("对齐方式",fontSize=11.sp,modifier=Modifier.padding(top=10.dp))
     listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option;updateSelectedBlock { b -> b.copy(align=option) } }.padding(vertical=6.dp)) }
@@ -470,7 +470,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    Column(Modifier.fillMaxWidth().padding(horizontal=18.dp, vertical=10.dp)) {
     Text("属性设置 · $selected",fontSize=16.sp,fontWeight=FontWeight.Bold)
     Text("字号 ${fontSize.toInt()} px",fontSize=12.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it;updateSelectedBlock { b -> b.copy(fontSize=it) }},valueRange=12f..32f)
-    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=12.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
+    Text("行间距 " + "%.1f".format(lineSpace),fontSize=12.sp); Slider(lineSpace,{lineSpace=it;updateSelectedBlock { b -> b.copy(lineSpace=it) }},valueRange=1.2f..2.6f)
     FilterChip(bold,{bold=!bold;updateSelectedBlock { b -> b.copy(bold=bold) }},{Text("粗体")})
     Text("内边距 ${contentPadding.toInt()} dp",fontSize=12.sp); Slider(contentPadding,{contentPadding=it;updateSelectedBlock { b -> b.copy(padding=it) }},valueRange=12f..40f)
     Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f)
