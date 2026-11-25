@@ -211,7 +211,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  }
  fun updateSelectedBlock(transform:(XiumiBlock)->XiumiBlock) {
   val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
-  val next=blocks.toMutableList(); next[index]=transform(next[index]); blocks=next; dirty=true
+  undo=(undo+listOf(blocks)).takeLast(50); redo=emptyList(); val next=blocks.toMutableList(); next[index]=transform(next[index]); blocks=next; dirty=true
  }
  fun restoreBody(value:String) {
   val previous=blocks.toMutableList()
@@ -435,7 +435,10 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   if(showMaterialPreview!=null) AlertDialog(
    onDismissRequest={showMaterialPreview=null}, title={Text("素材预览 · ${showMaterialPreview?.name.orEmpty()}")},
    text={Text(showMaterialPreview?.value.orEmpty(),fontSize=13.sp,color=Color(0xFF333333))},
-   confirmButton={TextButton(onClick={showMaterialPreview?.let { if(dock==XiumiDock.TEMPLATE) changeBody(it.value) else insert(it.value); selectedSnippet=if(dock==XiumiDock.TEMPLATE) "" else it.value };showMaterialPreview=null}) { Text(if(dock==XiumiDock.TEMPLATE) "套用模板" else "添加到文章") }},
+   confirmButton={TextButton(onClick={showMaterialPreview?.let { material ->
+    if(dock==XiumiDock.TEMPLATE) { vm.saveStyle(StyleModule(vm.newId(),material.name,material.detail,material.value,System.currentTimeMillis().toString(),type="full")); changeBody(material.value); selectedSnippet=""; selectedBlockId="" }
+    else insert(material.value)
+   };showMaterialPreview=null}) { Text(if(dock==XiumiDock.TEMPLATE) "套用模板" else "添加到文章") }},
    dismissButton={TextButton(onClick={showMaterialPreview=null}) { Text("关闭") }}
   )
   if(showBlockEditor) AlertDialog(
@@ -474,7 +477,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Text("边框 ${borderWidth.toInt()} dp",fontSize=12.sp); Slider(borderWidth,{borderWidth=it;updateSelectedBlock { b -> b.copy(border=it) }},valueRange=0f..3f)
     Text("圆角 ${cornerRadius.toInt()} dp",fontSize=12.sp); Slider(cornerRadius,{cornerRadius=it;updateSelectedBlock { b -> b.copy(radius=it) }},valueRange=0f..18f)
     Row(horizontalArrangement=Arrangement.spacedBy(16.dp)) { listOf("左对齐","居中","右对齐").forEach { option -> Text(option,color=if(align==option) accent else Color.Gray,modifier=Modifier.clickable { align=option }.padding(vertical=8.dp)) } }
-    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { accent=c }) } }
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Color(0xFF16A36A),Color(0xFFE58B45),Color(0xFF4D91C7),Color(0xFFBD6B91)).forEach { c -> Box(Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(c).clickable { foreground=c;updateSelectedBlock { b -> b.copy(color=c.value.toLong()) } }) } }
    }
   }
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceEvenly) {
