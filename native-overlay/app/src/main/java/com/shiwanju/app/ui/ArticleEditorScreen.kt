@@ -121,6 +121,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var multiSelectMode by remember { mutableStateOf(false) }
     var selectedImageHtml by remember { mutableStateOf("") }
     var showImageAlt by remember { mutableStateOf(false) }
+    var showCustomImageCrop by remember { mutableStateOf(false) }
+    var customCropAsset by remember { mutableStateOf<MediaAsset?>(null) }
+    var cropLeft by remember { mutableFloatStateOf(0.05f) }
+    var cropTop by remember { mutableFloatStateOf(0.05f) }
+    var cropWidth by remember { mutableFloatStateOf(0.90f) }
+    var cropHeight by remember { mutableFloatStateOf(0.90f) }
     var previewAsset by remember { mutableStateOf<MediaAsset?>(null) }
     var templateSearchText by remember { mutableStateOf("") }
     var favoriteTemplatesOnly by remember { mutableStateOf(false) }
@@ -143,6 +149,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }.getOrNull()
         }
     }
+
+    val customCropPreviewBitmap = remember(customCropAsset?.id) {
+        customCropAsset?.let { asset ->
+            runCatching {
+                val root = File(context.filesDir, "article_media").canonicalFile
+                val file = File(context.filesDir, asset.relativePath).canonicalFile
+                if (file.path.startsWith(root.path + File.separator) && file.isFile) decodeArticleAssetPreview(file) else null
+            }.getOrNull()
+        }
+    }
+
     val pageBg = Color(0xFFF5F6F5)
     val ink = Color(0xFF252A27)
     val accent = Color(0xFF159765)
@@ -187,6 +204,46 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 vm.toast("已完成像素裁切：${dimensions.first} × ${dimensions.second}")
             } catch (error: Exception) {
                 vm.toast("像素裁切失败：${error.message ?: "图片处理错误"}")
+            }
+        }
+    }
+
+    fun openCustomImageCrop() {
+        val match = Regex("""https://editor\\.local/assets/([A-Za-z0-9_-]+)""").find(selectedImageHtml)
+        val asset = match?.groupValues?.getOrNull(1)?.let { id -> vm.data.mediaAssets.firstOrNull { it.id == id } }
+        if (asset == null) {
+            vm.toast("自定义像素裁切仅支持已导入素材库的本地图片")
+            return
+        }
+        customCropAsset = asset
+        cropLeft = 0.05f; cropTop = 0.05f; cropWidth = 0.90f; cropHeight = 0.90f
+        showCustomImageCrop = true
+    }
+
+    fun applyCustomImageCrop() {
+        val asset = customCropAsset ?: return
+        coroutineScope.launch {
+            try {
+                val mediaRoot = File(context.filesDir, "article_media").canonicalFile
+                val source = File(context.filesDir, asset.relativePath).canonicalFile
+                if (!source.path.startsWith(mediaRoot.path + File.separator) || !source.isFile) error("原图片文件不存在")
+                var newId = vm.newId()
+                while (vm.data.mediaAssets.any { it.id == newId }) newId = vm.newId()
+                val png = asset.mimeType.equals("image/png", true)
+                val ext = if (png) "png" else "jpg"
+                val newName = "crop_$newId.$ext"
+                val target = File(mediaRoot, newName)
+                val dimensions = withContext(Dispatchers.IO) {
+                    cropArticleImageRectFile(source, target, cropLeft, cropTop, cropWidth, cropHeight, png)
+                }
+                val mime = if (png) "image/png" else "image/jpeg"
+                vm.saveMediaAsset(MediaAsset(newId, newName, mime, "article_media/$newName", target.length(), System.currentTimeMillis().toString()))
+                runJs("replaceSelectedImage('https://editor.local/assets/$newId',${JSONObject.quote(newName)})")
+                showCustomImageCrop = false
+                customCropAsset = null
+                vm.toast("自定义裁切完成：${dimensions.first} × ${dimensions.second}")
+            } catch (error: Exception) {
+                vm.toast("自定义裁切失败：${error.message ?: "图片处理错误"}")
             }
         }
     }
@@ -924,6 +981,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 EditorTool("像素裁切1:1") { cropSelectedImagePixels(1f) }
                                 EditorTool("像素裁切4:3") { cropSelectedImagePixels(4f / 3f) }
                                 EditorTool("像素裁切16:9") { cropSelectedImagePixels(16f / 9f) }
+                                EditorTool("自定义像素裁切") { openCustomImageCrop() }
                                 EditorTool("裁切向上") { runJs("setSelectedImageObjectPosition('50% 20%')") }
                                 EditorTool("裁切向下") { runJs("setSelectedImageObjectPosition('50% 80%')") }
                                 EditorTool("裁切向左") { runJs("setSelectedImageObjectPosition('20% 50%')") }
@@ -1310,6 +1368,41 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { showFindReplace = false }) { Text("取消") } }
         )
     }
+    if (showCustomImageCrop && customCropAsset != null) {
+        Dialog(onDismissRequest = { showCustomImageCrop = false; customCropAsset = null }) {
+            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("自定义像素裁切", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(customCropAsset!!.fileName, color = Color.Gray, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (customCropPreviewBitmap != null) {
+                        Image(
+                            customCropPreviewBitmap!!.asImageBitmap(),
+                            contentDescription = "原图预览",
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 190.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Text("无法生成预览，但仍可调整裁切区域。", color = Color.Gray, fontSize = 11.sp)
+                    }
+                    Text("裁切区域位置 · 左侧 ${String.format(Locale.getDefault(), "%.0f", cropLeft * 100)}%", color = ink, fontSize = 11.sp)
+                    Slider(value = cropLeft, onValueChange = { cropLeft = it.coerceAtMost(1f - cropWidth) }, valueRange = 0f..(1f - cropWidth).coerceAtLeast(0f))
+                    Text("裁切区域位置 · 顶部 ${String.format(Locale.getDefault(), "%.0f", cropTop * 100)}%", color = ink, fontSize = 11.sp)
+                    Slider(value = cropTop, onValueChange = { cropTop = it.coerceAtMost(1f - cropHeight) }, valueRange = 0f..(1f - cropHeight).coerceAtLeast(0f))
+                    Text("裁切区域宽度 · ${String.format(Locale.getDefault(), "%.0f", cropWidth * 100)}%", color = ink, fontSize = 11.sp)
+                    Slider(value = cropWidth, onValueChange = { cropWidth = it.coerceIn(0.10f, 1f); cropLeft = cropLeft.coerceAtMost(1f - cropWidth) }, valueRange = 0.10f..1f)
+                    Text("裁切区域高度 · ${String.format(Locale.getDefault(), "%.0f", cropHeight * 100)}%", color = ink, fontSize = 11.sp)
+                    Slider(value = cropHeight, onValueChange = { cropHeight = it.coerceIn(0.10f, 1f); cropTop = cropTop.coerceAtMost(1f - cropHeight) }, valueRange = 0.10f..1f)
+                    Text("可分别调整裁切区域的左边距、上边距、宽度和高度；原图不会被覆盖，会生成一张新的本地素材。", color = Color.Gray, fontSize = 10.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { cropLeft = 0f; cropTop = 0f; cropWidth = 1f; cropHeight = 1f }) { Text("重置", color = Color.Gray) }
+                        TextButton(onClick = { showCustomImageCrop = false; customCropAsset = null }) { Text("取消", color = Color.Gray) }
+                        TextButton(onClick = { applyCustomImageCrop() }) { Text("生成裁切图", color = accent) }
+                    }
+                }
+            }
+        }
+    }
+
     if (showArticlePackagePreview) {
         val packagePreview = runCatching { JSONObject(pendingArticlePackageRaw) }.getOrNull()
         if (packagePreview != null) {
@@ -1593,6 +1686,37 @@ private fun cropArticleImageFile(source: File, target: File, ratio: Float, png: 
     }
     val left = ((bitmap.width - cropWidth) * positionX.coerceIn(0f, 1f)).toInt()
     val top = ((bitmap.height - cropHeight) * positionY.coerceIn(0f, 1f)).toInt()
+    val cropped = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
+    target.outputStream().use { output ->
+        if (png) cropped.compress(Bitmap.CompressFormat.PNG, 100, output)
+        else cropped.compress(Bitmap.CompressFormat.JPEG, 92, output)
+    }
+    if (cropped !== bitmap) cropped.recycle()
+    bitmap.recycle()
+    return cropWidth to cropHeight
+}
+
+private fun cropArticleImageRectFile(
+    source: File,
+    target: File,
+    leftFraction: Float,
+    topFraction: Float,
+    widthFraction: Float,
+    heightFraction: Float,
+    png: Boolean
+): Pair<Int, Int> {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(source.absolutePath, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) error("无法读取图片尺寸")
+    if (bounds.outWidth.toLong() * bounds.outHeight.toLong() > 80_000_000L) error("图片分辨率过高，请先压缩")
+    var sample = 1
+    while ((bounds.outWidth / sample).toLong() * (bounds.outHeight / sample).toLong() > 20_000_000L) sample *= 2
+    val bitmap = BitmapFactory.decodeFile(source.absolutePath, BitmapFactory.Options().apply { inSampleSize = sample })
+        ?: error("图片解码失败")
+    val cropWidth = (bitmap.width * widthFraction.coerceIn(0.10f, 1f)).toInt().coerceIn(1, bitmap.width)
+    val cropHeight = (bitmap.height * heightFraction.coerceIn(0.10f, 1f)).toInt().coerceIn(1, bitmap.height)
+    val left = (bitmap.width * leftFraction.coerceIn(0f, 1f)).toInt().coerceIn(0, bitmap.width - cropWidth)
+    val top = (bitmap.height * topFraction.coerceIn(0f, 1f)).toInt().coerceIn(0, bitmap.height - cropHeight)
     val cropped = Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
     target.outputStream().use { output ->
         if (png) cropped.compress(Bitmap.CompressFormat.PNG, 100, output)
