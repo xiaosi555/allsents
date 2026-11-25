@@ -24,6 +24,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
@@ -104,6 +105,8 @@ private class ArticleEditorBridge(private val onChange: (String) -> Unit, privat
     @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
 }
 
+private val LocalEditorToolDark = compositionLocalOf { false }
+
 private enum class EditorPanel(val label: String) {
     TEXT("文字"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
 }
@@ -127,6 +130,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var editor by remember { mutableStateOf<WebView?>(null) }
     var webReady by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
+    var canvasWindowOffset by remember { mutableStateOf(Offset.Zero) }
     var activeCategory by remember { mutableStateOf("") }
     var showArticleList by remember { mutableStateOf(false) }
     var showLink by remember { mutableStateOf(false) }
@@ -754,21 +758,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             Modifier.fillMaxWidth().height(1.dp).background(AppColors.Line)
         )
 
-        if (!showArticleList && !previewMode) {
-            Row(
-                Modifier.fillMaxWidth().height(48.dp).background(AppColors.Panel)
-                    .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                EditorPanel.values().filter { it != EditorPanel.CANVAS }.forEach { panel ->
-                    EditorTool(panel.label, activePanel == panel) { activePanel = panel; floatingMenu = "" }
-                }
-                EditorTool("画布", activePanel == EditorPanel.CANVAS) { activePanel = EditorPanel.CANVAS; floatingMenu = "" }
-            }
-            Box(Modifier.fillMaxWidth().height(1.dp).background(AppColors.Line))
-        }
-
         if (showArticleList) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("我的文章", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = ink, modifier = Modifier.weight(1f))
@@ -978,13 +967,41 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
 
             BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().background(pageBg)) {
+            val density = LocalDensity.current
+            val canvasWindowWidth = maxWidth * 0.92f
+            val canvasWindowHeight = maxHeight * 0.92f
+            val canvasDragLimitX = with(density) { (maxWidth - canvasWindowWidth).toPx() / 2f }
+            val canvasDragLimitY = with(density) { (maxHeight - canvasWindowHeight).toPx() / 2f }
             Surface(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.width(canvasWindowWidth).height(canvasWindowHeight)
+                    .align(Alignment.Center)
+                    .offset { IntOffset(canvasWindowOffset.x.toInt(), canvasWindowOffset.y.toInt()) },
+                shape = RoundedCornerShape(14.dp),
                 color = Color.White,
-                shadowElevation = 8.dp,
+                shadowElevation = 12.dp,
                 border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)
             ) {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        Modifier.fillMaxWidth().height(34.dp)
+                            .background(Color(0xFF1B1B1B))
+                            .pointerInput(canvasDragLimitX, canvasDragLimitY) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    canvasWindowOffset = Offset(
+                                        (canvasWindowOffset.x + dragAmount.x).coerceIn(-canvasDragLimitX, canvasDragLimitX),
+                                        (canvasWindowOffset.y + dragAmount.y).coerceIn(-canvasDragLimitY, canvasDragLimitY)
+                                    )
+                                }
+                            }
+                            .padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("⠿", color = AppColors.Theme, fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+                        Text("文章画布", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.weight(1f))
+                        Text("按住标题栏拖动", color = Color(0xFF999999), fontSize = 10.sp)
+                    }
             AndroidView(
                 factory = { ctx ->
                     WebView(ctx).apply {
@@ -1192,9 +1209,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         tag = "article-editor"
                     }
                 },
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                modifier = Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)),
                 update = { editor = it }
             )
+                }
             }
             if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||
                     selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
@@ -1325,17 +1343,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             if (!previewMode && selectedImageHtml.isBlank() && !selectedTextActive) {
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                    .background(AppColors.Panel)
-                    .border(1.dp, AppColors.Line, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(Color(0xFF181818))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .navigationBarsPadding()
             ) {
+                CompositionLocalProvider(LocalEditorToolDark provides true) {
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 2.dp),
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 9.dp, bottom = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("编辑工具", color = ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("编辑工具", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             when {
                                 selectedImageHtml.isNotBlank() -> "已选中图片 · 可调整尺寸、裁切与替换"
@@ -1343,17 +1362,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 multiSelectMode -> "多选模式 · 点选多个模块后可组合拖动"
                                 else -> "选择分类，快速调整文章画布"
                             },
-                            color = AppColors.TextDim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                            color = Color(0xFF888888), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
                         )
                     }
                     TextButton(onClick = { showMoreTools = true }, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 3.dp)) {
-                        Text("全部工具", color = accent, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text("全部工具", color = AppColors.Theme, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
-                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(AppColors.MyLine))
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.08f)))
                 Column(
-                    Modifier.fillMaxWidth().heightIn(min = 104.dp, max = 224.dp)
-                        .verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 9.dp)
+                    Modifier.fillMaxWidth().height(115.dp)
+                        .verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 8.dp)
                 ) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
@@ -1825,38 +1844,37 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     }
                 }
-            }
-            }
-            }
-        }
-        if (!showArticleList && !previewMode) {
-            Row(
-                Modifier.fillMaxWidth().height(54.dp).background(AppColors.Panel)
-                    .navigationBarsPadding().padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                listOf(
-                    Triple("↶", "撤销", { runJs("undoEditor()") }),
-                    Triple("↷", "重做", { runJs("redoEditor()") }),
-                    Triple("▤", "复制", { copyRichHtml() }),
-                    Triple("+", "文字", { insert("<p><br></p>") }),
-                    Triple("▧", "图片", { imagePicker.launch(arrayOf("image/*")) }),
-                    Triple("▦", "图层", { activePanel = EditorPanel.LAYER }),
-                    Triple("◉", "预览", {
-                        previewMode = true
-                        editor?.evaluateJavascript("setEditable(false);setPreviewInfo(${JSONObject.quote(title)},${JSONObject.quote(subtitle)},${JSONObject.quote(author)},${JSONObject.quote(summary)});", null)
-                    })
-                ).forEach { (glyph, label, action) ->
-                    Column(
-                        Modifier.weight(1f).fillMaxHeight().clickable { action() },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                }
+                Row(
+                    Modifier.fillMaxWidth().height(50.dp)
+                        .background(Color(0xFF181818))
+                        .border(width = 0.5.dp, color = Color.White.copy(alpha = 0.08f)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        Text(glyph, color = accent, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-                        Text(label, color = ink, fontSize = 9.sp)
+                        EditorPanel.values().forEach { panel ->
+                            TextButton(
+                                onClick = { activePanel = panel; floatingMenu = ""; if (panel == EditorPanel.LAYER) refreshLayerItems() },
+                                contentPadding = PaddingValues(horizontal = 9.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    panel.label,
+                                    color = if (activePanel == panel) Color.White else Color(0xFF777777),
+                                    fontSize = if (activePanel == panel) 15.sp else 13.sp,
+                                    fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
+                }
+            }
             }
         }
     }
@@ -2702,21 +2720,22 @@ private fun editorToolGlyph(label: String): String {
 
 @Composable
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
+    val dark = LocalEditorToolDark.current
     Column(
         modifier = Modifier
             .widthIn(min = 54.dp)
             .heightIn(min = 54.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else AppColors.Field)
-            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.48f) else AppColors.Line, RoundedCornerShape(10.dp))
+            .background(if (selected) AppColors.Theme.copy(alpha = 0.14f) else if (dark) Color(0xFF222222) else AppColors.Field)
+            .border(1.dp, if (selected) AppColors.Theme.copy(alpha = 0.48f) else if (dark) Color.Transparent else AppColors.Line, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 7.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(editorToolGlyph(label), color = if (selected) AppColors.Theme else AppColors.TextMain,
+        Text(editorToolGlyph(label), color = if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain,
             fontSize = 19.sp, fontWeight = FontWeight.Medium, lineHeight = 21.sp)
-        Text(label, color = if (selected) AppColors.Theme else AppColors.TextMain,
+        Text(label, color = if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain,
             fontSize = 9.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
