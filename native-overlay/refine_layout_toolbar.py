@@ -21,7 +21,7 @@ private fun TopBar(vm: AppViewModel) {
         Spacer(Modifier.width(2.dp))
         // Xiumi-style article layout entry: palette icon immediately RIGHT of Edit.
         IconButton(
-            onClick = { vm.screen = "article_editor" },
+            onClick = { vm.screen = "xiumi_article_layout" },
             modifier = Modifier.size(42.dp)
         ) {
             Icon(Icons.Outlined.Palette, contentDescription = "秀米式文章排版", tint = AppColors.TextMain, modifier = Modifier.size(22.dp))
