@@ -7,12 +7,7 @@ java = root / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app"
 def patch(rel, pairs):
     p = java / rel
     s = p.read_text(encoding="utf-8")
-    for item in pairs:
-        if len(item) == 2:
-            old, new = item
-            label = old[:80].replace(chr(10), ' ')
-        else:
-            old, new, label = item
+    for old, new, label in pairs:
         n = s.count(old)
         if n != 1:
             raise SystemExit(f"{rel}: {label}: expected one anchor, found {n}")
@@ -231,26 +226,23 @@ patch("ui/ArticleEditorScreen.kt", [
 """    val templateLibraryItems = vm.data.styles.filter { style ->
         style.origin == templateLibraryOrigin && when (templateLibraryTab) {""", "official/user filtering"),
 ("""                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
-                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        EditorTool("整篇模板", templateLibraryTab == "full") { templateLibraryTab = "full"; templateTagFilter = "" }
-                        EditorTool("局部组件", templateLibraryTab == "component") { templateLibraryTab = "component"; templateTagFilter = "" }
-                        EditorTool("组合组件", templateLibraryTab == "combination") { templateLibraryTab = "combination"; templateTagFilter = "" }
-                    }""",
-"""                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
-                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        EditorTool("整篇模板", templateLibraryTab == "full")""",
+"""                    Text(if (templateLibraryOrigin == "official") "官方模板库" else "我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("官方模板", templateLibraryOrigin == "official") { templateLibraryOrigin = "official"; templateLibraryTab = "component"; templateTagFilter = "" }
                         EditorTool("我的模板", templateLibraryOrigin == "mine") { templateLibraryOrigin = "mine"; templateLibraryTab = "full"; templateTagFilter = "" }
                     }
-                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("整篇模板", templateLibraryTab == "full")""", "official/user tabs"),
 ("""                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)))""",
 """                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)).put("origin", style.origin))""", "template package origin export"),
 ("""                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = idMap[row.optString("thumbnail")] ?: row.optString("thumbnail").take(200), tags = safeTags""",
 """                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = idMap[row.optString("thumbnail")] ?: row.optString("thumbnail").take(200), tags = safeTags, origin = "user" """, "imported templates stay user-owned"),
-("""                            FlowRow(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+("""                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
                             }""",
-"""                            FlowRow(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+"""                            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 categoryStyles.forEach { style -> EditorTool(style.name) { insert(style.html) } }
                             }
                             if (categoryStyles.isEmpty()) Text("该分类暂时没有组件，可在「我的 - 样式」中添加", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 5.dp))""", "empty category state")
