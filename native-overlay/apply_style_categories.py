@@ -242,7 +242,7 @@ patch("ui/ArticleEditorScreen.kt", [
                         EditorTool("我的模板", templateLibraryOrigin == "mine") { templateLibraryOrigin = "mine"; templateLibraryTab = "full"; templateTagFilter = "" }
                     }
                     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        EditorTool("整篇模板", templateLibraryTab == "full")""", "official/user tabs"),
+                        EditorTool("整篇模板", templateLibraryTab == "full") { templateLibraryTab = "full"; templateTagFilter = "" }""", "official/user tabs"),
 ("""                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)))""",
 """                                    .put("thumbnail", style.thumbnail).put("tags", org.json.JSONArray(style.tags)).put("origin", style.origin))""", "template package origin export"),
 ("""                        isFavorite = row.optBoolean("isFavorite", false), type = type, thumbnail = idMap[row.optString("thumbnail")] ?: row.optString("thumbnail").take(200), tags = safeTags""",
