@@ -1845,7 +1845,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
         }
-    }
 
     if (showCanvasPopup && !previewMode) {
         Dialog(onDismissRequest = { showCanvasPopup = false }) {
