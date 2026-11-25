@@ -232,6 +232,12 @@ patch("ui/ArticleEditorScreen.kt", [
         style.origin == templateLibraryOrigin && when (templateLibraryTab) {""", "official/user filtering"),
 ("""                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
                     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        EditorTool("整篇模板", templateLibraryTab == "full") { templateLibraryTab = "full"; templateTagFilter = "" }
+                        EditorTool("局部组件", templateLibraryTab == "component") { templateLibraryTab = "component"; templateTagFilter = "" }
+                        EditorTool("组合组件", templateLibraryTab == "combination") { templateLibraryTab = "combination"; templateTagFilter = "" }
+                    }""",
+"""                    Text("我的模板库", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 5.dp))
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         EditorTool("官方模板", templateLibraryOrigin == "official") { templateLibraryOrigin = "official"; templateLibraryTab = "component"; templateTagFilter = "" }
                         EditorTool("我的模板", templateLibraryOrigin == "mine") { templateLibraryOrigin = "mine"; templateLibraryTab = "full"; templateTagFilter = "" }
                     }
