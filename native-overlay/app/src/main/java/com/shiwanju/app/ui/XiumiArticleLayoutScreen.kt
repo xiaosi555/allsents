@@ -139,8 +139,8 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    }
    if(properties && !compact) Column(Modifier.width(148.dp).fillMaxHeight().background(Color.White).verticalScroll(rememberScrollState()).padding(9.dp)) {
     Text("属性设置",fontSize=14.sp,fontWeight=FontWeight.Bold); Text("选中：$selected",fontSize=10.sp,color=Color.Gray,modifier=Modifier.padding(vertical=8.dp)); Divider()
-    Text("字号 \${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
-    Text("行间距 \${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
+    Text("字号 ${fontSize.toInt()} px",fontSize=11.sp,modifier=Modifier.padding(top=10.dp)); Slider(fontSize,{fontSize=it},valueRange=12f..32f)
+    Text("行间距 ${"%.1f".format(lineSpace)}",fontSize=11.sp); Slider(lineSpace,{lineSpace=it},valueRange=1.2f..2.6f)
     FilterChip(bold,{bold=!bold},{Text("粗体",fontSize=10.sp)})
     Text("对齐方式",fontSize=11.sp,modifier=Modifier.padding(top=10.dp))
     listOf("左对齐","居中","右对齐").forEach { option -> Text(option,fontSize=11.sp,color=if(align==option) accent else Color.Gray,modifier=Modifier.fillMaxWidth().clickable { align=option }.padding(vertical=6.dp)) }
