@@ -97,7 +97,7 @@ if 'onClick = { vm.screen = "xiumi_article_layout" }' not in layout:
 LAYOUT.write_text(layout, encoding="utf-8")
 MAIN.write_text(main, encoding="utf-8")
 
-# Verify distinct routes and composables, with a legacy route retained only for compatibility.
+# Verify distinct routes and composables; no generic editor route or Xiumi alias remains.
 check_main = MAIN.read_text(encoding="utf-8")
 for token in (
     '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)',
