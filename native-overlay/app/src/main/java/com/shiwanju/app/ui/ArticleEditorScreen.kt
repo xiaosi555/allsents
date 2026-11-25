@@ -1193,8 +1193,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE4EBE6))
                                     ) {
                                         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            val isFullTemplate = template.type == "full" || template.category == "整篇模板"
                                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                val isFullTemplate = template.type == "full" || template.category == "整篇模板"
                                                 Text(if (isFullTemplate) "整篇模板" else if (template.type == "combination") "组合组件" else "局部组件", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Medium)
                                                 Text(if (template.isFavorite) "★" else "☆", color = if (template.isFavorite) accent else Color.Gray, modifier = Modifier.clickable { vm.saveStyle(template.copy(isFavorite = !template.isFavorite)) })
                                             }
