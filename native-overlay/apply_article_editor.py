@@ -436,16 +436,16 @@ private fun StylesPage(vm: AppViewModel) = Page {
     s = s.replace(anchor, styles_code + anchor, 1)
 p.write_text(s, encoding="utf-8")
 
-# Add a compact icon-only entry beside Edit in the layout toolbar.
+# Add a palette entry immediately to the RIGHT of Edit in the layout toolbar.
 p = UI / "LayoutScreen.kt"
 s = p.read_text(encoding="utf-8")
-if 'contentDescription = "文章编辑器"' not in s:
+if 'contentDescription = "秀米式文章排版"' not in s:
     s = s.replace('import androidx.compose.material.icons.outlined.Refresh',
-                  'import androidx.compose.material.icons.outlined.Refresh\nimport androidx.compose.material.icons.outlined.Article', 1)
+                  'import androidx.compose.material.icons.outlined.Refresh\\nimport androidx.compose.material.icons.outlined.Palette', 1)
     old = '''        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }'''
     new = '''        ThemeChip(if (vm.editing) "完成" else "编辑", vm.editing) { vm.toggleEditing() }
         IconButton(onClick = { vm.screen = "article_editor" }, modifier = Modifier.size(38.dp)) {
-            Icon(Icons.Outlined.Article, contentDescription = "文章编辑器", tint = AppColors.TextMain, modifier = Modifier.size(21.dp))
+            Icon(Icons.Outlined.Palette, contentDescription = "秀米式文章排版", tint = AppColors.TextMain, modifier = Modifier.size(21.dp))
         }'''
     if old not in s:
         fail("Layout top bar edit button anchor missing")
