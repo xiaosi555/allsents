@@ -222,10 +222,10 @@ patch("ui/ArticleEditorScreen.kt", [
     var templateLibraryOrigin by remember { mutableStateOf("mine") }
     var templateLibraryTab by remember { mutableStateOf("full") }""", "template origin state"),
 ("""    val categories = vm.data.styles.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
-    val categoryStyles = vm.data.styles.filter { it.category == activeCategory }""",
+    val categoryStyles = vm.data.styles.filter { it.category == activeCategory && it.isFavorite }""",
 """    val categories = vm.data.styleCategories.sortedBy { it.sortOrder }.map { it.name }
     val selectedStyleCategory = vm.data.styleCategories.firstOrNull { it.name == activeCategory }
-    val categoryStyles = vm.data.styles.filter { if (selectedStyleCategory != null) it.categoryId == selectedStyleCategory.id else it.category == activeCategory }""", "editor category IDs"),
+    val categoryStyles = vm.data.styles.filter { (if (selectedStyleCategory != null) it.categoryId == selectedStyleCategory.id else it.category == activeCategory) && it.isFavorite }""", "editor category IDs"),
 ("""    val templateLibraryItems = vm.data.styles.filter { style ->
         when (templateLibraryTab) {""",
 """    val templateLibraryItems = vm.data.styles.filter { style ->
