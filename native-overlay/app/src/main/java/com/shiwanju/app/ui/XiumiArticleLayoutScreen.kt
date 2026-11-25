@@ -225,7 +225,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   when(dock) {
    XiumiDock.TITLE -> listOf(XiumiMaterial("大标题","醒目章节标题","【大标题】"),XiumiMaterial("编号标题","序号标题","01  【章节标题】"),XiumiMaterial("色块标题","带底色标题","▰  【标题文字】"))
    XiumiDock.TEXT -> listOf(XiumiMaterial("正文段落","标准文字段落","在这里输入正文内容。"),XiumiMaterial("引用","引用与出处","“在这里输入引用内容。”\n—— 来源"),XiumiMaterial("分割线","段落分隔","━━━━━━━━━━━━"),XiumiMaterial("注释","小字说明","注：补充说明。"))
-   XiumiDock.IMAGE -> listOf(XiumiMaterial("单图","图片占位","［图片：点击替换］"),XiumiMaterial("双图","左右双图","［图片 1］　　　［图片 2］"),XiumiMaterial("图文混排","图文组合","［图片］\n图片说明文字。"))
+   XiumiDock.IMAGE -> listOf(XiumiMaterial("单图","图片占位","［图片：点击替换］"),XiumiMaterial("双图","左右双图","［图片 1］　　　［图片 2］"),XiumiMaterial("图文混排","图文组合","［图片］\n图片说明文字。")) + vm.data.mediaAssets.map { XiumiMaterial(it.fileName,"本地图片素材 · \${it.mimeType}","<img src='https://editor.local/assets/\${it.id}' alt='\${it.fileName}'>") }
    XiumiDock.LAYOUT -> listOf(XiumiMaterial("双栏布局","两列内容","［左栏内容］　　　［右栏内容］"),XiumiMaterial("三栏布局","三列内容","［一］　［二］　［三］"),XiumiMaterial("图文卡片","图文组合卡片","［图片］\n【卡片标题】\n卡片正文"),XiumiMaterial("留白","段落留白","\n\n"))
    XiumiDock.CARD -> listOf(XiumiMaterial("灰底卡片","浅灰内容块","▧ 【卡片标题】\n卡片正文内容"),XiumiMaterial("边框卡片","描边内容块","▢ 【卡片标题】\n卡片正文内容"),XiumiMaterial("强调卡片","重点提示","✦ 重点提示：输入内容。"))
    XiumiDock.SVG -> listOf(XiumiMaterial("展开阅读","点击展开内容","［点击展开］\n展开后的详细内容"),XiumiMaterial("横向滑动","横向卡片组","［卡片 1］　［卡片 2］　［卡片 3］"),XiumiMaterial("步骤组件","步骤序列","01  第一步\n02  第二步\n03  第三步"))
