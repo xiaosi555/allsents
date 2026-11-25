@@ -2113,6 +2113,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         )
     }
 }
+}
 
 @Composable
 private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {
