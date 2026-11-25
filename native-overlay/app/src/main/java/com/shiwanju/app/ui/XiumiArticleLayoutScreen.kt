@@ -121,8 +121,6 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  var blockDraft by remember { mutableStateOf("") }
  var selectedType by remember { mutableStateOf("正文") }
  var showMaterialPreview by remember { mutableStateOf<XiumiMaterial?>(null) }
- var favoriteMaterials by remember { mutableStateOf(setOf<String>()) }
- var importedMaterials by remember { mutableStateOf(listOf<XiumiMaterial>()) }
  var pendingTemplateJson by remember { mutableStateOf("") }
  var foreground by remember { mutableStateOf(Color(0xFF333333)) }
  var canvasBackground by remember { mutableStateOf(Color.White) }
@@ -249,16 +247,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
   val index=blocks.indexOfFirst { it.id==selectedBlockId }; if(index<0) return
   undo=(undo+listOf(blocks)).takeLast(50); redo=emptyList(); val next=blocks.toMutableList(); next[index]=transform(next[index]); blocks=next; dirty=true
  }
- fun restoreBody(value:String) {
-  val previous=blocks.toMutableList()
-  blocks=value.split("\n\n").filter { it.isNotBlank() }.map { chunk ->
-   val match=previous.firstOrNull { it.content==chunk }
-   if(match!=null) { previous.remove(match); match } else XiumiBlock(vm.newId(),classifyXiumiBlock(chunk),chunk)
-  }
-  body=value; selectedBlockId=""; selectedSnippet=""
- }
+
  BackHandler { if(dirty) save(); onBack() }
- val materials=remember(dock,vm.data.styles,importedMaterials,favoriteMaterials) {
+ val materials=remember(dock,vm.data.styles) {
   when(dock) {
    XiumiDock.TITLE -> listOf(XiumiMaterial("大标题","醒目章节标题","【大标题】"),XiumiMaterial("编号标题","序号标题","01  【章节标题】"),XiumiMaterial("色块标题","带底色标题","▰  【标题文字】"))
    XiumiDock.TEXT -> listOf(XiumiMaterial("正文段落","标准文字段落","在这里输入正文内容。"),XiumiMaterial("引用","引用与出处","“在这里输入引用内容。”\n—— 来源"),XiumiMaterial("分割线","段落分隔","━━━━━━━━━━━━"),XiumiMaterial("注释","小字说明","注：补充说明。"))
