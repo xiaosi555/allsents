@@ -141,6 +141,7 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_theme_colors.py
 
+      # Safe-area regression pass 2: edge-to-edge + per-route root insets.
       - name: Normalize page system-bar safe areas
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_page_safe_areas.py
