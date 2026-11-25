@@ -164,7 +164,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
      materials.filter { search.isBlank() || it.name.contains(search) || it.detail.contains(search) }.forEach { material ->
       Column(Modifier.fillMaxWidth().padding(bottom=7.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF5F6F6)).clickable {
-       if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else if(dock==XiumiDock.TEMPLATE) showMaterialPreview=material else insert(material.value)
+       if(dock==XiumiDock.THEME) accent=when(material.value) { "orange"->Color(0xFFE58B45); "blue"->Color(0xFF4D91C7); else->Color(0xFF16A36A) } else showMaterialPreview=material
       }.padding(9.dp)) {
        Row(verticalAlignment=Alignment.CenterVertically) { Text(material.name,fontSize=12.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f)); Text(if(material.name in favoriteMaterials) "♥" else "♡",fontSize=15.sp,color=accent,modifier=Modifier.clickable { favoriteMaterials=if(material.name in favoriteMaterials) favoriteMaterials-material.name else favoriteMaterials+material.name }) }
        Text(material.detail,fontSize=10.sp,color=Color.Gray)
@@ -296,9 +296,9 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
    confirmButton={TextButton(onClick={showLayers=false}) { Text("完成") }}
   )
   if(showMaterialPreview!=null) AlertDialog(
-   onDismissRequest={showMaterialPreview=null}, title={Text("模板预览 · ${showMaterialPreview?.name.orEmpty()}")},
+   onDismissRequest={showMaterialPreview=null}, title={Text("素材预览 · ${showMaterialPreview?.name.orEmpty()}")},
    text={Text(showMaterialPreview?.value.orEmpty(),fontSize=13.sp,color=Color(0xFF333333))},
-   confirmButton={TextButton(onClick={showMaterialPreview?.let { changeBody(it.value); selectedSnippet="" };showMaterialPreview=null}) { Text("套用模板") }},
+   confirmButton={TextButton(onClick={showMaterialPreview?.let { if(dock==XiumiDock.TEMPLATE) changeBody(it.value) else insert(it.value); selectedSnippet=if(dock==XiumiDock.TEMPLATE) "" else it.value };showMaterialPreview=null}) { Text(if(dock==XiumiDock.TEMPLATE) "套用模板" else "添加到文章") }},
    dismissButton={TextButton(onClick={showMaterialPreview=null}) { Text("关闭") }}
   )
   if(showBlockEditor) AlertDialog(
