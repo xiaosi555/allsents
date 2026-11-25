@@ -62,11 +62,11 @@ patch("data/Store.kt", [
             category = defaultCategory.name,
             categoryId = defaultCategory.id,
             origin = "official",""", "built-in official style"),
-("""        val migrated = if (!data.styleSeedApplied) {
+('''        val migrated = if (!data.styleSeedApplied) {
             val styles = if (data.styles.any { it.id == defaultStyle.id }) data.styles else data.styles + defaultStyle
             data.copy(styles = styles, styleSeedApplied = true)
-        } else data""",
-"""        val builtInCategories = listOf(
+        } else data''',
+'''        val builtInCategories = listOf(
             defaultCategory,
             StyleCategory("stylecat_builtin_quotes", "引用组件", 1, "seed"),
             StyleCategory("stylecat_builtin_dividers", "分隔组件", 2, "seed"),
@@ -95,7 +95,7 @@ patch("data/Store.kt", [
         )
         val styles = data.styles + builtInStyles.filterNot { builtin -> data.styles.any { it.id == builtin.id } }
         val categories = data.styleCategories + builtInCategories.filterNot { builtin -> data.styleCategories.any { it.id == builtin.id } }
-        val migrated = data.copy(styles = styles, styleCategories = categories, styleSeedApplied = true)""", "merge official template catalog on every migration")
+        val migrated = data.copy(styles = styles, styleCategories = categories, styleSeedApplied = true)''', "merge official template catalog on every migration")
 ])
 
 store = java / "data/Store.kt"
