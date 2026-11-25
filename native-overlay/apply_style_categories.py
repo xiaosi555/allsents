@@ -7,7 +7,12 @@ java = root / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app"
 def patch(rel, pairs):
     p = java / rel
     s = p.read_text(encoding="utf-8")
-    for old, new, label in pairs:
+    for item in pairs:
+        if len(item) == 2:
+            old, new = item
+            label = old[:80].replace(chr(10), ' ')
+        else:
+            old, new, label = item
         n = s.count(old)
         if n != 1:
             raise SystemExit(f"{rel}: {label}: expected one anchor, found {n}")
