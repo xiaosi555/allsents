@@ -40,11 +40,11 @@ if '"xiumi_article_layout" -> XiumiArticleLayoutScreen(vm)' in main:
         xiumi_line = '                        "xiumi_article_layout" -> XiumiArticleLayoutScreen(vm) { vm.screen = "layout" }'
         if xiumi_line not in main:
             raise SystemExit("Cannot locate existing Xiumi route in MainActivity.")
-        main = main.replace(xiumi_line, xiumi_line + '\\n                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }', 1)
-    main = re.sub(r'^[ \\t]*"article_editor"\\s*->\\s*ArticleEditorScreen\\(vm\\) \\{ vm\\.screen = "layout" \\}[ \\t]*\\n', "", main, flags=re.M)
+        main = main.replace(xiumi_line, xiumi_line + '\n                        "xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }', 1)
+    main = re.sub(r'^[ \t]*"article_editor"\s*->\s*ArticleEditorScreen\(vm\) \{ vm\.screen = "layout" \}[ \t]*\n', "", main, flags=re.M)
 else:
     # Older source packages have a dispatcher without either independent editor route.
-    dispatcher = re.search(r'when\\s*\\(\\s*vm\\.screen\\s*\\)\\s*\\{', main)
+    dispatcher = re.search(r'when\s*\(\s*vm\.screen\s*\)\s*\{', main)
     if dispatcher:
         open_brace = main.find("{", dispatcher.start())
         depth = 0
@@ -64,7 +64,7 @@ else:
             raise SystemExit("MainActivity when dispatcher does not contain the expected layout and My routes.")
         main = main[:dispatcher.start()] + route_block + main[close_brace + 1:]
     else:
-        simple = re.search(r'if\\s*\\(\\s*vm\\.screen\\s*==\\s*"layout"\\s*\\)\\s*LayoutScreen\\(vm\\)\\s*else\\s*MyScreen\\(vm\\)', main)
+        simple = re.search(r'if\s*\(\s*vm\.screen\s*==\s*"layout"\s*\)\s*LayoutScreen\(vm\)\s*else\s*MyScreen\(vm\)', main)
         if not simple:
             raise SystemExit("Cannot locate MainActivity screen dispatcher to install the two editor routes.")
         main = main[:simple.start()] + route_block + main[simple.end():]
