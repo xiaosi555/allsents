@@ -118,16 +118,22 @@ selection_helpers = '''                             function ensureEditorId(el){
                                let kind='NONE',target=null,collapsed=true,rect=null;
                                if(activeImage){kind='IMAGE';target=activeImage;}
                                else if(blocks.length>1){kind='MULTI_BLOCK';target=blocks[blocks.length-1];}
-                               else if(blocks.length===1){
+                               else if(range&&root.contains(range.commonAncestorContainer)){
+                                 collapsed=range.collapsed;
+                                 const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
+                                 target=topLevelAt(node)||node;
+                                 if(!collapsed)kind='TEXT_RANGE';
+                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';
+                                 else if(blocks.length===1){
+                                   target=blocks[0];
+                                   if(target.tagName==='TABLE'||target.querySelector('table'))kind='TABLE';
+                                   else kind='COMPONENT';
+                                 }else kind='CARET';
+                               }else if(blocks.length===1){
                                  target=blocks[0];
                                  if(target.tagName==='TABLE'||target.querySelector('table'))kind='TABLE';
                                  else if(/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='TEXT_BLOCK';
                                  else kind='COMPONENT';
-                               }else if(range&&root.contains(range.commonAncestorContainer)){
-                                 collapsed=range.collapsed;
-                                 const node=range.startContainer.nodeType===1?range.startContainer:range.startContainer.parentElement;
-                                 target=topLevelAt(node)||node;
-                                 kind=collapsed?'CARET':'TEXT_RANGE';
                                }
                                if(!target&&activeImage){kind='IMAGE';target=activeImage;}
                                if(range&&root.contains(range.commonAncestorContainer))rect=range.getBoundingClientRect();
@@ -141,6 +147,15 @@ selection_helpers = '''                             function ensureEditorId(el){
                              }
 '''
 s = replace_once(
+    s,
+    '''                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}''',
+    '''                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.querySelectorAll('[data-editor-id]').forEach(n=>n.removeAttribute('data-editor-id'));c.removeAttribute('data-editor-id');c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');ensureEditorId(c);NativeEditor.blockSelected(cleanBlockHtml(c));reportSelection();commitHistory();NativeEditor.changed(root.innerHTML);}''',
+    "regenerate stable IDs when duplicating blocks"
+)
+
+s = replace_once(
+    s,
+    '''                            function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}s = replace_once(
     s,
     '''                            function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}''',
