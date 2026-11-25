@@ -160,9 +160,14 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var selectedBlockHtml by remember { mutableStateOf("") }
     var showBlockProperties by remember { mutableStateOf(false) }
     var blockPadding by remember { mutableStateOf("14px") }
+    var blockMargin by remember { mutableStateOf("12px") }
+    var blockWidth by remember { mutableStateOf("100%") }
     var blockBackground by remember { mutableStateOf("#F4F7F5") }
     var blockBorder by remember { mutableStateOf("#E2E9E4") }
     var blockRadius by remember { mutableStateOf("8px") }
+    var blockShadow by remember { mutableStateOf("none") }
+    var blockAlign by remember { mutableStateOf("left") }
+    var blockOpacity by remember { mutableStateOf("100") }
     var multiSelectMode by remember { mutableStateOf(false) }
     var selectedImageHtml by remember { mutableStateOf("") }
     var selectedTextActive by remember { mutableStateOf(false) }
@@ -990,7 +995,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function deleteSelectedBlock(){const e=selectedBlock();if(!e)return;e.remove();NativeEditor.blockSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}
                             function moveSelectedBlock(dir){const e=selectedBlock();if(!e)return;if(dir<0&&e.previousElementSibling)e.parentNode.insertBefore(e,e.previousElementSibling);else if(dir>0&&e.nextElementSibling)e.parentNode.insertBefore(e.nextElementSibling,e);commitHistory();NativeEditor.changed(root.innerHTML);}
-                            function applySelectedBlockStyle(padding,bg,border,radius){const e=selectedBlock();if(!e)return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.backgroundColor=bg;e.style.border='1px solid '+border;e.style.borderRadius=radius;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}
+                            function applySelectedBlockStyle(padding,margin,width,bg,border,radius,shadow,align,opacity){const e=selectedBlock();if(!e)return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.margin=margin+' auto';e.style.width=width;e.style.maxWidth='100%';e.style.backgroundColor=bg;e.style.border='1px solid '+border;e.style.borderRadius=radius;e.style.boxShadow=shadow;e.style.textAlign=align;e.style.opacity=String(Math.max(0,Math.min(100,Number(opacity))))/100;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}
                             function selectedTable(){const e=selectedBlock();return e?(e.tagName==='TABLE'?e:e.querySelector('table')):null;}
                             function addTableRow(){const t=selectedTable();if(!t||!t.rows.length)return;const r=t.rows[t.rows.length-1];const n=r.cloneNode(true);Array.from(n.cells).forEach(c=>c.innerHTML='<br>');r.parentNode.insertBefore(n,r.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);}
                             function removeTableRow(){const t=selectedTable();if(!t||t.rows.length<=1)return;t.deleteRow(t.rows.length-1);commitHistory();NativeEditor.changed(root.innerHTML);}
