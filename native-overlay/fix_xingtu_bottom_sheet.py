@@ -129,8 +129,8 @@ if old_panel in s:
 elif new_panel not in s:
     raise SystemExit("Could not locate the Xingtu tool panel container for nested scrolling")
 
-old_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 13.dp, vertical = 6.dp))'
-new_scroll = 'Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanelScrollState).padding(horizontal = 13.dp, vertical = 4.dp))'
+old_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp))'
+new_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanelScrollState)).padding(horizontal = 13.dp, vertical = 4.dp))'
 
 # The secondary-navigation/header row is also a dedicated drag surface. This
 # keeps the primary dock separate while allowing gestures to begin directly on
