@@ -116,12 +116,19 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_article_editor_stage_b.py
 
+      - name: Refine article editor Stage C2 floating toolbar and category dock
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_article_editor_stage_c2.py
+
       - name: Upload article editor patch diagnostic
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: article-editor-patch-diagnostic
-          path: article_editor_patch_error.txt
+          path: |
+            article_editor_patch_error.txt
+            article_editor_stage_b_patch_error.txt
+            article_editor_stage_c2_patch_error.txt
           if-no-files-found: ignore
           retention-days: 7
 
