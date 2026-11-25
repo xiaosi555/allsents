@@ -23,11 +23,11 @@ if "WindowCompat.setDecorFitsSystemWindows(window, true)" in a:
 # subpages only reserved the status bar and therefore let bottom controls
 # overlap gesture navigation.
 edit("ui/HistoryArticlesPage.kt",
-     ".background(AppColors.MyBg).statusBarsPadding()) {",
-     ".background(AppColors.MyBg).systemBarsPadding()) {")
+     ".background(Color(0xFFF6F6F6)).statusBarsPadding()) {",
+     ".background(Color(0xFFF6F6F6)).systemBarsPadding()) {")
 edit("ui/OfficialAccountPage.kt",
-     ".background(AppColors.MyBg).statusBarsPadding()) {",
-     ".background(AppColors.MyBg).systemBarsPadding()) {")
+     ".background(Color(0xFFF0F0F0)).statusBarsPadding()) {",
+     ".background(Color(0xFFF0F0F0)).systemBarsPadding()) {")
 
 # Independent Xiumi editor was the only primary full-screen editor without a
 # root inset. Add it once; leave its internal canvas/toolbar spacing untouched.
@@ -39,8 +39,8 @@ edit("ui/XiumiArticleLayoutScreen.kt",
 checks = {
     "ui/LayoutScreen.kt": ".background(AppColors.Bg).systemBarsPadding().imePadding()",
     "ui/MyScreens.kt": ".background(AppColors.MyBg).systemBarsPadding()",
-    "ui/HistoryArticlesPage.kt": ".background(AppColors.MyBg).systemBarsPadding()",
-    "ui/OfficialAccountPage.kt": ".background(AppColors.MyBg).systemBarsPadding()",
+    "ui/HistoryArticlesPage.kt": ".background(Color(0xFFF6F6F6)).systemBarsPadding()",
+    "ui/OfficialAccountPage.kt": ".background(Color(0xFFF0F0F0)).systemBarsPadding()",
     "ui/ArticleEditorScreen.kt": ".background(pageBg).systemBarsPadding()",
     "ui/XiumiArticleLayoutScreen.kt": ".background(Color(0xFFF2F3F4)).systemBarsPadding()",
 }
