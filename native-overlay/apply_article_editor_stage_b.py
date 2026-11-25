@@ -9,7 +9,10 @@ EDITOR = UI / "ArticleEditorScreen.kt"
 def replace_once(source: str, old: str, new: str, label: str) -> str:
     count = source.count(old)
     if count != 1:
-        raise SystemExit(f"Stage B patch anchor mismatch [{label}]: expected 1, found {count}")
+        detail = f"Stage B patch anchor mismatch [{label}]: expected 1, found {count}"
+        (ROOT / "article_editor_stage_b_patch_error.txt").write_text(detail + "\\n", encoding="utf-8")
+        raise SystemExit(detail)
+    print("Stage B applied:", label)
     return source.replace(old, new, 1)
 
 s = EDITOR.read_text(encoding="utf-8")
