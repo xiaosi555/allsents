@@ -32,6 +32,7 @@ import com.shiwanju.app.data.StyleModule
 import org.json.JSONArray
 import org.json.JSONObject
 import android.graphics.BitmapFactory
+import android.util.Base64
 import java.io.File
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
@@ -139,11 +140,32 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     if(pack.optString("format")!="shiwanju.styles.v1") error("不支持的模板包格式")
     val rows=pack.optJSONArray("styles") ?: error("模板列表缺失")
     if(rows.length()>100) error("单次最多导入 100 个模板")
+    val idMap=mutableMapOf<String,String>()
+    val assets=pack.optJSONArray("assets") ?: JSONArray()
+    if(assets.length()>40) error("模板包最多包含 40 张图片")
+    val mediaDir=File(context.filesDir,"article_media").apply { if(!exists()) mkdirs() }
+    var totalBytes=0L
+    for(i in 0 until assets.length()) {
+     val asset=assets.optJSONObject(i) ?: continue
+     val oldId=asset.optString("id"); val mime=asset.optString("mimeType","image/jpeg")
+     if(oldId.isBlank() || !mime.startsWith("image/")) error("模板图片资源信息无效")
+     val bytes=Base64.decode(asset.optString("base64"),Base64.DEFAULT)
+     totalBytes+=bytes.size
+     if(bytes.size>12*1024*1024 || totalBytes>36L*1024*1024) error("模板图片超过导入容量限制")
+     var newId=vm.newId(); while(vm.data.mediaAssets.any { it.id==newId }) newId=vm.newId()
+     val rawName=asset.optString("fileName","template_image_"+i+".jpg").substringAfterLast('/').substringAfterLast('\\')
+     val ext=rawName.substringAfterLast('.',"jpg").replace(Regex("[^A-Za-z0-9]"),"").take(8).ifBlank { "jpg" }
+     val target=File(mediaDir,newId+"."+ext); target.writeBytes(bytes)
+     vm.saveMediaAsset(MediaAsset(newId,rawName,mime,"article_media/"+target.name,target.length(),System.currentTimeMillis().toString()))
+     idMap[oldId]=newId
+    }
     for(i in 0 until rows.length()) {
      val row=rows.optJSONObject(i) ?: continue
-     vm.saveStyle(StyleModule(vm.newId(),row.optString("name","导入模板"),row.optString("category","导入模板"),row.optString("html"),System.currentTimeMillis().toString(),isFavorite=row.optBoolean("isFavorite"),type=row.optString("type","component")))
+     var html=row.optString("html")
+     idMap.forEach { (oldId,newId) -> html=html.replace("/assets/"+oldId,"/assets/"+newId) }
+     vm.saveStyle(StyleModule(vm.newId(),row.optString("name","导入模板"),row.optString("category","导入模板"),html,System.currentTimeMillis().toString(),isFavorite=row.optBoolean("isFavorite"),type=row.optString("type","component")))
     }
-    vm.toast("模板包导入完成：${rows.length()} 个模板")
+    vm.toast("模板包导入完成："+rows.length()+" 个模板、"+idMap.size+" 张图片")
    } else {
     vm.saveStyle(StyleModule(vm.newId(),name,dock.label,raw,System.currentTimeMillis().toString(),type=if(dock==XiumiDock.TEMPLATE) "full" else "component"))
        vm.toast("素材已导入")
@@ -261,7 +283,19 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
     undo=listOf(emptyList()); redo=emptyList(); dirty=true; preview=false
    }) { Text("新建") }
    TextButton(onClick={preview=!preview}) { Text(if(preview) "编辑" else "预览") }
-   TextButton(onClick={ val rows=JSONArray(); vm.data.styles.forEach { st -> rows.put(JSONObject().put("name",st.name).put("category",st.category).put("html",st.html).put("isFavorite",st.isFavorite).put("type",st.type).put("tags",JSONArray(st.tags))) }; pendingTemplateJson=JSONObject().put("format","shiwanju.styles.v1").put("styles",rows).toString(2); exportLauncher.launch("拾万句-秀米模板包.json") }) { Text("导出模板") }
+   TextButton(onClick={
+    val rows=JSONArray(); vm.data.styles.forEach { st -> rows.put(JSONObject().put("name",st.name).put("category",st.category).put("html",st.html).put("isFavorite",st.isFavorite).put("type",st.type).put("thumbnail",st.thumbnail).put("tags",JSONArray(st.tags))) }
+    val assets=JSONArray(); var totalBytes=0L
+    vm.data.mediaAssets.filter { asset -> vm.data.styles.any { it.html.contains(asset.id) || it.thumbnail==asset.id } }.forEach { asset ->
+     val root=File(context.filesDir,"article_media").canonicalFile; val file=File(context.filesDir,asset.relativePath).canonicalFile
+     if(file.path.startsWith(root.path+File.separator) && file.isFile) {
+      val bytes=file.readBytes(); totalBytes+=bytes.size
+      if(bytes.size<=12*1024*1024 && totalBytes<=36L*1024*1024) assets.put(JSONObject().put("id",asset.id).put("fileName",asset.fileName).put("mimeType",asset.mimeType).put("base64",Base64.encodeToString(bytes,Base64.NO_WRAP)))
+     }
+    }
+    pendingTemplateJson=JSONObject().put("format","shiwanju.styles.v1").put("styles",rows).put("assets",assets).toString(2)
+    exportLauncher.launch("拾万句-秀米模板包.json")
+   }) { Text("导出模板") }
    TextButton(onClick={ { save() } }) { Text("保存",color=accent,fontWeight=FontWeight.Bold) }
    TextButton(onClick={properties=!properties}) { Text("属性") }
   }
