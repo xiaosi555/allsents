@@ -1345,7 +1345,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
 
             if (!previewMode) {
-            if (showToolPopup && selectedImageHtml.isBlank() && !selectedTextActive && activePanel != EditorPanel.CANVAS) {
+            if (showToolPopup && activePanel != EditorPanel.CANVAS) {
                 Dialog(
                     onDismissRequest = { showToolPopup = false },
                     properties = DialogProperties(usePlatformDefaultWidth = false)
