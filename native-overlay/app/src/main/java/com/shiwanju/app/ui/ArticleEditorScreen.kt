@@ -1017,7 +1017,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function getLayerList(){
                               return JSON.stringify(Array.from(root.children).map((e,i)=>{
                                 const id=ensureEditorId(e);
-                                const text=(e.innerText||e.textContent||'').replace(/\\s+/g,' ').trim();
+                                const text=(e.innerText||e.textContent||'').replace(/\s+/g,' ').trim();
                                 return {id:id,tag:e.tagName.toLowerCase(),name:text.slice(0,42),visible:getComputedStyle(e).display!=='none',locked:e.dataset.editorLocked==='1'};
                               }));
                             }
