@@ -272,3 +272,33 @@
 - 构建期脚本检查只能证明代码入口与路由结构存在，不能证明设备上的点击区域、页面切换和返回手势没有问题。
 - 当前画布属性修改、图层、布局、SVG、模板功能均需在真实 Android 设备上进行触摸操作回归。
 - 最新代码修改必须以最新 commit 对应的 Kotlin Compile Check 和 APK Build 结果为准；此前成功构建的 APK 不代表后续提交已通过。
+
+
+## 12. 文字与图片底部导航专项整改（2026-11-27）
+
+本轮在既有功能审计基础上，针对文字/图片对象底部导航进行二次盘点。专项设计与技术映射见 `docs/ARTICLE_EDITOR_TEXT_IMAGE_DOCK_SPEC.md`。
+
+### 12.1 本轮确认的缺口
+
+1. 旧“文字2”仍是 `EditorPanel` 一级导航枚举成员，虽然文字底部导航已能设置 `text2MainTab`，但一级导航仍暴露旧入口，不符合“字体/样式/排版/透明度”作为二级栏目统一入口的结构。
+2. “编辑”原先只调用 DOM 的 `focus()`，没有在 Compose/WebView 层显式请求 Android IME；应在 WebView 获得焦点后调用 `InputMethodManager.showSoftInput`。
+3. 图片调色/透明度/圆角滑块使用固定初始值，未从当前选中图片的计算样式回读；再次选中已经编辑过的图片时，滑块显示值可能与图片真实样式不一致。
+4. 图片对象粘贴后，旧实现保留原图片为 `activeImage`，新插入的副本没有立即成为活动选中对象，后续编辑可能仍命中原图。
+5. 图片对象和图片样式虽然已有类型化剪贴板，但必须维持对象/样式两条独立路径；不能将文字对象或文字样式粘贴进图片导航。
+
+### 12.2 本轮注入修正
+
+新增 `native-overlay/apply_editor_functional_v4.py`，并安排在 `apply_editor_functional_v3.py` 之后、最终状态栏处理之前执行：
+
+- 隐藏旧 `EditorPanel.TEXT2` 一级入口；保留内部面板，由文字底部导航设置字体/样式/排版/透明度目标栏目后打开。
+- “编辑”先取消文字预览态、恢复当前段落光标，再通过 WebView 请求焦点和 Android IME 显示。
+- 新增 `getSelectedImageControls()`，读取当前图片的 brightness、contrast、saturate、opacity、border-radius；通过图片选择回调同步 Compose 滑块状态。
+- 图片对象粘贴后清理旧选择标记与编辑器 ID，将新副本设置为 `activeImage` 并回传选择状态。
+
+### 12.3 待验收门槛
+
+- [ ] 最新主分支 Kotlin Compile Check 成功。
+- [ ] 最新主分支 APK Build 成功且 `ShiWanJu-debug-apk` 产物存在。
+- [ ] 检查最终注入源码确实包含 v4 修正，而不只是 overlay 文件有改动。
+- [ ] 真机确认 IME、图片状态同步、对象粘贴后的选中切换。
+- [ ] 真机逐项确认文字和图片全部底部操作；构建成功不等于真机交互验收完成。
