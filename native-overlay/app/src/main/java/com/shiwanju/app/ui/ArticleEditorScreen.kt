@@ -138,7 +138,7 @@ private fun CompactEditorSlider(
         value = value,
         onValueChange = onValueChange,
         valueRange = valueRange,
-        modifier = modifier.height(18.dp).scale(scaleX = 1f, scaleY = 0.78f),
+        modifier = modifier.height(12.dp),
         colors = SliderDefaults.colors(
             thumbColor = Color.White,
             activeTrackColor = Color(0xFF4A91FF),
@@ -165,7 +165,7 @@ private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, 
                     }
                     }
                 }, contentAlignment = Alignment.Center) {
-                    Text(if (index == 0) "／" else if (index == 1) "⌁" else "✦", color = Color.White, fontSize = 16.sp)
+                    Text(if (index == 0) "↺" else if (index == 1) "⌁" else "✦", color = Color.White, fontSize = 16.sp)
                 }
             }
             colors.forEach { color ->
@@ -184,7 +184,7 @@ private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, 
 
 @Composable
 private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
-        Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth().height(18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(label, Modifier.width(52.dp), color = Color(0xFFCCCCCC), fontSize = 11.sp, maxLines = 1)
             CompactEditorSlider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
             Text((if (value % 1f == 0f) value.toInt().toString() else String.format(Locale.ROOT, "%.1f", value)) + suffix, Modifier.width(40.dp), color = Color.White, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
@@ -202,6 +202,7 @@ private fun Text2EditorPanel(
     var mainTab by remember { mutableStateOf("字体") }
     var styleTab by remember { mutableStateOf("文本") }
     var selectedColor by remember { mutableStateOf("#222222") }
+    var selectedFont by remember { mutableStateOf("系统默认") }
     var fontSize by remember { mutableFloatStateOf(18f) }
     var opacity by remember { mutableFloatStateOf(100f) }
     var strokeWidth by remember { mutableFloatStateOf(2f) }
@@ -215,6 +216,11 @@ private fun Text2EditorPanel(
     var outlineMode by remember { mutableStateOf("单层") }
     var selectedAlignment by remember { mutableIntStateOf(1) }
     val colors = listOf("#FF0000", "#000000", "#888888", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
+    fun effectColor(color: String, alpha: Float): String {
+        val c = android.graphics.Color.parseColor(color)
+        val a = alpha.coerceIn(0f, 100f) / 100f
+        return "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + a + ")"
+    }
     var showTextColorPicker by remember { mutableStateOf(false) }
     var customTextColor by remember { mutableStateOf("#222222") }
 
@@ -241,8 +247,9 @@ private fun Text2EditorPanel(
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     fonts.forEach { font ->
                         Box(Modifier.weight(1f).widthIn(min = 76.dp).height(44.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF303030))
-                            .clickable { onCommand("fontName", when (font) { "宋体" -> "SimSun, serif"; "楷体" -> "KaiTi, serif"; "黑体", "微软雅黑" -> "Microsoft YaHei, sans-serif"; "仿宋" -> "FangSong, serif"; "苹方" -> "PingFang SC, sans-serif"; "思源黑体" -> "Noto Sans CJK SC, sans-serif"; "圆体" -> "sans-serif-rounded"; "等宽" -> "monospace"; "衬线" -> "serif"; "无衬线" -> "sans-serif"; else -> "sans-serif" }) },
-                            contentAlignment = Alignment.Center) { Text(font, color = Color.White, fontSize = 12.sp) }
+                            .then(if (selectedFont == font) Modifier.border(1.5.dp, Color(0xFF3987F7), RoundedCornerShape(8.dp)) else Modifier)
+                            .clickable { selectedFont = font; onCommand("fontName", when (font) { "宋体" -> "SimSun, serif"; "楷体" -> "KaiTi, serif"; "黑体", "微软雅黑" -> "Microsoft YaHei, sans-serif"; "仿宋" -> "FangSong, serif"; "苹方" -> "PingFang SC, sans-serif"; "思源黑体" -> "Noto Sans CJK SC, sans-serif"; "圆体" -> "sans-serif-rounded"; "等宽" -> "monospace"; "衬线" -> "serif"; "无衬线" -> "sans-serif"; else -> "sans-serif" }) },
+                            contentAlignment = Alignment.Center) { Text(font, color = if (selectedFont == font) Color(0xFF80B5FF) else Color.White, fontSize = 12.sp, fontWeight = if (selectedFont == font) FontWeight.Bold else FontWeight.Normal) }
                     }
                 }
             } else if (mainTab == "样式") {
@@ -255,7 +262,12 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", color); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + color + ",-1px 0 " + color + ",0 1px " + color + ",0 -1px " + color) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color); "背景" -> { val c = android.graphics.Color.parseColor(color); onApplyCss("background-color", "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + (opacity / 100f) + ")") }; else -> onApplyColor(color, false) } }, onClear = { onApplyColor("transparent", styleTab == "背景") }, onEyedropper = { showTextColorPicker = true }, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
+                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, opacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, opacity) + ",-1px 0 " + effectColor(color, opacity) + ",0 1px " + effectColor(color, opacity) + ",0 -1px " + effectColor(color, opacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, opacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, opacity)); "背景" -> onApplyCss("background-color", effectColor(color, opacity)); else -> onApplyColor(color, false) } }, onClear = { when (styleTab) {
+                    "文本" -> { selectedColor = "#222222"; onApplyColor("#222222", false); onApplyCss("background-image", "none"); onApplyCss("-webkit-background-clip", "initial") }
+                    "描边" -> { onApplyCss("-webkit-text-stroke-width", "0px"); onApplyCss("-webkit-text-stroke-color", "transparent"); onApplyCss("text-shadow", "none") }
+                    "阴影", "发光" -> onApplyCss("text-shadow", "none")
+                    "背景" -> { onApplyCss("background-color", "transparent"); onApplyCss("border-radius", "0px") }
+                } }, onEyedropper = { showTextColorPicker = true }, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
                 when (styleTab) {
                     "文本" -> {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -276,24 +288,24 @@ private fun Text2EditorPanel(
                             Text(fontSize.toInt().toString(), color = Color.White, fontSize = 12.sp)
                             TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(72f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("＋", color = Color.White) }
                         }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyColor(effectColor(selectedColor, it), false) }
                     }
                     "描边" -> {
                         Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px"); if (outlineMode == "多层") onApplyCss("text-shadow", it.toString() + "px 0 " + selectedColor + ",-" + it.toString() + "px 0 " + selectedColor + ",0 " + it.toString() + "px " + selectedColor + ",0 -" + it.toString() + "px " + selectedColor) }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("-webkit-text-stroke-color", effectColor(selectedColor, it)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(selectedColor, it) + ",-1px 0 " + effectColor(selectedColor, it) + ",0 1px " + effectColor(selectedColor, it) + ",0 -1px " + effectColor(selectedColor, it)) }
                     }
                     "阴影" -> {
-                        Text2ParameterRow("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + selectedColor) }
-                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * it).toString() + "px " + (kotlin.math.sin(rad) * it) + "px " + blur + "px " + selectedColor) }
-                        Text2ParameterRow("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + selectedColor) }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + effectColor(selectedColor, opacity)) }
+                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * it).toString() + "px " + (kotlin.math.sin(rad) * it) + "px " + blur + "px " + effectColor(selectedColor, opacity)) }
+                        Text2ParameterRow("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + effectColor(selectedColor, opacity)) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(selectedColor, it)) }
                     }
                     "发光" -> {
-                        Text2ParameterRow("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + selectedColor) }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + effectColor(selectedColor, opacity)) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(selectedColor, it)) }
                     }
                     "背景" -> {
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; val c = android.graphics.Color.parseColor(selectedColor); onApplyCss("background-color", "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + (it / 100f) + ")") }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("background-color", effectColor(selectedColor, it)) }
                         Text2ParameterRow("圆角", radius, 0f, 40f, "px") { radius = it; onApplyCss("border-radius", it.toString() + "px") }
                     }
                 }
