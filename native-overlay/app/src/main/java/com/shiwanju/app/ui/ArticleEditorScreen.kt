@@ -225,18 +225,18 @@ private fun Text2EditorPanel(
     var customTextColor by remember { mutableStateOf("#222222") }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth().height(38.dp), horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(38.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
             listOf("字体", "样式", "排版").forEach { tab ->
                 Column(Modifier.clickable { mainTab = tab }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(tab, color = if (mainTab == tab) Color.White else Color(0xFF888888), fontSize = 14.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
+                    Text(tab, color = if (mainTab == tab) Color.White else Color(0xFF888888), fontSize = 16.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
                     Box(Modifier.padding(top = 4.dp).width(22.dp).height(3.dp).clip(RoundedCornerShape(4.dp)).background(if (mainTab == tab) Color(0xFF3987F7) else Color.Transparent))
                 }
             }
         }
         if (mainTab == "样式") {
-            Row(Modifier.fillMaxWidth().height(28.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(28.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
-                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.White else Color(0xFF888888), fontSize = 12.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
+                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.White else Color(0xFF888888), fontSize = 14.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
                 }
             }
         }
@@ -1669,28 +1669,28 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 ) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
                 Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
-                    Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
+                    Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                         if (showTemplateSubnav) {
                             Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                                 listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
-                                    Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 3.dp, vertical = 4.dp),
+                                    Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 7.dp, vertical = 5.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(sub.label, color = if (activePanel == sub) Color.White else Color(0xFF888888),
-                                            fontSize = 11.sp, fontWeight = if (activePanel == sub) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 15.sp, fontWeight = if (activePanel == sub) FontWeight.Bold else FontWeight.Normal,
                                             maxLines = 1)
-                                        Box(Modifier.padding(top = 2.dp).width(16.dp).height(2.dp).clip(RoundedCornerShape(4.dp))
+                                        Box(Modifier.padding(top = 2.dp).width(20.dp).height(2.dp).clip(RoundedCornerShape(4.dp))
                                             .background(if (activePanel == sub) AppColors.Theme else Color.Transparent))
                                     }
                                 }
                             }
                         } else {
                             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Text(activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                Text(activePanel.label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
+                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
@@ -1816,12 +1816,12 @@ when (activePanel) {
                             onApplyCss = { property, value ->
                                 val prop = property.replace("'", "")
                                 val css = value.replace("'", "")
-                                runJs("restoreSelection();(function(){var root=document.getElementById('editor');var sel=window.getSelection();var range=sel&&sel.rangeCount?sel.getRangeAt(0):null;var target=null;if(range&&!range.collapsed){var span=document.createElement('span');span.style.setProperty('" + prop + "','" + css + "');var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);target=span;range.setStartAfter(span);range.collapse(true);sel.removeAllRanges();sel.addRange(range);}else{target=typeof selectedTextElement==='function'?selectedTextElement():null;if(!target&&root)target=root.querySelector('.selected-block');if(!target&&range){var node=range.startContainer;target=node.nodeType===1?node:node.parentElement;}if(target&&root&&root.contains(target))target.style.setProperty('" + prop + "','" + css + "');}if(target){saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}})();")
+                                runJs("restoreSelection();(function(){var root=document.getElementById('editor');var sel=window.getSelection();var range=sel&&sel.rangeCount?sel.getRangeAt(0):null;var target=null;if(range&&!range.collapsed){var span=document.createElement('span');span.style.setProperty('" + prop + "','" + css + "');var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);target=span;var keep=document.createRange();keep.selectNodeContents(span);sel.removeAllRanges();sel.addRange(keep);}else{target=typeof selectedTextElement==='function'?selectedTextElement():null;if(!target&&root)target=root.querySelector('.selected-block');if(!target&&range){var node=range.startContainer;target=node.nodeType===1?node:node.parentElement;}if(target&&root&&root.contains(target))target.style.setProperty('" + prop + "','" + css + "');}if(target){saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}})();")
                             },
                             onApplyColor = { color, background ->
                                 val property = if (background) "background-color" else "color"
                                 val safe = color.replace("'", "")
-                                runJs("restoreSelection();(function(){var root=document.getElementById('editor');var sel=window.getSelection();var range=sel&&sel.rangeCount?sel.getRangeAt(0):null;var target=null;if(range&&!range.collapsed){var span=document.createElement('span');span.style.setProperty('" + property + "','" + safe + "');var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);target=span;range.setStartAfter(span);range.collapse(true);sel.removeAllRanges();sel.addRange(range);}else{target=typeof selectedTextElement==='function'?selectedTextElement():null;if(!target&&root)target=root.querySelector('.selected-block');if(!target&&range){var node=range.startContainer;target=node.nodeType===1?node:node.parentElement;}if(target&&root&&root.contains(target))target.style.setProperty('" + property + "','" + safe + "');}if(target){saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}})();")
+                                runJs("restoreSelection();(function(){var root=document.getElementById('editor');var sel=window.getSelection();var range=sel&&sel.rangeCount?sel.getRangeAt(0):null;var target=null;if(range&&!range.collapsed){var span=document.createElement('span');span.style.setProperty('" + property + "','" + safe + "');var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);target=span;var keep=document.createRange();keep.selectNodeContents(span);sel.removeAllRanges();sel.addRange(keep);}else{target=typeof selectedTextElement==='function'?selectedTextElement():null;if(!target&&root)target=root.querySelector('.selected-block');if(!target&&range){var node=range.startContainer;target=node.nodeType===1?node:node.parentElement;}if(target&&root&&root.contains(target))target.style.setProperty('" + property + "','" + safe + "');}if(target){saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}})();")
                             },
                             onEyedropper = { vm.toast("吸管取色：请先使用下方预设色；屏幕取色能力待接入") }
                         )
@@ -2268,8 +2268,8 @@ when (activePanel) {
                     ) {
                         Text("⠿", color = AppColors.Theme, fontSize = 17.sp)
                         Text("画布工具", color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
-                        IconButton(onClick = { showCanvasPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭画布工具", tint = Color.White) }
                         IconButton(onClick = { showCanvasPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定画布设置", tint = AppColors.Theme) }
+                        IconButton(onClick = { showCanvasPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭画布工具", tint = Color.White) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 250.dp).verticalScroll(rememberScrollState()).padding(12.dp)) {
