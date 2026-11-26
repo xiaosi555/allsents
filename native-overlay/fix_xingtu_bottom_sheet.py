@@ -67,26 +67,37 @@ elif dock_visibility_new not in s:
     raise SystemExit("Could not locate the persistent primary navigation visibility condition")
 
 
-# Move the resize handle from the sheet footer to the top center, before the
-# title/close row. Keep its gesture math unchanged: dragging upward increases
-# the panel height, while the bottom edge remains free of back-navigation taps.
-handle_pattern = re.compile(
-    r"(?ms)^                    Box\(\n"
-    r"                        Modifier\.fillMaxWidth\(\)\.height\(26\.dp\).*?"
-    r"^                    \}\n"
-)
-handle_match = handle_pattern.search(s)
-if handle_match:
-    handle_block = handle_match.group(0)
-    s = s[:handle_match.start()] + s[handle_match.end():]
-    header_anchor = '                    Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp)'
-    sheet_start = s.find("if (showToolPopup && activePanel")
-    header_pos = s.find(header_anchor, sheet_start)
-    if header_pos < 0:
-        raise SystemExit("Could not locate the tool-sheet header to position the top resize handle")
+# Relocate the existing handle block using balanced braces rather than a
+# formatting-sensitive regex. This handles indentation changes in the base source.
+handle_start = s.find(handle_marker)
+header_anchor = '                    Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp)'
+header_pos = s.find(header_anchor)
+if handle_start < 0 or header_pos < 0:
+    raise SystemExit("Could not locate the resize handle or panel header")
+if handle_start > header_pos:
+    open_brace = s.find("{", handle_start)
+    if open_brace < 0:
+        raise SystemExit("Resize handle block has no opening brace")
+    depth = 0
+    close_pos = -1
+    for pos in range(open_brace, len(s)):
+        if s[pos] == "{":
+            depth += 1
+        elif s[pos] == "}":
+            depth -= 1
+            if depth == 0:
+                close_pos = pos + 1
+                break
+    if close_pos < 0:
+        raise SystemExit("Could not find the end of the resize handle block")
+    line_start = s.rfind("\\n", 0, handle_start) + 1
+    line_end = s.find("\\n", close_pos)
+    if line_end < 0:
+        line_end = close_pos
+    handle_block = s[line_start:line_end + 1]
+    s = s[:line_start] + s[line_end + 1:]
+    header_pos = s.find(header_anchor)
     s = s[:header_pos] + handle_block + s[header_pos:]
-elif s.count("Modifier.fillMaxWidth().height(26.dp)") != 1:
-    raise SystemExit("Could not safely locate the existing resize handle for relocation")
 
 # Start at 200dp and clamp both the animated height and drag range to 200–400dp.
 s = s.replace("var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }", "var toolPanelHeightDp by remember { mutableFloatStateOf(200f) }", 1)
