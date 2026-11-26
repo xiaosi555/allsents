@@ -403,7 +403,7 @@ replace_once(component_anchor, component_branch, "component floating window acti
 s = s.replace("if(activeImage){kind='IMAGE';target=activeImage;}", "if(activeImage){kind=activeImage.dataset.editorLocked==='1'?'COMPONENT':'IMAGE';target=activeImage;}")
 s = s.replace("kind='TEXT_BLOCK';target=activeTextBlock;", "kind=activeTextBlock.dataset.editorLocked==='1'?'COMPONENT':'TEXT_BLOCK';target=activeTextBlock;")
 s = s.replace("if(!collapsed)kind='TEXT_RANGE';", "if(!collapsed)kind=(activeTextBlock&&activeTextBlock.dataset.editorLocked==='1')?'COMPONENT':'TEXT_RANGE';")
-s = s.replace("if(second){root.contentEditable='true';root.focus();}", "if(second&&hit.dataset.editorLocked!=='1'){root.contentEditable='true';root.focus();}")
+s = s.replace("if(second){root.contentEditable='true';root.focus();}", "if(second&&hit.dataset.editorLocked!=='1'&&!componentDragMode){root.contentEditable='true';root.focus();}")
 s = s.replace("selected.classList.add('selected-block');selected.draggable=true;", "selected.classList.add('selected-block');selected.draggable=selected.dataset.editorLocked!=='1';")
 s = s.replace("if(activeTextBlock&&root.contains(activeTextBlock)){const r=document.createRange();", "if(activeTextBlock&&activeTextBlock.dataset.editorLocked==='1')return;if(activeTextBlock&&root.contains(activeTextBlock)){const r=document.createRange();")
 s = s.replace("if(!target||!root.contains(target))return false;", "if(!target||!root.contains(target)||target.closest('[data-editor-locked=\"1\"]'))return false;")
