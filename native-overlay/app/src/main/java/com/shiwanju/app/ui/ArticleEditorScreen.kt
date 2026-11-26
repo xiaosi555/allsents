@@ -115,6 +115,7 @@ private enum class EditorPanel(val label: String) {
 }
 
 private val LocalEditorToolDark = compositionLocalOf { false }
+private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)
 
 private data class EditorLayerItem(
     val id: String,
@@ -336,14 +337,13 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var editor by remember { mutableStateOf<WebView?>(null) }
     var webReady by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
+    var templateSubPanel by remember { mutableStateOf(EditorPanel.TITLE) }
+    var showInsertLauncherMenu by remember { mutableStateOf(false) }
+    var insertLauncherOffset by remember { mutableStateOf(Offset.Zero) }
     var showToolPopup by remember { mutableStateOf(false) }
     var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }
     val toolPanelDensity = LocalDensity.current
-    val animatedToolPanelHeight by androidx.compose.animation.core.animateDpAsState(
-        targetValue = (toolPanelHeightDp - 26f).coerceAtLeast(0f).dp,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 180),
-        label = "toolPanelHeight"
-    )
+    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp
     var showCanvasPopup by remember { mutableStateOf(false) }
     var toolPopupOffset by remember { mutableStateOf(Offset.Zero) }
     var activeCategory by remember { mutableStateOf("") }
@@ -1385,7 +1385,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
                 update = { editor = it }
             )
-            if (!previewMode && (selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||
+            if (!previewMode && (selectedBlockHtml.isNotBlank() ||
                     selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
                     selectionState.kind == EditorSelectionKind.COMPONENT || selectionState.kind == EditorSelectionKind.LAYOUT)) {
                 val toolbarHeight = 88.dp
@@ -1515,6 +1515,41 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
 
+            if (!previewMode) {
+                Column(Modifier.align(Alignment.CenterStart)
+                    .offset { IntOffset(insertLauncherOffset.x.toInt(), insertLauncherOffset.y.toInt()) }
+                    .padding(start = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (showInsertLauncherMenu) {
+                        Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF242424), shadowElevation = 10.dp) {
+                            Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                listOf(Triple("文字", "✎", EditorPanel.TEXT), Triple("图片", "▧", EditorPanel.IMAGE)).forEach { (label, glyph, panel) ->
+                                    Row(Modifier.clip(CircleShape).clickable {
+                                        activePanel = panel; showCanvasPopup = false; showToolPopup = true
+                                        toolPanelHeightDp = 180f; showInsertLauncherMenu = false
+                                    }.padding(horizontal = 11.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(glyph, color = AppColors.Theme, fontSize = 17.sp)
+                                        Text(label, color = Color.White, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Surface(Modifier.size(48.dp).pointerInput(Unit) {
+                        detectDragGestures { change, drag ->
+                            change.consume()
+                            insertLauncherOffset = Offset(insertLauncherOffset.x + drag.x, insertLauncherOffset.y + drag.y)
+                        }
+                    }.clickable { showInsertLauncherMenu = !showInsertLauncherMenu },
+                        shape = CircleShape, color = AppColors.Theme, shadowElevation = 12.dp) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(if (showInsertLauncherMenu) "×" else "＋", color = Color.White, fontSize = 25.sp)
+                        }
+                    }
+                }
+            }
+
             // Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.
             if (!previewMode) {
                 Row(
@@ -1528,10 +1563,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        EditorPanel.values().forEach { panel ->
+                        EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->
                             TextButton(
                                 onClick = {
-                                    activePanel = panel
+                                    activePanel = if (panel == EditorPanel.TEMPLATE) templateSubPanel else panel
                                     floatingMenu = ""
                                     if (panel == EditorPanel.CANVAS) {
                                         showToolPopup = false
@@ -1547,7 +1582,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             ) {
                                 Text(
                                     panel.label,
-                                    color = if (activePanel == panel) Color.White else Color(0xFF777777),
+                                    color = if (activePanel == panel || (panel == EditorPanel.TEMPLATE && activePanel in templateSubPanels)) Color.White else Color(0xFF777777),
                                     fontSize = if (activePanel == panel) 15.sp else 13.sp,
                                     fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
                                     maxLines = 1
@@ -1566,16 +1601,30 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false, clippingEnabled = false)
                 ) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
+                Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 400.dp).height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                            Text(activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(if (activePanel in templateSubPanels) "图文模板" else activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
+                            if (activePanel in templateSubPanels) {
+                                Row(Modifier.fillMaxWidth().height(38.dp).horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
+                                        Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(vertical = 4.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(sub.label, color = if (activePanel == sub) Color.White else Color(0xFF888888),
+                                                fontSize = 12.sp, fontWeight = if (activePanel == sub) FontWeight.Bold else FontWeight.Normal)
+                                            Box(Modifier.padding(top = 3.dp).width(20.dp).height(2.dp).clip(RoundedCornerShape(4.dp))
+                                                .background(if (activePanel == sub) AppColors.Theme else Color.Transparent))
+                                        }
+                                    }
+                                }
+                            }
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
@@ -2077,10 +2126,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        EditorPanel.values().forEach { panel ->
+                        EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->
                             TextButton(
                                 onClick = {
-                                    activePanel = panel
+                                    activePanel = if (panel == EditorPanel.TEMPLATE) templateSubPanel else panel
                                     floatingMenu = ""
                                     if (panel == EditorPanel.CANVAS) {
                                         showToolPopup = false
@@ -2089,7 +2138,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
-                                        toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 100f
+                                        toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
                                 },
@@ -2097,7 +2146,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             ) {
                                 Text(
                                     panel.label,
-                                    color = if (activePanel == panel && (showToolPopup || showCanvasPopup)) Color.White else Color(0xFF777777),
+                                    color = if ((activePanel == panel || (panel == EditorPanel.TEMPLATE && activePanel in templateSubPanels)) && (showToolPopup || showCanvasPopup)) Color.White else Color(0xFF777777),
                                     fontSize = if (activePanel == panel) 15.sp else 13.sp,
                                     fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
                                     maxLines = 1
@@ -2116,7 +2165,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 detectDragGestures { change, dragAmount ->
                                     change.consume()
                                     val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp() }
-                                    toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 350f)
+                                    toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 400f)
                                 }
                             },
                         contentAlignment = Alignment.Center
