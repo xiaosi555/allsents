@@ -75,9 +75,40 @@ header_pos = s.find(header_anchor)
 if handle_start < 0 or header_pos < 0:
     raise SystemExit("Could not locate the resize handle or panel header")
 if handle_start > header_pos:
-    open_brace = s.find("{", handle_start)
+    # The first brace after Box( is the pointerInput lambda, not the Box
+    # content lambda. Match the Box argument parentheses first, then its
+    # content braces, so the entire handle is relocated as one Compose node.
+    call_open = s.find("(", handle_start)
+    if call_open < 0:
+        raise SystemExit("Resize handle Box has no argument list")
+    paren_depth = 0
+    quote = None
+    escaped = False
+    call_close = -1
+    for pos in range(call_open, len(s)):
+        ch = s[pos]
+        if quote:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == quote:
+                quote = None
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+        elif ch == "(":
+            paren_depth += 1
+        elif ch == ")":
+            paren_depth -= 1
+            if paren_depth == 0:
+                call_close = pos + 1
+                break
+    if call_close < 0:
+        raise SystemExit("Could not find the closing parenthesis of the resize handle Box")
+    open_brace = s.find("{", call_close)
     if open_brace < 0:
-        raise SystemExit("Resize handle block has no opening brace")
+        raise SystemExit("Resize handle Box has no content lambda")
     depth = 0
     close_pos = -1
     for pos in range(open_brace, len(s)):
@@ -89,7 +120,7 @@ if handle_start > header_pos:
                 close_pos = pos + 1
                 break
     if close_pos < 0:
-        raise SystemExit("Could not find the end of the resize handle block")
+        raise SystemExit("Could not find the end of the resize handle Box content")
     line_start = s.rfind("\n", 0, handle_start) + 1
     line_end = s.find("\n", close_pos)
     if line_end < 0:
