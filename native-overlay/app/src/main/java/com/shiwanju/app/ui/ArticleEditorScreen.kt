@@ -1743,7 +1743,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
         if (!previewMode) {
             if (showToolPopup && activePanel != EditorPanel.CANVAS) {
-                Box(Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.BottomCenter).zIndex(100f), contentAlignment = Alignment.BottomCenter) {
+                Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
                     Box(Modifier.fillMaxWidth().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
                 Column(
                     Modifier.fillMaxWidth()
