@@ -259,9 +259,12 @@ replace_once(
 )
 
 replace_once(
-    '    var blockOpacity by remember { mutableStateOf("100") }',
-    '    var blockOpacity by remember { mutableStateOf("100") }\n    var imageBrightness by remember { mutableFloatStateOf(100f) }\n    var imageContrast by remember { mutableFloatStateOf(100f) }\n    var imageSaturation by remember { mutableFloatStateOf(100f) }\n    var imageOpacity by remember { mutableFloatStateOf(100f) }
-    var imageRadius by remember { mutableFloatStateOf(0f) }',
+    '''    var blockOpacity by remember { mutableStateOf("100") }
+    var imageBrightness by remember { mutableFloatStateOf(100f) }
+    var imageContrast by remember { mutableFloatStateOf(100f) }
+    var imageSaturation by remember { mutableFloatStateOf(100f) }
+    var imageOpacity by remember { mutableFloatStateOf(100f) }
+    var imageRadius by remember { mutableFloatStateOf(0f) }''',
     "image adjustment states"
 )
 replace_once(
