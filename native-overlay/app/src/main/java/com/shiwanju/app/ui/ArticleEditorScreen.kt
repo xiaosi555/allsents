@@ -338,6 +338,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var webReady by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
     var templateSubPanel by remember { mutableStateOf(EditorPanel.TITLE) }
+    var showTemplateSubnav by remember { mutableStateOf(false) }
     var showInsertLauncherMenu by remember { mutableStateOf(false) }
     var insertLauncherOffset by remember { mutableStateOf(Offset.Zero) }
     var showToolPopup by remember { mutableStateOf(false) }
@@ -1525,7 +1526,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                 listOf(Triple("文字", "✎", EditorPanel.TEXT), Triple("图片", "▧", EditorPanel.IMAGE)).forEach { (label, glyph, panel) ->
                                     Row(Modifier.clip(CircleShape).clickable {
-                                        activePanel = panel; showCanvasPopup = false; showToolPopup = true
+                                        activePanel = panel; showTemplateSubnav = false; showCanvasPopup = false; showToolPopup = true
                                         toolPanelHeightDp = 180f; showInsertLauncherMenu = false
                                     }.padding(horizontal = 11.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1566,6 +1567,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->
                             TextButton(
                                 onClick = {
+                                    showTemplateSubnav = panel == EditorPanel.TEMPLATE
                                     activePanel = if (panel == EditorPanel.TEMPLATE) templateSubPanel else panel
                                     floatingMenu = ""
                                     if (panel == EditorPanel.CANVAS) {
@@ -1582,7 +1584,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             ) {
                                 Text(
                                     panel.label,
-                                    color = if (activePanel == panel || (panel == EditorPanel.TEMPLATE && activePanel in templateSubPanels)) Color.White else Color(0xFF777777),
+                                    color = if (activePanel == panel || (panel == EditorPanel.TEMPLATE && showTemplateSubnav)) Color.White else Color(0xFF777777),
                                     fontSize = if (activePanel == panel) 15.sp else 13.sp,
                                     fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
                                     maxLines = 1
@@ -1605,17 +1607,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (activePanel in templateSubPanels) "图文模板" else activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text(if (showTemplateSubnav) "图文模板" else activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
-                            if (activePanel in templateSubPanels) {
+                            if (showTemplateSubnav) {
                                 Row(Modifier.fillMaxWidth().height(38.dp).horizontalScroll(rememberScrollState()),
                                     horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
                                     listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
-                                        Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(vertical = 4.dp),
+                                        Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub; showTemplateSubnav = true }.padding(vertical = 4.dp),
                                             horizontalAlignment = Alignment.CenterHorizontally) {
                                             Text(sub.label, color = if (activePanel == sub) Color.White else Color(0xFF888888),
                                                 fontSize = 12.sp, fontWeight = if (activePanel == sub) FontWeight.Bold else FontWeight.Normal)
@@ -2129,6 +2131,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->
                             TextButton(
                                 onClick = {
+                                    showTemplateSubnav = panel == EditorPanel.TEMPLATE
                                     activePanel = if (panel == EditorPanel.TEMPLATE) templateSubPanel else panel
                                     floatingMenu = ""
                                     if (panel == EditorPanel.CANVAS) {
@@ -2146,7 +2149,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             ) {
                                 Text(
                                     panel.label,
-                                    color = if ((activePanel == panel || (panel == EditorPanel.TEMPLATE && activePanel in templateSubPanels)) && (showToolPopup || showCanvasPopup)) Color.White else Color(0xFF777777),
+                                    color = if ((activePanel == panel || (panel == EditorPanel.TEMPLATE && showTemplateSubnav)) && (showToolPopup || showCanvasPopup)) Color.White else Color(0xFF777777),
                                     fontSize = if (activePanel == panel) 15.sp else 13.sp,
                                     fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
                                     maxLines = 1
