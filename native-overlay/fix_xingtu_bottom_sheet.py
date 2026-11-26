@@ -105,7 +105,64 @@ if "val toolPanelScrollState = rememberScrollState()" not in s:
         raise SystemExit("Could not locate the unique tool panel density state")
     s = s.replace(state_anchor, state_anchor + "\\n" + content_state, 1)
 
-panel_pattern = r'(?m)^(\\s*)Column\\(Modifier\\.fillMaxWidth\\(\\)\\.height\\(animatedToolPanelHeight\\)[^\\n]*$'
+panel_pattern = r'(?m)^(\s*)Column\(Modifier\.fillMaxWidth\(\)\.height\(animatedToolPanelHeight\)[^\n]*
+new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)))'
+s, panel_count = re.subn(panel_pattern, lambda match: match.group(1) + new_panel, s, count=1)
+if panel_count != 1:
+    candidates = [line.strip() for line in s.splitlines() if "animatedToolPanelHeight" in line]
+    raise SystemExit(f"Could not locate the Xingtu tool panel container: matches={panel_count}; candidates={candidates}")
+
+
+old_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp))'
+new_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanelScrollState)).padding(horizontal = 13.dp, vertical = 4.dp))'
+
+# The secondary-navigation/header row is also a dedicated drag surface. This
+# keeps the primary dock separate while allowing gestures to begin directly on
+# the secondary navigation instead of requiring a swipe in the content list.
+header_drag = """.pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp().value }
+                                toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 400f)
+                            }
+                        }"""
+# Match the actual outer tool-sheet header, not the inner Text2 tab strip.
+# The latter also uses a 48dp Row but lives in Text2Panel, outside the
+# ArticleEditorScreen scope where toolPanelDensity/toolPanelHeightDp exist.
+# Match only the Modifier prefix of the actual outer tool-sheet header.
+# The Text2 tab strip also has a 48dp Row, but its parameter order differs.
+header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(48\.dp\)\.padding\(horizontal = 9\.dp\))(?=,\s*verticalAlignment = Alignment\.CenterVertically, horizontalArrangement = Arrangement\.SpaceBetween\)\s*\{)'
+if header_drag not in s:
+    s, header_count = re.subn(header_pattern, r'\1' + header_drag, s, count=1)
+    if header_count != 1:
+        raise SystemExit("Could not locate the outer tool-sheet header Modifier for direct swipe resizing")
+
+if old_scroll in s:
+    s = s.replace(old_scroll, new_scroll, 1)
+elif new_scroll not in s:
+    raise SystemExit("Could not locate the tool panel's independent content scroll container")
+
+checks = {
+    "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
+    "inline non-modal bottom sheet": "Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter)" in s,
+    "panel initial heights": ("EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s) or "toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f" in s,
+    "secondary navigation drag surface": header_count == 1,
+    "150dp collapsed minimum and 400dp maximum": "coerceIn(150f, 400f)" in s,
+    "direct height update avoids opening rebound": "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp" in s and "animateDpAsState" not in s,
+    "panel body has no parent-level gesture interception": "toolPanelNestedScrollConnection" not in s and ".nestedScroll(" not in s,
+    "content scroll is independent": ".verticalScroll(toolPanelScrollState)" in s,
+    "remembered content scroll state": "val toolPanelScrollState = rememberScrollState()" in s,
+    "no inner navigation inset consuming initial height": new_panel in s,
+    "bottom-center drag handle": handle_marker in s,
+}
+failed = [name for name, ok in checks.items() if not ok]
+if failed:
+    ERROR.write_text("Xingtu bottom-sheet validation failed: " + ", ".join(failed) + "\\n", encoding="utf-8")
+    raise SystemExit("Xingtu bottom-sheet validation failed: " + ", ".join(failed))
+
+EDITOR.write_text(s, encoding="utf-8")
+print("Xingtu bottom sheet fixed: panel-specific initial heights, independently draggable header/handle, unobstructed content taps/selection/scrolling, 400dp maximum and separate primary dock.")
+
 new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)))'
 s, panel_count = re.subn(panel_pattern, lambda match: match.group(1) + new_panel, s, count=1)
 if panel_count != 1:
