@@ -141,13 +141,13 @@ dock_comment = "// Persistent primary navigation is hidden while the secondary t
 comment_pos = s.find(dock_comment)
 if comment_pos < 0:
     raise SystemExit("Could not locate persistent primary dock")
-row_start = s.find("                Row(", comment_pos)
-if row_start < 0:
-    raise SystemExit("Could not locate primary dock Row")
-open_pos = s.find("{", row_start)
-if open_pos < 0:
-    raise SystemExit("Primary dock Row has no content block")
-row_end = block_end(s, open_pos)
+dock_if = "            if (!previewMode && !showToolPopup) {"
+start = s.find(dock_if, comment_pos)
+end_marker = "\n            }\n        }\n\n        if (!previewMode) {"
+end = s.find(end_marker, start)
+if start < 0 or end < 0:
+    raise SystemExit("Could not safely locate the complete primary dock scope")
+end += len("\n            }")
 new_dock = """                Row(
                     Modifier.fillMaxWidth().height(50.dp).background(Color(0xFF181818)),
                     verticalAlignment = Alignment.CenterVertically,
@@ -170,12 +170,13 @@ new_dock = """                Row(
                                     when (selectedDockMode) {
                                         "DEFAULT" -> when (item) {
                                             "加图" -> imagePicker.launch(arrayOf("image/*"))
-                                            "加字" -> { insert("<p><br></p>"); runJs("enableSelectedTextEditing()") }
+                                            "加字" -> { runJs("enableSelectedTextEditing()"); insert("<p><br></p>") }
                                             "图文模板" -> { showTemplateSubnav = true; activePanel = templateSubPanel; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
-                                            "图文收藏" -> { activePanel = EditorPanel.STYLE; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "图文收藏" -> { activeCategory = vm.data.styles.firstOrNull { it.isFavorite }?.category ?: ""; activePanel = EditorPanel.STYLE; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
                                             "文档" -> { activePanel = EditorPanel.DOCUMENT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
                                             "画布" -> { showToolPopup = false; showCanvasPopup = true; toolPopupOffset = Offset.Zero }
                                             "图层" -> { activePanel = EditorPanel.LAYER; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true; refreshLayerItems() }
+                                            else -> Unit
                                         }
                                         "TEXT" -> when (item) {
                                             "编辑" -> runJs("enableSelectedTextEditing()")
@@ -184,7 +185,7 @@ new_dock = """                Row(
                                             }
                                             "存为模板" -> editor?.evaluateJavascript("selectedTextBlockHtml()") { raw ->
                                                 val block = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull().orEmpty()
-                                                if (block.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "文字模板", "文字模板", block, System.currentTimeMillis().toString(), type = "component")); vm.toast("已保存到图文收藏") }
+                                                if (block.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "文字模板", "文字模板", block, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }
                                                 else vm.toast("请先选中一个文字段落")
                                             }
                                             "顺序" -> { activePanel = EditorPanel.COMPONENT; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }
@@ -195,6 +196,7 @@ new_dock = """                Row(
                                             "粘贴" -> runJs("pasteEditorObjectClipboard()")
                                             "多选" -> { multiSelectMode = !multiSelectMode; runJs("setMultiSelectMode(" + multiSelectMode + ")") }
                                             "锁定" -> runJs("toggleSelectedObjectLock()")
+                                            else -> Unit
                                         }
                                         "IMAGE" -> when (item) {
                                             "替换" -> imageReplacementPicker.launch(arrayOf("image/*"))
@@ -206,6 +208,7 @@ new_dock = """                Row(
                                             "复制样式" -> runJs("copySelectedImageStyle()")
                                             "粘贴" -> runJs("pasteSelectedImageStyle()")
                                             "设为背景图" -> runJs("setSelectedImageAsBackground()")
+                                            else -> Unit
                                         }
                                         "COMPONENT" -> when (item) {
                                             "组件" -> { floatingToolbarRequest = "component"; floatingMenu = "" }
@@ -219,13 +222,15 @@ new_dock = """                Row(
                                             "粘贴" -> runJs("pasteEditorObjectClipboard()")
                                             "存为模板" -> {
                                                 val htmlToSave = selectedBlockHtml
-                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component")); vm.toast("已保存到图文收藏") }
+                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }
                                                 else vm.toast("当前对象暂不支持保存为组件模板")
                                             }
                                             "多选" -> { multiSelectMode = !multiSelectMode; runJs("setMultiSelectMode(" + multiSelectMode + ")") }
                                             "锁定/解锁" -> runJs("toggleSelectedObjectLock()")
                                             "删除" -> runJs("deleteSelectedBlock()")
+                                            else -> Unit
                                         }
+                                        else -> Unit
                                     }
                                 },
                                 contentPadding = PaddingValues(horizontal = 7.dp, vertical = 3.dp)
@@ -235,7 +240,7 @@ new_dock = """                Row(
                         }
                     }
                 }"""
-s = s[:row_start] + new_dock + s[row_end:]
+s = s[:start] + dock_if + "\n" + new_dock + "\n            }" + s[end:]
 
 # Ensure text selection and image manipulation commands are present in the final synthesized source.
 required = [
