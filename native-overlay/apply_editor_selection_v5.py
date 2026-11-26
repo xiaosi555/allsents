@@ -185,6 +185,13 @@ new_click = r"""                             root.addEventListener('click',funct
 """
 s = s[:click_start] + new_click + s[click_end:]
 
+# Keep the active text object ID stable when a range is selected inside a nested cell/container.
+replace_once(
+    "target=(collapsed&&activeTextBlock&&root.contains(activeTextBlock))?activeTextBlock:(topLevelAt(node)||node);",
+    "target=(activeTextBlock&&root.contains(activeTextBlock)&&activeTextBlock.contains(node))?activeTextBlock:(topLevelAt(node)||node);",
+    "reportSelection retains active text container for range selection"
+)
+
 # Text template/copy/duplicate helpers already prefer activeTextBlock in functional v3.
 
 # Text copy-style and 顺序 already route through the typed clipboard/component tools in v3.
