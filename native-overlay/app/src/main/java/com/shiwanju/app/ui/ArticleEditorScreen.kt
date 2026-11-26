@@ -215,7 +215,8 @@ private fun Text2EditorPanel(
     var outlineMode by remember { mutableStateOf("单层") }
     var selectedAlignment by remember { mutableIntStateOf(1) }
     val colors = listOf("#FF0000", "#000000", "#888888", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
-
+    var showTextColorPicker by remember { mutableStateOf(false) }
+    var customTextColor by remember { mutableStateOf("#222222") }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth().height(38.dp), horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -254,7 +255,7 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", color); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + color + ",-1px 0 " + color + ",0 1px " + color + ",0 -1px " + color) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color); "背景" -> { val c = android.graphics.Color.parseColor(color); onApplyCss("background-color", "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + (opacity / 100f) + ")") }; else -> onApplyColor(color, false) } }, onClear = { onApplyColor("transparent", styleTab == "背景") }, onEyedropper = onEyedropper, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
+                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", color); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + color + ",-1px 0 " + color + ",0 1px " + color + ",0 -1px " + color) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color); "背景" -> { val c = android.graphics.Color.parseColor(color); onApplyCss("background-color", "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + (opacity / 100f) + ")") }; else -> onApplyColor(color, false) } }, onClear = { onApplyColor("transparent", styleTab == "背景") }, onEyedropper = { showTextColorPicker = true }, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
                 when (styleTab) {
                     "文本" -> {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -324,6 +325,38 @@ private fun Text2EditorPanel(
                 Text2ParameterRow("字间距", letterSpacing, -2f, 12f, "px") { letterSpacing = it; onApplyCss("letter-spacing", it.toString() + "px") }
             }
         }
+    }
+    if (showTextColorPicker) {
+        AlertDialog(
+            onDismissRequest = { showTextColorPicker = false },
+            title = { Text("自定义取色") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = customTextColor, onValueChange = { customTextColor = it }, singleLine = true, label = { Text("HEX 颜色值") }, placeholder = { Text("#RRGGBB") })
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        colors.forEach { color -> Box(Modifier.size(28.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(color))).clickable { customTextColor = color }) }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val normalized = if (customTextColor.startsWith("#")) customTextColor else "#$customTextColor"
+                    val parsed = runCatching { android.graphics.Color.parseColor(normalized) }.getOrNull()
+                    if (parsed != null) {
+                        selectedColor = normalized
+                        when (styleTab) {
+                            "描边" -> { onApplyCss("-webkit-text-stroke-color", normalized); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + normalized + ",-1px 0 " + normalized + ",0 1px " + normalized + ",0 -1px " + normalized) }
+                            "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + normalized)
+                            "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + normalized)
+                            "背景" -> onApplyCss("background-color", "rgba(" + android.graphics.Color.red(parsed) + "," + android.graphics.Color.green(parsed) + "," + android.graphics.Color.blue(parsed) + "," + (opacity / 100f) + ")")
+                            else -> onApplyColor(normalized, false)
+                        }
+                        showTextColorPicker = false
+                    }
+                }) { Text("应用") }
+            },
+            dismissButton = { TextButton(onClick = { showTextColorPicker = false }) { Text("取消") } }
+        )
     }
 }
 
