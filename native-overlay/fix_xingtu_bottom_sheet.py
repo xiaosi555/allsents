@@ -71,7 +71,7 @@ elif dock_visibility_new not in s:
 # title/close row. Keep its gesture math unchanged: dragging upward increases
 # the panel height, while the bottom edge remains free of back-navigation taps.
 handle_pattern = re.compile(
-    r"(?m)^                    Box\(\n"
+    r"(?ms)^                    Box\(\n"
     r"                        Modifier\.fillMaxWidth\(\)\.height\(26\.dp\).*?"
     r"^                    \}\n"
 )
@@ -80,7 +80,8 @@ if handle_match:
     handle_block = handle_match.group(0)
     s = s[:handle_match.start()] + s[handle_match.end():]
     header_anchor = '                    Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp)'
-    header_pos = s.find(header_anchor)
+    sheet_start = s.find("if (showToolPopup && activePanel")
+    header_pos = s.find(header_anchor, sheet_start)
     if header_pos < 0:
         raise SystemExit("Could not locate the tool-sheet header to position the top resize handle")
     s = s[:header_pos] + handle_block + s[header_pos:]
