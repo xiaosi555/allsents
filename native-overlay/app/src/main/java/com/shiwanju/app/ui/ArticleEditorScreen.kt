@@ -149,6 +149,56 @@ private fun CompactEditorSlider(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Composable
+private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, glowWidth: Float, colors: List<String>, onColor: (String) -> Unit, onClear: () -> Unit, onEyedropper: () -> Unit, onGradient: () -> Unit) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
+            listOf("禁用", "取色", "渐变").forEachIndexed { index, label ->
+                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF303030)).clickable {
+                    when (index) {
+                        0 -> onClear()
+                        1 -> onEyedropper()
+                        else -> {
+                            onGradient()
+                            
+                            
+                    }
+                    }
+                }, contentAlignment = Alignment.Center) {
+                    Text(if (index == 0) "／" else if (index == 1) "⌁" else "✦", color = Color.White, fontSize = 16.sp)
+                }
+            }
+            colors.forEach { color ->
+                Box(
+                    Modifier.size(28.dp).clip(CircleShape)
+                        .background(Color(android.graphics.Color.parseColor(color)))
+                        .then(if (selectedColor == color) Modifier.border(2.dp, Color.White, CircleShape) else Modifier.border(1.dp, Color(0xFF777777), CircleShape))
+                        .clickable {
+                            onColor(color)
+                            when (styleTab) {
+                                "描边" -> onColor(color)
+                                "阴影" -> onColor(color)
+                                "发光" -> onColor(color)
+                                "背景" -> onColor(color)
+                                else -> onColor(color)
+                            }
+                        }
+                )
+            }
+        }
+    }
+
+
+@Composable
+private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
+        Row(Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(label, Modifier.width(52.dp), color = Color(0xFFCCCCCC), fontSize = 11.sp, maxLines = 1)
+            CompactEditorSlider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
+            Text(value.toInt().toString() + suffix, Modifier.width(40.dp), color = Color.White, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+    }
+    }
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun Text2EditorPanel(
     onInsertText: (String) -> Unit,
     onCommand: (String, String?) -> Unit,
@@ -174,52 +224,6 @@ private fun Text2EditorPanel(
     var selectedAlignment by remember { mutableIntStateOf(1) }
     val colors = listOf("#FF0000", "#000000", "#888888", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
 
-    @Composable
-    fun colorRow() {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("禁用", "取色", "渐变").forEachIndexed { index, label ->
-                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF303030)).clickable {
-                    when (index) {
-                        0 -> onApplyColor("transparent", styleTab == "背景")
-                        1 -> onEyedropper()
-                        else -> {
-                            onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)")
-                            onApplyCss("-webkit-background-clip", "text")
-                            onApplyCss("color", "transparent")
-                        }
-                    }
-                }, contentAlignment = Alignment.Center) {
-                    Text(if (index == 0) "／" else if (index == 1) "⌁" else "✦", color = Color.White, fontSize = 16.sp)
-                }
-            }
-            colors.forEach { color ->
-                Box(
-                    Modifier.size(28.dp).clip(CircleShape)
-                        .background(Color(android.graphics.Color.parseColor(color)))
-                        .then(if (selectedColor == color) Modifier.border(2.dp, Color.White, CircleShape) else Modifier.border(1.dp, Color(0xFF777777), CircleShape))
-                        .clickable {
-                            selectedColor = color
-                            when (styleTab) {
-                                "描边" -> onApplyCss("-webkit-text-stroke-color", color)
-                                "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color)
-                                "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color)
-                                "背景" -> onApplyColor(color, true)
-                                else -> onApplyColor(color, false)
-                            }
-                        }
-                )
-            }
-        }
-    }
-
-    @Composable
-    fun parameter(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
-        Row(Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            Text(label, Modifier.width(52.dp), color = Color(0xFFCCCCCC), fontSize = 11.sp, maxLines = 1)
-            CompactEditorSlider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
-            Text(value.toInt().toString() + suffix, Modifier.width(40.dp), color = Color.White, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
-        }
-    }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(Modifier.fillMaxWidth().height(42.dp), horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -258,7 +262,7 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                colorRow()
+                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> onApplyCss("-webkit-text-stroke-color", color); "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color); "背景" -> onApplyColor(color, true); else -> onApplyColor(color, false) } }, onClear = { onApplyColor("transparent", styleTab == "背景") }, onEyedropper = onEyedropper, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
                 when (styleTab) {
                     "文本" -> {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -271,7 +275,7 @@ private fun Text2EditorPanel(
                                 }
                             }
                         }
-                        parameter("字号", fontSize, 8f, 72f, "px") { fontSize = it; onApplyCss("font-size", it.toInt().toString() + "px") }
+                        Text2ParameterRow("字号", fontSize, 8f, 72f, "px") { fontSize = it; onApplyCss("font-size", it.toInt().toString() + "px") }
                         Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text("字号微调", color = Color(0xFFCCCCCC), fontSize = 11.sp)
                             Spacer(Modifier.weight(1f))
