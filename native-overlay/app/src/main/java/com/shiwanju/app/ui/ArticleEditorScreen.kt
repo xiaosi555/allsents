@@ -136,7 +136,7 @@ private fun CompactEditorSlider(
         value = value,
         onValueChange = onValueChange,
         valueRange = valueRange,
-        modifier = modifier.height(28.dp),
+        modifier = modifier.height(20.dp),
         colors = SliderDefaults.colors(
             thumbColor = Color.White,
             activeTrackColor = Color(0xFF4A91FF),
@@ -152,9 +152,9 @@ private fun CompactEditorSlider(
 @Composable
 @Composable
 private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, glowWidth: Float, colors: List<String>, onColor: (String) -> Unit, onClear: () -> Unit, onEyedropper: () -> Unit, onGradient: () -> Unit) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("禁用", "取色", "渐变").forEachIndexed { index, label ->
-                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(0xFF303030)).clickable {
+                Box(Modifier.size(26.dp).clip(CircleShape).background(Color(0xFF303030)).clickable {
                     when (index) {
                         0 -> onClear()
                         1 -> onEyedropper()
@@ -184,7 +184,7 @@ private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, 
 
 @Composable
 private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
-        Row(Modifier.fillMaxWidth().height(32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth().height(26.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(label, Modifier.width(52.dp), color = Color(0xFFCCCCCC), fontSize = 11.sp, maxLines = 1)
             CompactEditorSlider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
             Text(value.toInt().toString() + suffix, Modifier.width(40.dp), color = Color.White, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
@@ -194,11 +194,9 @@ private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Floa
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Text2EditorPanel(
-    onInsertText: (String) -> Unit,
     onCommand: (String, String?) -> Unit,
     onApplyCss: (String, String) -> Unit,
     onApplyColor: (String, Boolean) -> Unit,
-    onRecognize: () -> Unit,
     onEyedropper: () -> Unit
 ) {
     var mainTab by remember { mutableStateOf("字体") }
@@ -219,8 +217,8 @@ private fun Text2EditorPanel(
     val colors = listOf("#FF0000", "#000000", "#888888", "#FFFFFF", "#A64B3C", "#F04438", "#FF7F6B", "#E98BB7")
 
 
-    Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Row(Modifier.fillMaxWidth().height(42.dp), horizontalArrangement = Arrangement.spacedBy(26.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth().height(38.dp), horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("字体", "样式", "排版").forEach { tab ->
                 Column(Modifier.clickable { mainTab = tab }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(tab, color = if (mainTab == tab) Color.White else Color(0xFF888888), fontSize = 14.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
@@ -229,7 +227,7 @@ private fun Text2EditorPanel(
             }
         }
         if (mainTab == "样式") {
-            Row(Modifier.fillMaxWidth().height(32.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(28.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
                     Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.White else Color(0xFF888888), fontSize = 12.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
                 }
@@ -1405,9 +1403,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)
                 ) {
                     Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp)) {
-                        Row(Modifier.fillMaxWidth().pointerInput(Unit) {
+                        Row(Modifier.fillMaxWidth().height(34.dp).pointerInput(Unit) {
                             detectDragGestures { change, dragAmount -> change.consume(); floatingToolbarOffset = Offset(floatingToolbarOffset.x + dragAmount.x, floatingToolbarOffset.y + dragAmount.y) }
                         }, verticalAlignment = Alignment.CenterVertically) {
+                            Text("⠿", color = AppColors.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 6.dp))
                             Text(
                                 when {
                                     selectedImageHtml.isNotBlank() -> "图片工具"
@@ -1578,7 +1577,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
-                        Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
+                        Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = if (activePanel == EditorPanel.TEXT2) 0.dp else 6.dp)) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
@@ -1697,10 +1696,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(
-                            onInsertText = { value ->
-                                val escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;")
-                                insert("<p style='margin:0 0 12px;font-size:18px;line-height:1.6'>" + escaped + "</p>")
-                            },
                             onCommand = { name, value -> command(name, value) },
                             onApplyCss = { property, value ->
                                 val prop = property.replace("'", "")
@@ -1711,7 +1706,6 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 val commandName = if (background) "hiliteColor" else "foreColor"
                                 runJs("restoreSelection();document.execCommand('" + commandName + "',false,'" + color + "');saveSelection();")
                             },
-                            onRecognize = { vm.toast("文本识别：请先选择图片，再使用图片文字识别") },
                             onEyedropper = { vm.toast("吸管取色：请先使用下方预设色；屏幕取色能力待接入") }
                         )
                     }
