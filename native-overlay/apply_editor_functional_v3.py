@@ -451,7 +451,10 @@ required = [
     'EditorTool("水平翻转")',
     'EditorTool("轻阴影")',
     'EditorTool("背景图")',
-    '先在画布中选中一段文字、一张图片或一个组件'
+    '先在画布中选中一段文字、一张图片或一个组件',
+    'function setComponentDragMode(v)',
+    "kind:'object'",
+    'runJs("setComponentDragMode(true)")'
 ]
 missing = [token for token in required if token not in s]
 if missing:
