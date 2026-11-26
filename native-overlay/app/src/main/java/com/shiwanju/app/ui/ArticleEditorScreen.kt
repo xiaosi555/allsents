@@ -411,6 +411,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var multiSelectMode by remember { mutableStateOf(false) }
     var selectedImageHtml by remember { mutableStateOf("") }
     var selectedTextActive by remember { mutableStateOf(false) }
+    var floatingToolbarRequest by remember { mutableStateOf("") }
     var floatingMenu by remember { mutableStateOf("") }
     var floatingToolbarOffset by remember { mutableStateOf(Offset.Zero) }
     var showImageAlt by remember { mutableStateOf(false) }
@@ -1190,8 +1191,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         addJavascriptInterface(ArticleEditorBridge(
                             { value -> html = value; saved = false; pendingSave++ },
                             { value -> selectedBlockHtml = value },
-                            { value -> selectedImageHtml = value },
-                            { value -> selectedTextActive = value; if (value) floatingMenu = "" }
+                            { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
+                            { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" }
                         ), "NativeEditor")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
@@ -1394,10 +1395,12 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     if (showInsertLauncherMenu) {
                         Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF242424), shadowElevation = 10.dp) {
                             Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                listOf(Triple("文字", "✎", EditorPanel.TEXT), Triple("图片", "▧", EditorPanel.IMAGE)).forEach { (label, glyph, panel) ->
+                                listOf(Triple("文字", "✎", "text"), Triple("图片", "▧", "image")).forEach { (label, glyph, mode) ->
                                     Row(Modifier.clip(CircleShape).clickable {
-                                        activePanel = panel; showTemplateSubnav = false; showCanvasPopup = false; showToolPopup = true
-                                        toolPanelHeightDp = 180f; showInsertLauncherMenu = false
+                                        floatingToolbarRequest = mode
+                                        showToolPopup = false; showCanvasPopup = false
+                                        showInsertLauncherMenu = false
+                                        floatingMenu = ""
                                     }.padding(horizontal = 11.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text(glyph, color = AppColors.Theme, fontSize = 17.sp)
@@ -1420,7 +1423,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                 }
             }
-            if (!previewMode && (selectedBlockHtml.isNotBlank() ||
+            if (!previewMode && (floatingToolbarRequest.isNotBlank() || selectedBlockHtml.isNotBlank() ||
                     selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
                     selectionState.kind == EditorSelectionKind.COMPONENT || selectionState.kind == EditorSelectionKind.LAYOUT)) {
                 val toolbarHeight = 88.dp
@@ -1442,8 +1445,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             Text("⠿", color = AppColors.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 6.dp))
                             Text(
                                 when {
-                                    selectedImageHtml.isNotBlank() -> "图片工具"
-                                    selectedTextActive -> "文字工具"
+                                    floatingToolbarRequest == "image" || selectedImageHtml.isNotBlank() -> "图片工具"
+                                    floatingToolbarRequest == "text" || selectedTextActive -> "文字工具"
                                     selectionState.kind == EditorSelectionKind.TABLE -> "表格工具"
                                     selectionState.kind == EditorSelectionKind.MULTI_BLOCK -> "组合工具"
                                     else -> "模块工具"
@@ -1453,11 +1456,15 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = {
                                 selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""
                                 selectionState = EditorSelectionState()
+                                floatingToolbarRequest = ""
                                 runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
                             }) { Text("完成", color = AppColors.TextDim, fontSize = 11.sp) }
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
-                            if (selectedImageHtml.isNotBlank()) {
+                            if (floatingToolbarRequest == "image" || selectedImageHtml.isNotBlank()) {
+                                if (floatingToolbarRequest == "image" && selectedImageHtml.isBlank()) {
+                                    Text("请先在正文中选择图片，再使用图片工具", color = AppColors.TextDim, fontSize = 10.sp)
+                                }
                                 Box {
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "image-width") "" else "image-width" }) { Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "image-width", onDismissRequest = { floatingMenu = "" }) {
@@ -1486,7 +1493,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { selectedImageHtml = ""; activePanel = EditorPanel.IMAGE }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
-                            } else if (selectedTextActive) {
+                            } else if (floatingToolbarRequest == "text" || selectedTextActive) {
                                 Box {
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-size", onDismissRequest = { floatingMenu = "" }) {
@@ -1513,7 +1520,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("justifyCenter") }) { Text("☷", color = ink, fontSize = 15.sp) }
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { command("insertUnorderedList") }) { Text("☷•", color = ink, fontSize = 12.sp) }
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { showFindReplace = true }) { Text("⌕", color = ink, fontSize = 15.sp) }
-                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { activePanel = EditorPanel.TEXT; selectedTextActive = false }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
+                                TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { activePanel = EditorPanel.TEXT; selectedTextActive = false; floatingToolbarRequest = "" }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
                             } else {
                                 when (selectionState.kind) {
                                     EditorSelectionKind.TABLE -> {
@@ -1608,28 +1615,30 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
-                        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (showTemplateSubnav) "图文模板" else activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        if (showTemplateSubnav) {
+                            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
+                                    Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 3.dp, vertical = 4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(sub.label, color = if (activePanel == sub) Color.White else Color(0xFF888888),
+                                            fontSize = 11.sp, fontWeight = if (activePanel == sub) FontWeight.Bold else FontWeight.Normal,
+                                            maxLines = 1)
+                                        Box(Modifier.padding(top = 2.dp).width(16.dp).height(2.dp).clip(RoundedCornerShape(4.dp))
+                                            .background(if (activePanel == sub) AppColors.Theme else Color.Transparent))
+                                    }
+                                }
+                            }
+                        } else {
+                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                Text(activePanel.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
-                            if (showTemplateSubnav) {
-                                Row(Modifier.fillMaxWidth().height(38.dp).horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
-                                        Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub; showTemplateSubnav = true }.padding(vertical = 4.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(sub.label, color = if (activePanel == sub) Color.White else Color(0xFF888888),
-                                                fontSize = 12.sp, fontWeight = if (activePanel == sub) FontWeight.Bold else FontWeight.Normal)
-                                            Box(Modifier.padding(top = 3.dp).width(20.dp).height(2.dp).clip(RoundedCornerShape(4.dp))
-                                                .background(if (activePanel == sub) AppColors.Theme else Color.Transparent))
-                                        }
-                                    }
-                                }
-                            }
-                when (activePanel) {
+remove content secondary navigation                when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
