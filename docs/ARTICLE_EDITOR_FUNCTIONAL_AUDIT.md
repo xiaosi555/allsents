@@ -297,8 +297,8 @@
 
 ### 12.3 待验收门槛
 
-- [ ] 最新主分支 Kotlin Compile Check 成功。
-- [ ] 最新主分支 APK Build 成功且 `ShiWanJu-debug-apk` 产物存在。
-- [ ] 检查最终注入源码确实包含 v4 修正，而不只是 overlay 文件有改动。
+- [x] 最新主分支 Kotlin Compile Check #554 成功（run 45906029061）。
+- [x] 最新主分支 APK Build #822 成功（run 45906029081）；`ShiWanJu-debug-apk` artifact ID `15158157806`，18,976,410 bytes。
+- [x] 已下载并检查最终注入源码包，确认 v4 代码进入最终 `ArticleEditorScreen.kt`。
 - [ ] 真机确认 IME、图片状态同步、对象粘贴后的选中切换。
 - [ ] 真机逐项确认文字和图片全部底部操作；构建成功不等于真机交互验收完成。
