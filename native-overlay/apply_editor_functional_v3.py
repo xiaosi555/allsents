@@ -169,7 +169,7 @@ replace_once(
 )
 replace_once(
     "function copySelectedTextBlock(){const h=selectedTextBlockHtml();if(h){editorObjectClipboard=h;editorClipboardType='OBJECT';}}",
-    "function copySelectedTextBlock(){const h=selectedTextBlockHtml();if(h){editorObjectClipboard=h;editorClipboardType='OBJECT';}}\\n                            function copySelectedObject(){if(activeImage){copySelectedImageObject();return;}const e=activeTextBlock||selectedParagraph()||selectedBlock();if(!e)return;editorObjectClipboard=e.outerHTML;editorClipboardType='OBJECT';}",
+    "function copySelectedTextBlock(){const h=selectedTextBlockHtml();if(h){editorObjectClipboard=h;editorClipboardType='OBJECT';}}\n                            function copySelectedObject(){if(activeImage){copySelectedImageObject();return;}const e=activeTextBlock||selectedParagraph()||selectedBlock();if(!e)return;editorObjectClipboard=e.outerHTML;editorClipboardType='OBJECT';}",
     "copy selected text/image/component object"
 )
 replace_once(
@@ -302,8 +302,8 @@ replace_once(
 )
 
 replace_once(
-    '"存为模板" -> {\\n                                                val htmlToSave = selectedBlockHtml\\n                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }\\n                                                else vm.toast("当前对象暂不支持保存为组件模板")\\n                                            }',
-    '"存为模板" -> editor?.evaluateJavascript("selectedObjectHtml()") { raw ->\\n                                                val htmlToSave = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull().orEmpty()\\n                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }\\n                                                else vm.toast("请先选中要收藏的文字、图片或组件")\\n                                            }',
+    '"存为模板" -> {\n                                                val htmlToSave = selectedBlockHtml\n                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }\n                                                else vm.toast("当前对象暂不支持保存为组件模板")\n                                            }',
+    '"存为模板" -> editor?.evaluateJavascript("selectedObjectHtml()") { raw ->\n                                                val htmlToSave = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull().orEmpty()\n                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }\n                                                else vm.toast("请先选中要收藏的文字、图片或组件")\n                                            }',
     "save selected text image or component to favorites"
 )
 
