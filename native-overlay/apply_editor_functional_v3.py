@@ -77,7 +77,7 @@ new_click = r"""                            root.addEventListener('click',functi
                               const imageNode=ev.target&&ev.target.closest?ev.target.closest('img'):(ev.target&&ev.target.tagName==='IMG'?ev.target:null);
                               const textNode=ev.target&&ev.target.closest?ev.target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,pre'):null;
                               const clickedImage=!!(imageNode&&root.contains(imageNode));
-                              const clickedText=!!(textNode&&root.contains(textNode));
+                              const clickedText=!!(textNode&&root.contains(textNode)&&textNode.textContent.trim().length>0);
                               const top=topLevelAt(ev.target);
                               const blankTarget=!clickedImage&&!clickedText&&(!top||top===root||(!top.textContent.trim()&&!top.querySelector('img,table,svg,video,iframe,canvas,details')));
                               const clearBlockSelection=()=>{
