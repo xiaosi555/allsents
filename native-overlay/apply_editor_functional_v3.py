@@ -56,8 +56,8 @@ click_end_token = "function clearDragTarget(){"
 click_end = s.find(click_end_token, click_start)
 if click_start < 0 or click_end < 0:
     raise SystemExit("Could not locate the canvas click listener boundaries")
-click_start = s.rfind("\\n", 0, click_start) + 1
-click_end = s.rfind("\\n", 0, click_end) + 1
+click_start = s.rfind("\n", 0, click_start) + 1
+click_end = s.rfind("\n", 0, click_end) + 1
 new_click = r"""                            root.addEventListener('click',function(ev){
                               const imageNode=ev.target&&ev.target.closest?ev.target.closest('img'):(ev.target&&ev.target.tagName==='IMG'?ev.target:null);
                               const textNode=ev.target&&ev.target.closest?ev.target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,pre'):null;
