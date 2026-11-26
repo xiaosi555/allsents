@@ -1603,7 +1603,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false, clippingEnabled = false)
                 ) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                Column(Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 400.dp).height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
+                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
