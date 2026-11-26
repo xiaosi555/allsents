@@ -140,8 +140,7 @@ replace_once(
 
 # Ensure the selected object cannot be mistaken for a style clipboard after a copy/paste cycle.
 required = [
-    'EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }',
-    'imm?.showSoftInput(web, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)',
+    'imm?.showSoftInput(target, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)',
     'function getSelectedImageControls()',
     'imageBrightness = controls.optDouble("brightness", 100.0)',
     'function pasteImageClipboard()',
