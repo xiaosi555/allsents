@@ -76,7 +76,7 @@ elif new_scroll not in s:
 # The overlay must occupy only the actual sheet bounds. A full-screen
 # transparent layer sits above the WebView and prevents canvas hit testing.
 overlay_old = "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
-overlay_new = "Box(Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.BottomCenter).zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+overlay_new = "Box(Modifier.fillMaxWidth().wrapContentHeight().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
 if overlay_old in s:
     s = s.replace(overlay_old, overlay_new, 1)
 elif overlay_new not in s:
@@ -95,7 +95,7 @@ s = s.replace("coerceIn(100f, 400f)", "coerceIn(100f, 350f)")
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "inline non-modal bottom sheet": "if (showToolPopup && activePanel != EditorPanel.CANVAS)" in s,
-    "sheet overlay is bounded to its own height": overlay_new in s and overlay_old not in s,
+    "sheet overlay is bounded to its own height without invalid parent-scope alignment": overlay_new in s and overlay_old not in s and ".wrapContentHeight().align(Alignment.BottomCenter)" not in s,
     "inner sheet container wraps content": inner_new in s,
     "canvas touch area is not covered by a full-screen overlay": "Box(Modifier.fillMaxSize().zIndex(100f)" not in s,
     "panel itself consumes touches only inside panel bounds": ".height(animatedToolPanelHeight)" in s and ".clickable(" in s,
