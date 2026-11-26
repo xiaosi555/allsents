@@ -164,6 +164,11 @@ replace_once(
     "copy text object"
 )
 replace_once(
+    "function copySelectedTextBlock(){const h=selectedTextBlockHtml();if(h){editorObjectClipboard=h;editorClipboardType='OBJECT';}}",
+    "function copySelectedTextBlock(){const h=selectedTextBlockHtml();if(h){editorObjectClipboard=h;editorClipboardType='OBJECT';}}\\n                            function copySelectedObject(){if(activeImage){copySelectedImageObject();return;}const e=activeTextBlock||selectedParagraph()||selectedBlock();if(!e)return;editorObjectClipboard=e.outerHTML;editorClipboardType='OBJECT';}",
+    "copy selected text/image/component object"
+)
+replace_once(
     "function pasteEditorObjectClipboard(){if(!editorObjectClipboard)return;const box=document.createElement('div');box.innerHTML=editorObjectClipboard;const node=box.firstElementChild;if(!node)return;node.querySelectorAll('[data-editor-id]').forEach(n=>n.removeAttribute('data-editor-id'));node.removeAttribute('data-editor-id');const anchor=selectedParagraph()||selectedBlock()||(activeImage&&activeImage.parentElement);if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('afterend',node);else root.appendChild(node);commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();}",
     "function copySelectedTextStyle(){const e=activeTextBlock||selectedParagraph();if(!e)return;editorTextStyleClipboard={cssText:e.style.cssText};editorClipboardType='TEXT_STYLE';}\n                            function pasteSelectedTextStyle(){const e=activeTextBlock||selectedParagraph();if(!e||e.dataset.editorLocked==='1'||!editorTextStyleClipboard)return;e.style.cssText=editorTextStyleClipboard.cssText;commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();}\n                            function copySelectedObjectStyle(){if(activeImage)copySelectedImageStyle();else copySelectedTextStyle();}\n                            function selectedObjectHtml(){const e=selectedEditableObject();if(!e||!root.contains(e))return '';const c=e.cloneNode(true);c.classList.remove('selected-block','selected-image','selected-text-block');c.removeAttribute('data-editor-id');return c.outerHTML;}\n                            function pasteEditorObjectClipboard(){if(editorClipboardType==='IMAGE_STYLE'){pasteSelectedImageStyle();return;}if(editorClipboardType==='TEXT_STYLE'){pasteSelectedTextStyle();return;}if(!editorObjectClipboard)return;const box=document.createElement('div');box.innerHTML=editorObjectClipboard;const node=box.firstElementChild;if(!node)return;node.querySelectorAll('[data-editor-id]').forEach(n=>n.removeAttribute('data-editor-id'));node.removeAttribute('data-editor-id');const anchor=activeTextBlock||selectedParagraph()||selectedBlock()||activeImage;if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('afterend',node);else root.appendChild(node);commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();}",
     "typed paste routing"
@@ -237,6 +242,31 @@ replace_once(
     "image paste dispatch"
 )
 replace_once(
+    '"透明度" -> runJs("setSelectedImageOpacity(70)")',
+    '"透明度" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
+    "image opacity opens adjustable controls"
+)
+replace_once(
+    '"翻转" -> runJs("flipSelectedImage(\\'horizontal\\')")',
+    '"翻转" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
+    "image flip opens horizontal and vertical controls"
+)
+replace_once(
+    '"对齐" -> runJs("alignSelectedImage(\\'center\\')")',
+    '"对齐" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
+    "image alignment opens left center right controls"
+)
+replace_once(
+    '"复制" -> runJs("copySelectedTextBlock()")',
+    '"复制" -> runJs("copySelectedObject()")',
+    "component copy selected object"
+)
+replace_once(
+    'onClick = { runJs("copySelectedTextBlock()") }) { Text("复制对象",',
+    'onClick = { runJs("copySelectedObject()") }) { Text("复制对象",',
+    "floating component copy selected object"
+)
+replace_once(
     '"上移" -> runJs("moveSelectedBlock(-1)")',
     '"上移" -> runJs("moveSelectedObjectVertical(-1)")',
     "component move up"
@@ -265,6 +295,12 @@ replace_once(
     '"删除" -> runJs("deleteSelectedBlock()")',
     '"删除" -> runJs("deleteSelectedObject()")',
     "component delete"
+)
+
+replace_once(
+    '"存为模板" -> {\\n                                                val htmlToSave = selectedBlockHtml\\n                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }\\n                                                else vm.toast("当前对象暂不支持保存为组件模板")\\n                                            }',
+    '"存为模板" -> editor?.evaluateJavascript("selectedObjectHtml()") { raw ->\\n                                                val htmlToSave = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull().orEmpty()\\n                                                if (htmlToSave.isNotBlank()) { vm.saveStyle(StyleModule(vm.newId(), "组件模板", "组件模板", htmlToSave, System.currentTimeMillis().toString(), type = "component", isFavorite = true)); vm.toast("已保存到图文收藏") }\\n                                                else vm.toast("请先选中要收藏的文字、图片或组件")\\n                                            }',
+    "save selected text image or component to favorites"
 )
 
 component_anchor = """                            } else {
