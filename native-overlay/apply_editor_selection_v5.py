@@ -117,7 +117,7 @@ new_pointer = r"""function editorHitElement(node){
                                let hit=editorHitElement(ev&&ev.target);
                                if(fromPointer&&ev&&typeof document.elementFromPoint==='function'&&Number.isFinite(ev.clientX)&&Number.isFinite(ev.clientY)){
                                  const pointHit=document.elementFromPoint(ev.clientX,ev.clientY);
-                                 if(pointHit&&root.contains(pointHit))hit=pointHit;
+                                 if(pointHit&&pointHit!==root&&root.contains(pointHit))hit=pointHit;
                                }
                                if(!hit||!root.contains(hit))return;
                                const image=hit.closest?hit.closest('img'):null;
