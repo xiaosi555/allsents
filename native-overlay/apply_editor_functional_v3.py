@@ -265,11 +265,11 @@ replace_once(
     '"对齐" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
     "image alignment opens left center right controls"
 )
-replace_once(
-    '"复制" -> runJs("copySelectedTextBlock()")',
-    '"复制" -> runJs("copySelectedObject()")',
-    "component copy selected object"
-)
+copy_text_command = '"复制" -> runJs("copySelectedTextBlock()")'
+if s.count(copy_text_command) != 2:
+    raise SystemExit("Expected exactly two text/component copy dock commands")
+copy_component_at = s.rfind(copy_text_command)
+s = s[:copy_component_at] + s[copy_component_at:].replace(copy_text_command, '"复制" -> runJs("copySelectedObject()")', 1)
 replace_once(
     'onClick = { runJs("copySelectedTextBlock()") }) { Text("复制对象",',
     'onClick = { runJs("copySelectedObject()") }) { Text("复制对象",',
