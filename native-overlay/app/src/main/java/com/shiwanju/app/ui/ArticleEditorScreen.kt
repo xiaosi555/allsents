@@ -240,7 +240,7 @@ private fun Text2EditorPanel(
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     fonts.forEach { font ->
                         Box(Modifier.weight(1f).widthIn(min = 76.dp).height(44.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF303030))
-                            .clickable { onCommand("fontName", when (font) { "宋体" -> "SimSun"; "楷体" -> "KaiTi"; "黑体", "微软雅黑" -> "Microsoft YaHei"; "仿宋" -> "FangSong"; "等宽" -> "monospace"; "衬线" -> "serif"; "无衬线" -> "sans-serif"; else -> "sans-serif" }) },
+                            .clickable { onCommand("fontName", when (font) { "宋体" -> "SimSun, serif"; "楷体" -> "KaiTi, serif"; "黑体", "微软雅黑" -> "Microsoft YaHei, sans-serif"; "仿宋" -> "FangSong, serif"; "苹方" -> "PingFang SC, sans-serif"; "思源黑体" -> "Noto Sans CJK SC, sans-serif"; "圆体" -> "sans-serif-rounded"; "等宽" -> "monospace"; "衬线" -> "serif"; "无衬线" -> "sans-serif"; else -> "sans-serif" }) },
                             contentAlignment = Alignment.Center) { Text(font, color = Color.White, fontSize = 12.sp) }
                     }
                 }
@@ -254,7 +254,7 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> onApplyCss("-webkit-text-stroke-color", color); "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color); "背景" -> onApplyColor(color, true); else -> onApplyColor(color, false) } }, onClear = { onApplyColor("transparent", styleTab == "背景") }, onEyedropper = onEyedropper, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
+                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", color); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + color + ",-1px 0 " + color + ",0 1px " + color + ",0 -1px " + color) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + color); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + color); "背景" -> { val c = android.graphics.Color.parseColor(color); onApplyCss("background-color", "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + (opacity / 100f) + ")") }; else -> onApplyColor(color, false) } }, onClear = { onApplyColor("transparent", styleTab == "背景") }, onEyedropper = onEyedropper, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
                 when (styleTab) {
                     "文本" -> {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -278,12 +278,12 @@ private fun Text2EditorPanel(
                         Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "描边" -> {
-                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px") }
+                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px"); if (outlineMode == "多层") onApplyCss("text-shadow", it.toString() + "px 0 " + selectedColor + ",-" + it.toString() + "px 0 " + selectedColor + ",0 " + it.toString() + "px " + selectedColor + ",0 -" + it.toString() + "px " + selectedColor) }
                         Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "阴影" -> {
                         Text2ParameterRow("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + selectedColor) }
-                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; onApplyCss("text-shadow", it.toString() + "px " + it + "px " + blur + "px " + selectedColor) }
+                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * it).toString() + "px " + (kotlin.math.sin(rad) * it) + "px " + blur + "px " + selectedColor) }
                         Text2ParameterRow("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + selectedColor) }
                         Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
@@ -292,7 +292,7 @@ private fun Text2EditorPanel(
                         Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "背景" -> {
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("background-color", selectedColor) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; val c = android.graphics.Color.parseColor(selectedColor); onApplyCss("background-color", "rgba(" + android.graphics.Color.red(c) + "," + android.graphics.Color.green(c) + "," + android.graphics.Color.blue(c) + "," + (it / 100f) + ")") }
                         Text2ParameterRow("圆角", radius, 0f, 40f, "px") { radius = it; onApplyCss("border-radius", it.toString() + "px") }
                     }
                 }
