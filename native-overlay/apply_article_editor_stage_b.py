@@ -19,6 +19,16 @@ s = EDITOR.read_text(encoding="utf-8")
 
 s = replace_once(
     s,
+    '''private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit, private val onText: (Boolean) -> Unit, private val onPreview: () -> Unit) {
+    private val main = Handler(Looper.getMainLooper())
+    @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
+    @JavascriptInterface fun blockSelected(value: String) { main.post { onBlock(value) } }
+    @JavascriptInterface fun imageSelected(value: String) { main.post { onImage(value) } }
+    @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
+    @JavascriptInterface fun previewChanged() { main.post { onPreview() } }
+}
+
+private enum class EditorPanel(val label: String) {''',
     '''private enum class EditorSelectionKind {
     NONE, TEXT_BLOCK, TEXT_RANGE, CARET, IMAGE, COMPONENT, TABLE, LAYOUT, MULTI_BLOCK, PREVIEW
 }
@@ -72,57 +82,6 @@ private class ArticleEditorBridge(
 }
 
 private enum class EditorPanel(val label: String) {''',
-    '''private enum class EditorSelectionKind {
-    NONE, TEXT_BLOCK, TEXT_RANGE, CARET, IMAGE, COMPONENT, TABLE, LAYOUT, MULTI_BLOCK, PREVIEW
-}
-
-private data class EditorSelectionState(
-    val kind: EditorSelectionKind = EditorSelectionKind.NONE,
-    val objectId: String = "",
-    val collapsed: Boolean = true,
-    val x: Float = 0f,
-    val y: Float = 0f,
-    val width: Float = 0f,
-    val height: Float = 0f,
-    val selectedIds: List<String> = emptyList()
-)
-
-private class ArticleEditorBridge(
-    private val onChange: (String) -> Unit,
-    private val onBlock: (String) -> Unit,
-    private val onImage: (String) -> Unit,
-    private val onText: (Boolean) -> Unit,
-    private val onSelection: (EditorSelectionState) -> Unit
-) {
-    private val main = Handler(Looper.getMainLooper())
-    @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
-    @JavascriptInterface fun blockSelected(value: String) { main.post { onBlock(value) } }
-    @JavascriptInterface fun imageSelected(value: String) { main.post { onImage(value) } }
-    @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
-    @JavascriptInterface fun selectionChanged(value: String) {
-        val state = runCatching {
-            val json = JSONObject(value)
-            val kind = runCatching { EditorSelectionKind.valueOf(json.optString("kind", "NONE")) }
-                .getOrDefault(EditorSelectionKind.NONE)
-            val idsJson = json.optJSONArray("selectedIds")
-            val ids = if (idsJson == null) emptyList() else
-                (0 until idsJson.length()).mapNotNull { index -> idsJson.optString(index).takeIf { it.isNotBlank() } }
-            EditorSelectionState(
-                kind = kind,
-                objectId = json.optString("objectId", ""),
-                collapsed = json.optBoolean("collapsed", true),
-                x = json.optDouble("x", 0.0).toFloat(),
-                y = json.optDouble("y", 0.0).toFloat(),
-                width = json.optDouble("width", 0.0).toFloat(),
-                height = json.optDouble("height", 0.0).toFloat(),
-                selectedIds = ids
-            )
-        }.getOrDefault(EditorSelectionState())
-        main.post { onSelection(state) }
-    }
-}
-
-private enum class EditorPanel(val label: String) {''',
     "structured selection state and bridge"
 )
 
@@ -137,21 +96,15 @@ s = replace_once(
     var floatingMenu by remember { mutableStateOf("") }''',
     "Compose selection state"
 )
-
 s = replace_once(
     s,
     '''                            { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
                             { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" },
-                            { invalidate(); postInvalidateOnAnimation() },
-                            { state ->
-                                selectionState = state
-                                selectedTextActive = state.kind == EditorSelectionKind.TEXT_BLOCK ||
-                                    state.kind == EditorSelectionKind.TEXT_RANGE || state.kind == EditorSelectionKind.CARET
-                                if (state.kind == EditorSelectionKind.NONE) floatingMenu = ""
-                            }
+                            { invalidate(); postInvalidateOnAnimation() }
                         ), "NativeEditor")''',
     '''                            { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
                             { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" },
+                            { invalidate(); postInvalidateOnAnimation() },
                             { state ->
                                 selectionState = state
                                 selectedTextActive = state.kind == EditorSelectionKind.TEXT_BLOCK ||
