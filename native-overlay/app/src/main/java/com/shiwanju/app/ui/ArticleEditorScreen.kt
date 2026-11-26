@@ -1386,6 +1386,40 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxSize(),
                 update = { editor = it }
             )
+            if (!previewMode) {
+                Column(Modifier.align(Alignment.CenterStart)
+                    .offset { IntOffset(insertLauncherOffset.x.toInt(), insertLauncherOffset.y.toInt()) }
+                    .padding(start = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (showInsertLauncherMenu) {
+                        Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF242424), shadowElevation = 10.dp) {
+                            Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                listOf(Triple("文字", "✎", EditorPanel.TEXT), Triple("图片", "▧", EditorPanel.IMAGE)).forEach { (label, glyph, panel) ->
+                                    Row(Modifier.clip(CircleShape).clickable {
+                                        activePanel = panel; showTemplateSubnav = false; showCanvasPopup = false; showToolPopup = true
+                                        toolPanelHeightDp = 180f; showInsertLauncherMenu = false
+                                    }.padding(horizontal = 11.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(glyph, color = AppColors.Theme, fontSize = 17.sp)
+                                        Text(label, color = Color.White, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Surface(Modifier.size(48.dp).pointerInput(Unit) {
+                        detectDragGestures { change, drag ->
+                            change.consume()
+                            insertLauncherOffset = Offset(insertLauncherOffset.x + drag.x, insertLauncherOffset.y + drag.y)
+                        }
+                    }.clickable { showInsertLauncherMenu = !showInsertLauncherMenu },
+                        shape = CircleShape, color = AppColors.Theme, shadowElevation = 12.dp) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(if (showInsertLauncherMenu) "×" else "＋", color = Color.White, fontSize = 25.sp)
+                        }
+                    }
+                }
+            }
             if (!previewMode && (selectedBlockHtml.isNotBlank() ||
                     selectionState.kind == EditorSelectionKind.TABLE || selectionState.kind == EditorSelectionKind.MULTI_BLOCK ||
                     selectionState.kind == EditorSelectionKind.COMPONENT || selectionState.kind == EditorSelectionKind.LAYOUT)) {
@@ -1516,40 +1550,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
             }
 
-            if (!previewMode) {
-                Column(Modifier.align(Alignment.CenterStart)
-                    .offset { IntOffset(insertLauncherOffset.x.toInt(), insertLauncherOffset.y.toInt()) }
-                    .padding(start = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (showInsertLauncherMenu) {
-                        Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFF242424), shadowElevation = 10.dp) {
-                            Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                listOf(Triple("文字", "✎", EditorPanel.TEXT), Triple("图片", "▧", EditorPanel.IMAGE)).forEach { (label, glyph, panel) ->
-                                    Row(Modifier.clip(CircleShape).clickable {
-                                        activePanel = panel; showTemplateSubnav = false; showCanvasPopup = false; showToolPopup = true
-                                        toolPanelHeightDp = 180f; showInsertLauncherMenu = false
-                                    }.padding(horizontal = 11.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text(glyph, color = AppColors.Theme, fontSize = 17.sp)
-                                        Text(label, color = Color.White, fontSize = 12.sp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Surface(Modifier.size(48.dp).pointerInput(Unit) {
-                        detectDragGestures { change, drag ->
-                            change.consume()
-                            insertLauncherOffset = Offset(insertLauncherOffset.x + drag.x, insertLauncherOffset.y + drag.y)
-                        }
-                    }.clickable { showInsertLauncherMenu = !showInsertLauncherMenu },
-                        shape = CircleShape, color = AppColors.Theme, shadowElevation = 12.dp) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(if (showInsertLauncherMenu) "×" else "＋", color = Color.White, fontSize = 25.sp)
-                        }
-                    }
-                }
-            }
+
 
             // Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.
             if (!previewMode) {
@@ -1576,6 +1577,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         toolPopupOffset = Offset.Zero
                                     } else {
                                         showCanvasPopup = false
+                                        toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f
                                         showToolPopup = true
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
