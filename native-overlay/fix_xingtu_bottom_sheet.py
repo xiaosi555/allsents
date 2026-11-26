@@ -105,7 +105,7 @@ if "val toolPanelScrollState = rememberScrollState()" not in s:
         raise SystemExit("Could not locate the unique tool panel density state")
     s = s.replace(state_anchor, state_anchor + "\\n" + content_state, 1)
 
-panel_pattern = r'Column\\(Modifier\\.fillMaxWidth\\(\\)\\.height\\(animatedToolPanelHeight\\)\\.background\\(Color\\(0xFF181818\\)\\)(?:\\.[A-Za-z0-9_]+(?:\\([^()]*\\))?)*\\)'
+panel_pattern = r'Column\(Modifier\.fillMaxWidth\(\)\.height\(animatedToolPanelHeight\)\.background\(Color\(0xFF181818\)\)(?:\.[A-Za-z0-9_]+(?:\([^()]*\))?)*\)'
 new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)))'
 s, panel_count = re.subn(panel_pattern, new_panel, s, count=1)
 if panel_count != 1:
