@@ -31,10 +31,12 @@ replace_once(
     '''"编辑" -> {
                                                 runJs("setText2SelectionPreview(false);enableSelectedTextEditing()")
                                                 val web = editor
-                                                web?.requestFocus()
-                                                web?.post {
-                                                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
-                                                    imm?.showSoftInput(web, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                                                web?.let { target ->
+                                                    target.requestFocus()
+                                                    target.post {
+                                                        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                                                        imm?.showSoftInput(target, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                                                    }
                                                 }
                                             }''',
     "explicit text editor keyboard request"
@@ -67,7 +69,7 @@ replace_once(
 
 # Selecting/replacing an image updates every Compose slider from the image's real styles.
 replace_once(
-    "{ value -> selectedImageHtml = value; floatingToolbarRequest = "" },",
+    '{ value -> selectedImageHtml = value; floatingToolbarRequest = "" },',
     """{ value ->
                                 selectedImageHtml = value
                                 floatingToolbarRequest = ""
