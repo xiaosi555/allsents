@@ -26,12 +26,12 @@ if new_nav not in s:
         s = s.replace(legacy_nav, new_nav, 1)
     else:
         import re
-        pattern = re.compile(r"EditorPanel\\.values\\(\\)\\.filterNot\\s*\\{[^}]*templateSubPanels[^}]*\\}\\s*\\.forEach\\s*\\{\\s*panel\\s*->")
+        pattern = re.compile(r"EditorPanel\.values\(\)\.filterNot\s*\{[^}]*templateSubPanels[^}]*\}\s*\.forEach\s*\{\s*panel\s*->")
         match = pattern.search(s)
         if not match:
             pos = s.find("EditorPanel.values()")
             context = s[pos:pos + 500] if pos >= 0 else "EditorPanel.values() not found"
-            ERROR.write_text("Could not locate legacy TEXT2 navigation expression: " + context + "\\n", encoding="utf-8")
+            ERROR.write_text("Could not locate legacy TEXT2 navigation expression: " + context + "\n", encoding="utf-8")
             raise SystemExit("Functional v4 patch could not locate legacy TEXT2 navigation expression")
         replacement = new_nav + ".forEach { panel ->"
         s = s[:match.start()] + replacement + s[match.end():]
