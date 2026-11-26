@@ -103,12 +103,13 @@ private fun captureTemplateThumbnail(view: WebView, context: Context, template: 
     }.onFailure { android.util.Log.w("ArticleEditor", "模板缩略图生成失败", it) }
 }
 
-private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit, private val onText: (Boolean) -> Unit) {
+private class ArticleEditorBridge(private val onChange: (String) -> Unit, private val onBlock: (String) -> Unit, private val onImage: (String) -> Unit, private val onText: (Boolean) -> Unit, private val onPreview: () -> Unit) {
     private val main = Handler(Looper.getMainLooper())
     @JavascriptInterface fun changed(value: String) { main.post { onChange(value) } }
     @JavascriptInterface fun blockSelected(value: String) { main.post { onBlock(value) } }
     @JavascriptInterface fun imageSelected(value: String) { main.post { onImage(value) } }
     @JavascriptInterface fun textSelected(value: String) { main.post { onText(value == "1") } }
+    @JavascriptInterface fun previewChanged() { main.post { onPreview() } }
 }
 
 private enum class EditorPanel(val label: String) {
@@ -561,7 +562,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (activePanel == EditorPanel.LAYER && webReady) refreshLayerItems()
     }
     fun runJs(script: String) {
-        editor?.evaluateJavascript(script, null)
+        editor?.evaluateJavascript(script) { editor?.postInvalidateOnAnimation() }
         saved = false
         pendingSave++
     }
@@ -1247,7 +1248,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             { value -> html = value; saved = false; pendingSave++ },
                             { value -> selectedBlockHtml = value },
                             { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
-                            { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" }
+                            { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" },
+                            { invalidate(); postInvalidateOnAnimation() }
                         ), "NativeEditor")
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = true
@@ -1419,21 +1421,32 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             root.addEventListener('touchcancel',finishTouchDrag,{passive:true});
                             function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
+                             function notifyCanvasPreview(){
+                               try{
+                                 root.getBoundingClientRect();
+                                 if(window.NativeEditor&&typeof NativeEditor.previewChanged==='function'){
+                                   requestAnimationFrame(()=>NativeEditor.previewChanged());
+                                 }
+                               }catch(e){}
+                             }
                              function setText2SelectionPreview(enabled){
                                if(enabled){
                                  const s=window.getSelection();let r=s&&s.rangeCount&&!s.isCollapsed?s.getRangeAt(0).cloneRange():(savedRange?savedRange.cloneRange():null);
                                  if(!r||r.collapsed||!root.contains(r.commonAncestorContainer))return !!root.querySelector('.text2-selection-preview');
                                  const start=r.startContainer.nodeType===1?r.startContainer:r.startContainer.parentElement;
-                                 if(start&&start.closest&&start.closest('.text2-selection-preview')){if(s)s.removeAllRanges();return true;}
+                                 if(start&&start.closest&&start.closest('.text2-selection-preview')){if(s)s.removeAllRanges();notifyCanvasPreview();return true;}
                                  const span=document.createElement('span');span.className='text2-selection-preview';
-                                 try{span.appendChild(r.extractContents());r.insertNode(span);const keep=document.createRange();keep.selectNodeContents(span);savedRange=keep.cloneRange();if(s)s.removeAllRanges();return true;}catch(e){return false;}
+                                 try{span.appendChild(r.extractContents());r.insertNode(span);const keep=document.createRange();keep.selectNodeContents(span);savedRange=keep.cloneRange();if(s)s.removeAllRanges();notifyCanvasPreview();return true;}catch(e){return false;}
                                }
+                               // Keep the inline span and its styles. Removing the preview class is enough;
+                               // unwrapping it here used to discard every style adjusted in Text2.
                                root.querySelectorAll('.text2-selection-preview').forEach(el=>{
                                  const range=document.createRange();range.selectNodeContents(el);
-                                 const parent=el.parentNode;while(el.firstChild)parent.insertBefore(el.firstChild,el);el.remove();
-                                 savedRange=range.cloneRange();if(parent&&parent.normalize)parent.normalize();
+                                 el.classList.remove('text2-selection-preview');
+                                 savedRange=range.cloneRange();
                                });
                                if(savedRange){const s=window.getSelection();if(s){root.focus();s.removeAllRanges();s.addRange(savedRange);}}
+                               notifyCanvasPreview();
                                return true;
                              }
                              let text2PreviewCommitTimer=null;
@@ -1450,6 +1463,9 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                if(!target)target=root.querySelector('.selected-block');
                                if(!target||!root.contains(target))return false;
                                target.style.setProperty(property,value);
+                               // Refresh the canvas immediately; history and persistence remain debounced.
+                               target.getBoundingClientRect();
+                               notifyCanvasPreview();
                                clearTimeout(text2PreviewCommitTimer);
                                text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},250);
                                return true;
@@ -1466,6 +1482,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                if(align[name]){
                                  const block=target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,div')||target;
                                  block.style.textAlign=align[name];
+                                 block.getBoundingClientRect();
+                                 notifyCanvasPreview();
                                  clearTimeout(text2PreviewCommitTimer);
                                  text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},250);
                                  return true;
