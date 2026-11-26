@@ -18,6 +18,11 @@ def replace_once(old: str, new: str, label: str):
     s = s.replace(old, new, 1)
 
 replace_once(
+    'if (state.kind == EditorSelectionKind.NONE) floatingMenu = ""',
+    'if (state.kind == EditorSelectionKind.NONE) { floatingMenu = ""; floatingToolbarRequest = "" }',
+    "close contextual floating tool on blank canvas"
+)
+replace_once(
     'listOf(Triple("文字", "✎", "text"), Triple("图片", "▧", "image")).forEach',
     'listOf(Triple("文字", "✎", "text"), Triple("图片", "▧", "image"), Triple("组件", "▦", "component")).forEach',
     "component launcher item"
