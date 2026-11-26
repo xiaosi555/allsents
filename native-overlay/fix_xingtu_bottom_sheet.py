@@ -47,27 +47,13 @@ if dock_start >= 0:
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Give each tool panel a useful initial height. The primary menu only selects
-# which panel opens; all editing controls remain inside the secondary panel.
+# Open the secondary panel at the compact 100dp height. Users expand it
+# from the dedicated bottom-center handle, up to the 350dp maximum.
 old_height = "toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f"
-new_height = """toolPanelHeightDp = when (panel) {
-                                            EditorPanel.TEXT -> 260f
-                                            EditorPanel.TEXT2 -> 330f
-                                            EditorPanel.TITLE -> 210f
-                                            EditorPanel.IMAGE -> 230f
-                                            EditorPanel.LAYOUT -> 220f
-                                            EditorPanel.CARD -> 230f
-                                            EditorPanel.COMPONENT -> 220f
-                                            EditorPanel.SVG -> 210f
-                                            EditorPanel.LAYER -> 240f
-                                            EditorPanel.STYLE -> 260f
-                                            EditorPanel.TEMPLATE -> 260f
-                                            EditorPanel.DOCUMENT -> 200f
-                                            EditorPanel.CANVAS -> 220f
-                                        }"""
+new_height = "toolPanelHeightDp = 100f"
 if old_height in s:
     s = s.replace(old_height, new_height, 1)
-elif "EditorPanel.TEXT -> 260f" not in s:
+elif "toolPanelHeightDp = 100f" not in s:
     raise SystemExit("Could not locate the primary-menu panel-height assignment")
 
 # Do not attach a parent NestedScrollConnection to the panel body. Such a
@@ -87,35 +73,40 @@ if old_scroll in s:
 elif new_scroll not in s:
     raise SystemExit("Could not locate the tool panel's independent content scroll container")
 
-# Only the secondary-navigation header and the bottom handle resize the sheet.
-# Taps on tabs still reach their clickable children; vertical drags on the
-# content body remain available to controls and its own scroll container.
-header_drag = """.pointerInput(Unit) {
-                            detectDragGestures { change, dragAmount ->
-                                change.consume()
-                                val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp().value }
-                                toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 400f)
-                            }
-                        }"""
-header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(48\.dp\)\.padding\(horizontal = 9\.dp\))(?=,\s*verticalAlignment = Alignment\.CenterVertically, horizontalArrangement = Arrangement\.SpaceBetween\)\s*\{)'
-if header_drag in s:
-    header_count = 1
-else:
-    s, header_count = re.subn(header_pattern, r'\1' + header_drag, s, count=1)
-    if header_count != 1:
-        raise SystemExit("Could not locate the outer tool-sheet header for direct resizing")
+# The overlay must occupy only the actual sheet bounds. A full-screen
+# transparent layer sits above the WebView and prevents canvas hit testing.
+overlay_old = "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+overlay_new = "Box(Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.BottomCenter).zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+if overlay_old in s:
+    s = s.replace(overlay_old, overlay_new, 1)
+elif overlay_new not in s:
+    raise SystemExit("Could not locate the full-screen sheet overlay")
+
+inner_old = "Box(Modifier.fillMaxWidth().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+inner_new = "Box(Modifier.fillMaxWidth().wrapContentHeight().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+if inner_old in s:
+    s = s.replace(inner_old, inner_new, 1)
+elif inner_new not in s:
+    raise SystemExit("Could not locate the sheet's inner layout container")
+
+# Keep the sheet height and drag range aligned with the requested 100dp–350dp range.
+s = s.replace("coerceIn(100f, 400f)", "coerceIn(100f, 350f)")
 
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
     "inline non-modal bottom sheet": "if (showToolPopup && activePanel != EditorPanel.CANVAS)" in s,
-    "panel-specific initial heights": "EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s,
-    "secondary navigation drag surface": header_count == 1,
-    "150dp collapsed minimum and 400dp maximum": "coerceIn(150f, 400f)" in s,
-    "direct height update avoids opening rebound": "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp" in s and "animateDpAsState" not in s,
+    "sheet overlay is bounded to its own height": overlay_new in s and overlay_old not in s,
+    "inner sheet container wraps content": inner_new in s,
+    "canvas touch area is not covered by a full-screen overlay": "Box(Modifier.fillMaxSize().zIndex(100f)" not in s,
+    "panel itself consumes touches only inside panel bounds": ".height(animatedToolPanelHeight)" in s and ".clickable(" in s,
+    "compact 100dp initial panel height": "toolPanelHeightDp = 100f" in s,
+    "100dp collapsed minimum and 350dp maximum": "coerceIn(100f, 350f)" in s and "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 350f).dp" in s,
     "no parent gesture interception on content": "toolPanelNestedScrollConnection" not in s and ".nestedScroll(" not in s,
     "content scroll is independent": ".verticalScroll(toolPanelScrollState)" in s,
     "remembered content scroll state": content_state in s,
-    "bottom-center drag handle": handle_marker in s,
+    "bottom-center drag handle": handle_marker in s and "toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 350f)" in s,
+    "text style updates are sent to the live canvas immediately": "NativeEditor.changed(root.innerHTML);" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
+    "canvas redraw bridge remains connected": "NativeEditor.previewChanged==='function'" in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:
