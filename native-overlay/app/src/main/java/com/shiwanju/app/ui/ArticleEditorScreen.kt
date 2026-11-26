@@ -25,6 +25,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
@@ -1746,8 +1747,8 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
         if (!previewMode) {
             if (showToolPopup && activePanel != EditorPanel.CANVAS) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
+                    Box(Modifier.fillMaxWidth().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
                 Column(
                     Modifier.fillMaxWidth()
                         .height(animatedToolPanelHeight)
