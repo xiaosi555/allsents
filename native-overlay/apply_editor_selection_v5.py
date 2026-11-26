@@ -187,6 +187,23 @@ s = s[:click_start] + new_click + s[click_end:]
 
 # Text template/copy/duplicate helpers already prefer activeTextBlock in functional v3.
 
+# Complete the two text-dock actions that were still routed to legacy controls.
+replace_once(
+    '"复制样式" -> runJs("restoreSelection();copyTextFormat();saveSelection();")',
+    '"复制样式" -> runJs("copySelectedTextStyle()")',
+    "text dock copy style uses typed text-style clipboard"
+)
+replace_once(
+    '"顺序" -> { activePanel = EditorPanel.COMPONENT; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
+    '"顺序" -> { floatingToolbarRequest = "component"; floatingMenu = ""; showToolPopup = false; showCanvasPopup = false }',
+    "text order opens selected-object component tools"
+)
+replace_once(
+    "if(!node||!(/^(P|H1|H2|H3|H4|H5|H6|LI|BLOCKQUOTE|PRE)$/.test(node.tagName))||node.querySelector('img'))return;",
+    "if(!node||!(/^(P|H1|H2|H3|H4|H5|H6|LI|BLOCKQUOTE|PRE|DIV|SECTION|SPAN|STRONG|B|EM|I|U|TD|TH)$/.test(node.tagName))||node.querySelector('img'))return;",
+    "text paste supports every hit-tested text container"
+)
+
 # The dock is a pure projection of selectionChanged. Blank means DEFAULT; text/image/component
 # selection must never be inferred from a stale toolbar boolean.
 callback_old = """                            { state ->
