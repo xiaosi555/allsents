@@ -85,8 +85,10 @@ private enum class EditorPanel(val label: String) {''',
 s = replace_once(
     s,
     '''    var selectedTextActive by remember { mutableStateOf(false) }
+    var floatingToolbarRequest by remember { mutableStateOf("") }
     var floatingMenu by remember { mutableStateOf("") }''',
     '''    var selectedTextActive by remember { mutableStateOf(false) }
+    var floatingToolbarRequest by remember { mutableStateOf("") }
     var selectionState by remember { mutableStateOf(EditorSelectionState()) }
     var floatingMenu by remember { mutableStateOf("") }''',
     "Compose selection state"
@@ -94,9 +96,11 @@ s = replace_once(
 
 s = replace_once(
     s,
-    '''                            { value -> selectedTextActive = value; if (value) floatingMenu = "" }
+    '''                            { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
+                            { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" }
                         ), "NativeEditor")''',
-    '''                            { value -> selectedTextActive = value; if (value) floatingMenu = "" },
+    '''                            { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
+                            { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" },
                             { state ->
                                 selectionState = state
                                 selectedTextActive = state.kind == EditorSelectionKind.TEXT_BLOCK ||
