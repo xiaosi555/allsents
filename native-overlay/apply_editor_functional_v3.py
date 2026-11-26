@@ -256,12 +256,12 @@ replace_once(
     "image opacity opens adjustable controls"
 )
 replace_once(
-    "\\"翻转\\" -> runJs(\\"flipSelectedImage('horizontal')\\")",
+    '''"翻转" -> runJs("flipSelectedImage('horizontal')")''',
     '"翻转" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
     "image flip opens horizontal and vertical controls"
 )
 replace_once(
-    "\\"对齐\\" -> runJs(\\"alignSelectedImage('center')\\")",
+    '''"对齐" -> runJs("alignSelectedImage('center')")''',
     '"对齐" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
     "image alignment opens left center right controls"
 )
