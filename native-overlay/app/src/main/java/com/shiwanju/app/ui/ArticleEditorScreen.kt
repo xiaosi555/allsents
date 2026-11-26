@@ -153,7 +153,7 @@ private fun CompactEditorSlider(
 @Composable
 private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, glowWidth: Float, colors: List<String>, onColor: (String) -> Unit, onClear: () -> Unit, onEyedropper: () -> Unit, onGradient: () -> Unit) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("禁用", "取色", "渐变").forEachIndexed { index, label ->
+            listOf("恢复默认", "取色", "渐变").forEachIndexed { index, label ->
                 Box(Modifier.size(26.dp).clip(CircleShape).background(Color(0xFF303030)).clickable {
                     when (index) {
                         0 -> onClear()
@@ -291,7 +291,7 @@ private fun Text2EditorPanel(
                         Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyColor(effectColor(selectedColor, it), false) }
                     }
                     "描边" -> {
-                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px"); if (outlineMode == "多层") onApplyCss("text-shadow", it.toString() + "px 0 " + selectedColor + ",-" + it.toString() + "px 0 " + selectedColor + ",0 " + it.toString() + "px " + selectedColor + ",0 -" + it.toString() + "px " + selectedColor) }
+                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px"); if (outlineMode == "多层") onApplyCss("text-shadow", it.toString() + "px 0 " + effectColor(selectedColor, opacity) + ",-" + it.toString() + "px 0 " + effectColor(selectedColor, opacity) + ",0 " + it.toString() + "px " + effectColor(selectedColor, opacity) + ",0 -" + it.toString() + "px " + effectColor(selectedColor, opacity)) }
                         Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("-webkit-text-stroke-color", effectColor(selectedColor, it)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(selectedColor, it) + ",-1px 0 " + effectColor(selectedColor, it) + ",0 1px " + effectColor(selectedColor, it) + ",0 -1px " + effectColor(selectedColor, it)) }
                     }
                     "阴影" -> {
