@@ -1453,15 +1453,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                              }
                              let text2PreviewCommitTimer=null;
                              function applyText2Style(property,value){
-                               let target=root.querySelector('.text2-selection-preview');
-                               if(!target){
-                                 const s=window.getSelection();let r=s&&s.rangeCount&&!s.isCollapsed?s.getRangeAt(0).cloneRange():(savedRange?savedRange.cloneRange():null);
-                                 if(r&&!r.collapsed&&root.contains(r.commonAncestorContainer)){
-                                   target=document.createElement('span');target.className='text2-selection-preview';
-                                   try{target.appendChild(r.extractContents());r.insertNode(target);const keep=document.createRange();keep.selectNodeContents(target);savedRange=keep.cloneRange();if(s)s.removeAllRanges();}catch(e){target=null;}
-                                 }
-                               }
-                               if(!target)target=typeof selectedTextElement==='function'?selectedTextElement():null;
+                               // A canvas tap may change the active text target while TEXT2 stays open.
+                               // Never keep applying styles to an obsolete preview after an image is selected.
+                               if(activeImage&&root.contains(activeImage))return false;
+                               let target=typeof selectedTextElement==='function'?selectedTextElement():null;
+                               if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');
                                if(!target)target=root.querySelector('.selected-block');
                                if(!target||!root.contains(target))return false;
                                target.style.setProperty(property,value);
@@ -1469,11 +1465,11 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                target.getBoundingClientRect();
                                notifyCanvasPreview();
                                clearTimeout(text2PreviewCommitTimer);
-                               text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},250);
+                               text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},120);
                                return true;
                              }
                              function applyText2Command(name,value){
-                               const target=root.querySelector('.text2-selection-preview')||(typeof selectedTextElement==='function'?selectedTextElement():null)||root.querySelector('.selected-block');
+                               if(activeImage&&root.contains(activeImage))return false;const target=(typeof selectedTextElement==='function'?selectedTextElement():null)||root.querySelector('.text2-selection-preview')||root.querySelector('.selected-block');
                                if(!target||!root.contains(target)){restoreSelection();document.execCommand(name,false,value||null);saveSelection();return;}
                                if(name==='fontName')return applyText2Style('font-family',value||'sans-serif');
                                if(name==='bold')return applyText2Style('font-weight','700');
@@ -1747,7 +1743,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
         if (!previewMode) {
             if (showToolPopup && activePanel != EditorPanel.CANVAS) {
-                Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
+                Box(Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.BottomCenter).zIndex(100f), contentAlignment = Alignment.BottomCenter) {
                     Box(Modifier.fillMaxWidth().zIndex(100f), contentAlignment = Alignment.BottomCenter) {
                 Column(
                     Modifier.fillMaxWidth()
