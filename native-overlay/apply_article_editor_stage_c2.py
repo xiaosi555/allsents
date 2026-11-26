@@ -66,7 +66,7 @@ required = [
     "Text(\"画布工具\"",
     "coerceIn(100f, 400f)",
     "CompositionLocalProvider(LocalEditorToolDark provides true)",
-    "EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->",
+    "EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }.forEach { panel ->",
     "height(50.dp)",
     "WindowInsets.ime.getBottom(this).toDp()",
     "val selectionTopDp = selectionState.y.dp",
