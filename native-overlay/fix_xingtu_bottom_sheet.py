@@ -155,7 +155,7 @@ elif new_scroll not in s:
 
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
-    "inline non-modal bottom sheet": "Box(Modifier.fillMaxWidth().align(Alignment.BottomCenter)" in s,
+    "non-modal popup": "PopupProperties(focusable = false" in s,
     "panel initial heights": ("EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s) or "toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f" in s,
     "secondary navigation drag surface": header_count == 1,
     "150dp collapsed minimum and 400dp maximum": "coerceIn(150f, 400f)" in s,
