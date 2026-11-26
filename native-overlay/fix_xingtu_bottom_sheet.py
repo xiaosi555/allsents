@@ -145,11 +145,13 @@ header_drag = """.pointerInput(Unit) {
 # Match the actual outer tool-sheet header, not the inner Text2 tab strip.
 # The latter also uses a 48dp Row but lives in Text2Panel, outside the
 # ArticleEditorScreen scope where toolPanelDensity/toolPanelHeightDp exist.
-header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(48\.dp\)\.padding\(horizontal = 9\.dp\),\s*verticalAlignment = Alignment\.CenterVertically, horizontalArrangement = Arrangement\.SpaceBetween\)\s*\{)'
+# Match only the Modifier prefix of the actual outer tool-sheet header.
+# The Text2 tab strip also has a 48dp Row, but its parameter order differs.
+header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(48\.dp\)\.padding\(horizontal = 9\.dp\))(?=,\s*verticalAlignment = Alignment\.CenterVertically, horizontalArrangement = Arrangement\.SpaceBetween\)\s*\{)'
 if header_drag not in s:
-    s, header_count = re.subn(header_pattern, r'\1' + header_drag, s, count=1)
+    s, header_count = re.subn(header_pattern, r'\1' + header_drag + ',', s, count=1)
     if header_count != 1:
-        raise SystemExit("Could not locate the outer tool-sheet header Row for direct swipe resizing")
+        raise SystemExit("Could not locate the outer tool-sheet header Modifier for direct swipe resizing")
 
 if old_scroll in s:
     s = s.replace(old_scroll, new_scroll, 1)
