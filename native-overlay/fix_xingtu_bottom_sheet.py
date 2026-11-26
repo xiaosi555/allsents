@@ -105,12 +105,9 @@ if "val toolPanelScrollState = rememberScrollState()" not in s:
         raise SystemExit("Could not locate the unique tool panel density state")
     s = s.replace(state_anchor, state_anchor + "\n" + content_state, 1)
 
-panel_pattern = r'(?m)^(\s*)Column\(Modifier\.fillMaxWidth\(\)\.height\(animatedToolPanelHeight\)[^\n]*$'
-new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)))'
-s, panel_count = re.subn(panel_pattern, lambda match: match.group(1) + new_panel, s, count=1)
-if panel_count != 1:
-    candidates = [line.strip() for line in s.splitlines() if "animatedToolPanelHeight" in line]
-    raise SystemExit(f"Could not locate the Xingtu tool panel container: matches={panel_count}; candidates={candidates}")
+# The sheet container itself has no pointer/nested-scroll modifier. Keep its
+# existing system-bar handling intact; only the dedicated header and handle
+# are drag surfaces, while the body remains available to child controls.
 
 
 old_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp))'
@@ -152,7 +149,7 @@ checks = {
     "panel body has no parent-level gesture interception": "toolPanelNestedScrollConnection" not in s and ".nestedScroll(" not in s,
     "content scroll is independent": ".verticalScroll(toolPanelScrollState)" in s,
     "remembered content scroll state": "val toolPanelScrollState = rememberScrollState()" in s,
-    "no inner navigation inset consuming initial height": new_panel in s,
+    
     "bottom-center drag handle": handle_marker in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
