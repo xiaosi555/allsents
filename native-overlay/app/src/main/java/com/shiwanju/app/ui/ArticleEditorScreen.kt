@@ -225,10 +225,10 @@ private fun Text2EditorPanel(
     var customTextColor by remember { mutableStateOf("#222222") }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth().height(38.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             listOf("字体", "样式", "排版").forEach { tab ->
-                Column(Modifier.clickable { mainTab = tab }.padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(tab, color = if (mainTab == tab) Color.White else Color(0xFF888888), fontSize = 16.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
+                Column(Modifier.weight(1f).clickable { mainTab = tab }.padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(tab, color = if (mainTab == tab) Color.White else Color(0xFF888888), fontSize = 15.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
                     Box(Modifier.padding(top = 4.dp).width(22.dp).height(3.dp).clip(RoundedCornerShape(4.dp)).background(if (mainTab == tab) Color(0xFF3987F7) else Color.Transparent))
                 }
             }
@@ -236,7 +236,7 @@ private fun Text2EditorPanel(
         if (mainTab == "样式") {
             Row(Modifier.fillMaxWidth().height(28.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
-                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.White else Color(0xFF888888), fontSize = 14.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
+                    Text(tab, Modifier.clickable { styleTab = tab }.padding(vertical = 4.dp), color = if (styleTab == tab) Color.White else Color(0xFF888888), fontSize = 13.sp, fontWeight = if (styleTab == tab) FontWeight.Bold else FontWeight.Normal)
                 }
             }
         }
@@ -1275,7 +1275,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             #editor img{max-width:100%;height:auto;display:block;margin:12px auto}
                             #editor table{width:100%;border-collapse:collapse;table-layout:fixed}#editor td,#editor th{border:1px solid #dfe4e0;padding:8px;min-width:24px;vertical-align:top}
                             #editor a{color:#16865a;text-decoration:underline}#editor hr{border:0;border-top:1px solid #e1e5e2;margin:22px 0}
-                            #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}
+                            #editor .selected-block{outline:1px dashed #159765;outline-offset:3px}#editor .text2-selection-preview{outline:1px dashed rgba(57,135,247,.92);outline-offset:2px;border-radius:2px}
                             #editor .drop-before{position:relative}
                             #editor .drop-before::before{content:"";display:block;height:3px;background:#159765;border-radius:3px;margin:0 0 5px}
                             #editor .drop-after{position:relative}
@@ -1415,6 +1415,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             root.addEventListener('touchcancel',finishTouchDrag,{passive:true});
                             function saveSelection(){const s=window.getSelection();if(s&&s.rangeCount){savedRange=s.getRangeAt(0).cloneRange();}}
                             function restoreSelection(){root.focus();const s=window.getSelection();if(savedRange&&s){s.removeAllRanges();s.addRange(savedRange);}}
+                             function setText2SelectionPreview(enabled){
+                               if(enabled){
+                                 const s=window.getSelection();let r=s&&s.rangeCount&&!s.isCollapsed?s.getRangeAt(0).cloneRange():(savedRange?savedRange.cloneRange():null);
+                                 if(!r||r.collapsed||!root.contains(r.commonAncestorContainer))return false;
+                                 const start=r.startContainer.nodeType===1?r.startContainer:r.startContainer.parentElement;
+                                 if(start&&start.closest&&start.closest('.text2-selection-preview'))return true;
+                                 const span=document.createElement('span');span.className='text2-selection-preview';
+                                 try{span.appendChild(r.extractContents());r.insertNode(span);const keep=document.createRange();keep.selectNodeContents(span);if(s){s.removeAllRanges();s.addRange(keep);}savedRange=keep.cloneRange();return true;}catch(e){return false;}
+                               }
+                               root.querySelectorAll('.text2-selection-preview').forEach(el=>{const parent=el.parentNode;while(el.firstChild)parent.insertBefore(el.firstChild,el);el.remove();if(parent&&parent.normalize)parent.normalize();});
+                               saveSelection();return true;
+                             }
                             function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);commitHistory();NativeEditor.changed(root.innerHTML);return;}
                               const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}
                             root.addEventListener('paste',function(ev){
@@ -1637,6 +1649,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             TextButton(
                                 onClick = {
                                     showTemplateSubnav = panel == EditorPanel.TEMPLATE
+                                    if (activePanel == EditorPanel.TEXT2 && panel != EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);")
                                     activePanel = if (panel == EditorPanel.TEMPLATE) templateSubPanel else panel
                                     floatingMenu = ""
                                     if (panel == EditorPanel.CANVAS) {
@@ -1647,6 +1660,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         showCanvasPopup = false
                                         toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f
                                         showToolPopup = true
+                                         if (panel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(true);")
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
                                 },
@@ -1672,7 +1686,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
                 Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
+                        IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                         if (showTemplateSubnav) {
                             Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
@@ -1692,7 +1706,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 Text(activePanel.label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
+                        IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
@@ -2202,6 +2216,7 @@ when (activePanel) {
                             TextButton(
                                 onClick = {
                                     showTemplateSubnav = panel == EditorPanel.TEMPLATE
+                                    if (activePanel == EditorPanel.TEXT2 && panel != EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);")
                                     activePanel = if (panel == EditorPanel.TEMPLATE) templateSubPanel else panel
                                     floatingMenu = ""
                                     if (panel == EditorPanel.CANVAS) {
@@ -2211,6 +2226,7 @@ when (activePanel) {
                                     } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
+                                         if (panel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(true);")
                                         toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
