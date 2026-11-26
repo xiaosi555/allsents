@@ -212,6 +212,17 @@ jobs:
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
           sed -i 's/vm.setTextViewMode(/vm.updateTextViewMode(/g' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/MyScreens.kt"
 
+      - name: Diagnose final Kotlin source before APK build
+        if: steps.source.outputs.present == 'true'
+        shell: bash
+        run: |
+          echo "=== ArticleEditorScreen.kt lines 1820-1840 ==="
+          nl -ba source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt | sed -n '1820,1840p'
+          echo "=== Bottom sheet drag header ==="
+          grep -n -A12 -B2 'detectDragGestures' source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt | head -40
+          echo "=== Text2EditorPanel references ==="
+          grep -n -A18 -B3 'Text2EditorPanel(' source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt | head -60
+
       - name: Build debug APK
         if: steps.source.outputs.present == 'true'
         run: gradle --no-daemon -p source/ShiWanJu-Android :app:assembleDebug
