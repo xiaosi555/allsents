@@ -193,54 +193,6 @@ replace_once(
     "typed paste routing"
 )
 
-# Paste is deliberately type-gated in the text and image docks; only the component tool is generic.
-paste_guard = """
-                            function pasteTextClipboard(){
-                              if(editorClipboardType==='TEXT_STYLE'){pasteSelectedTextStyle();return;}
-                              if(editorClipboardType!=='OBJECT'||!editorObjectClipboard)return;
-                              const box=document.createElement('div');box.innerHTML=editorObjectClipboard;
-                              const node=box.firstElementChild;
-                              if(!node||!(/^(P|H1|H2|H3|H4|H5|H6|LI|BLOCKQUOTE|PRE)$/.test(node.tagName))||node.querySelector('img'))return;
-                              const anchor=activeTextBlock||selectedParagraph();
-                              if(!anchor||anchor.dataset.editorLocked==='1')return;
-                              anchor.insertAdjacentElement('afterend',node);
-                              commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();
-                            }
-                            function pasteImageClipboard(){
-                              if(editorClipboardType==='IMAGE_STYLE'){pasteSelectedImageStyle();return;}
-                              if(editorClipboardType!=='OBJECT'||!editorObjectClipboard||!activeImage||activeImage.dataset.editorLocked==='1')return;
-                              const box=document.createElement('div');box.innerHTML=editorObjectClipboard;
-                              const node=box.firstElementChild;
-                              if(!node||node.tagName!=='IMG')return;
-                              activeImage.insertAdjacentElement('afterend',node);
-                              commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();
-                            }
-"""
-paste_pos = s.find("function pasteEditorObjectClipboard(){")
-if paste_pos < 0:
-    raise SystemExit("Could not locate generic clipboard paste function")
-paste_end = s.find("reportSelection();}", paste_pos)
-if paste_end < 0:
-    raise SystemExit("Could not locate generic clipboard paste function end")
-paste_end += len("reportSelection();}")
-s = s[:paste_end] + paste_guard + s[paste_end:]
-paste_command = '"粘贴" -> runJs("pasteEditorObjectClipboard()")'
-positions = []
-scan = 0
-while True:
-    at = s.find(paste_command, scan)
-    if at < 0:
-        break
-    positions.append(at)
-    scan = at + len(paste_command)
-if len(positions) < 3:
-    raise SystemExit("Expected text, image and component paste dock commands")
-for at, replacement in reversed(list(zip(positions[:2], [
-    '"粘贴" -> runJs("pasteTextClipboard()")',
-    '"粘贴" -> runJs("pasteImageClipboard()")'
-]))):
-    s = s[:at] + replacement + s[at + len(paste_command):]
-
 replace_once(
     "function moveSelectedBlockHorizontal(dir){const e=selectedEditableObject();if(!e||e.dataset.editorLocked==='1')return;const cell=e.closest&&e.closest('td,th');if(cell){const peer=dir<0?cell.previousElementSibling:cell.nextElementSibling;if(peer){peer.appendChild(e);commitHistory();NativeEditor.changed(root.innerHTML);}return;}const parent=e.parentElement;if(!parent||parent===root)return;const peer=dir<0?e.previousElementSibling:e.nextElementSibling;if(peer){if(dir<0)parent.insertBefore(e,peer);else parent.insertBefore(peer,e);commitHistory();NativeEditor.changed(root.innerHTML);}}",
     "function selectedMovableNode(){const e=selectedEditableObject();if(!e||e.dataset.editorLocked==='1')return null;if(e.tagName==='IMG')return e.closest('p,figure')||e;if(e.tagName==='TD'||e.tagName==='TH')return null;return e;}\n                            function moveSelectedObjectVertical(dir){const e=selectedMovableNode();if(!e)return;const p=e.parentElement;if(!p)return;const peer=dir<0?e.previousElementSibling:e.nextElementSibling;if(!peer||peer===e)return;if(dir<0)p.insertBefore(e,peer);else p.insertBefore(peer,e);commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();}\n                            function moveSelectedObjectHorizontal(dir){const e=selectedMovableNode();if(!e)return;const cell=e.closest&&e.closest('td,th');if(cell){const peer=dir<0?cell.previousElementSibling:cell.nextElementSibling;if(peer&&peer.parentElement===cell.parentElement){peer.appendChild(e);commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();}return;}const parent=e.parentElement;if(!parent)return;const peer=dir<0?e.previousElementSibling:e.nextElementSibling;if(peer){if(dir<0)parent.insertBefore(e,peer);else parent.insertBefore(peer,e);commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();}}\n                            function moveSelectedBlockHorizontal(dir){moveSelectedObjectHorizontal(dir);}",
@@ -315,6 +267,55 @@ replace_once(
     '"粘贴" -> runJs("pasteEditorObjectClipboard()")',
     "image paste dispatch"
 )
+
+# Paste is deliberately type-gated in the text and image docks; only the component tool is generic.
+paste_guard = """
+                            function pasteTextClipboard(){
+                              if(editorClipboardType==='TEXT_STYLE'){pasteSelectedTextStyle();return;}
+                              if(editorClipboardType!=='OBJECT'||!editorObjectClipboard)return;
+                              const box=document.createElement('div');box.innerHTML=editorObjectClipboard;
+                              const node=box.firstElementChild;
+                              if(!node||!(/^(P|H1|H2|H3|H4|H5|H6|LI|BLOCKQUOTE|PRE)$/.test(node.tagName))||node.querySelector('img'))return;
+                              const anchor=activeTextBlock||selectedParagraph();
+                              if(!anchor||anchor.dataset.editorLocked==='1')return;
+                              anchor.insertAdjacentElement('afterend',node);
+                              commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();
+                            }
+                            function pasteImageClipboard(){
+                              if(editorClipboardType==='IMAGE_STYLE'){pasteSelectedImageStyle();return;}
+                              if(editorClipboardType!=='OBJECT'||!editorObjectClipboard||!activeImage||activeImage.dataset.editorLocked==='1')return;
+                              const box=document.createElement('div');box.innerHTML=editorObjectClipboard;
+                              const node=box.firstElementChild;
+                              if(!node||node.tagName!=='IMG')return;
+                              activeImage.insertAdjacentElement('afterend',node);
+                              commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();
+                            }
+"""
+paste_pos = s.find("function pasteEditorObjectClipboard(){")
+if paste_pos < 0:
+    raise SystemExit("Could not locate generic clipboard paste function")
+paste_end = s.find("reportSelection();}", paste_pos)
+if paste_end < 0:
+    raise SystemExit("Could not locate generic clipboard paste function end")
+paste_end += len("reportSelection();}")
+s = s[:paste_end] + paste_guard + s[paste_end:]
+paste_command = '"粘贴" -> runJs("pasteEditorObjectClipboard()")'
+positions = []
+scan = 0
+while True:
+    at = s.find(paste_command, scan)
+    if at < 0:
+        break
+    positions.append(at)
+    scan = at + len(paste_command)
+if len(positions) < 3:
+    raise SystemExit("Expected text, image and component paste dock commands")
+for at, replacement in reversed(list(zip(positions[:2], [
+    '"粘贴" -> runJs("pasteTextClipboard()")',
+    '"粘贴" -> runJs("pasteImageClipboard()")'
+]))):
+    s = s[:at] + replacement + s[at + len(paste_command):]
+
 replace_once(
     '"透明度" -> runJs("setSelectedImageOpacity(70)")',
     '"透明度" -> { activePanel = EditorPanel.IMAGE; showToolPopup = true; showCanvasPopup = false; toolPanelHeightDp = 200f }',
