@@ -67,6 +67,12 @@ replace_once(
     "selected image control state reader"
 )
 
+replace_once(
+    "function pasteSelectedImageStyle(){if(!activeImage||activeImage.dataset.editorLocked==='1'||!editorImageStyleClipboard)return;Object.keys(editorImageStyleClipboard).forEach(k=>activeImage.style[k]=editorImageStyleClipboard[k]);commitHistory();NativeEditor.changed(root.innerHTML);}",
+    "function pasteSelectedImageStyle(){if(!activeImage||activeImage.dataset.editorLocked==='1'||!editorImageStyleClipboard)return;Object.keys(editorImageStyleClipboard).forEach(k=>activeImage.style[k]=editorImageStyleClipboard[k]);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.imageSelected(activeImage.outerHTML);}",
+    "sync controls after image style paste"
+)
+
 # Selecting/replacing an image updates every Compose slider from the image's real styles.
 replace_once(
     '{ value -> selectedImageHtml = value; floatingToolbarRequest = "" },',
