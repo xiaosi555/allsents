@@ -47,14 +47,27 @@ if dock_start >= 0:
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Open the secondary panel at the compact 100dp height. Users expand it
-# from the dedicated bottom-center handle, up to the 350dp maximum.
+# Open the secondary panel at 200dp. Users expand it from the dedicated
+# bottom-center handle, up to the requested 400dp maximum.
 old_height = "toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f"
-new_height = "toolPanelHeightDp = 100f"
+new_height = "toolPanelHeightDp = 200f"
 if old_height in s:
-    s = s.replace(old_height, new_height, 1)
-elif "toolPanelHeightDp = 100f" not in s:
-    raise SystemExit("Could not locate the primary-menu panel-height assignment")
+    s = s.replace(old_height, new_height)
+elif new_height not in s:
+    raise SystemExit("Could not locate the primary-menu panel-height assignments")
+
+# Hide the persistent primary dock while the secondary panel is open.
+dock_visibility_old = """// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.
+            if (!previewMode) {"""
+dock_visibility_new = """// Persistent primary navigation is hidden while the secondary tool sheet is open.
+            if (!previewMode && !showToolPopup) {"""
+if dock_visibility_old in s:
+    s = s.replace(dock_visibility_old, dock_visibility_new, 1)
+elif dock_visibility_new not in s:
+    raise SystemExit("Could not locate the persistent primary navigation visibility condition")
+
+# Start at 200dp and clamp both the animated height and drag range to 200–400dp.
+s = s.replace("mutableFloatStateOf(100f)", "mutableFloatStateOf(200f)", 1)
 
 # Do not attach a parent NestedScrollConnection to the panel body. Such a
 # parent can consume vertical gestures intended for child scrolling, sliders
@@ -90,7 +103,7 @@ elif inner_new not in s:
     raise SystemExit("Could not locate the sheet's inner layout container")
 
 # Keep the sheet height and drag range aligned with the requested 100dp–350dp range.
-s = s.replace("coerceIn(100f, 400f)", "coerceIn(100f, 350f)")
+s = s.replace("coerceIn(100f, 400f)", "coerceIn(200f, 400f)")
 
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
@@ -99,12 +112,13 @@ checks = {
     "inner sheet container wraps content": inner_new in s,
     "canvas touch area is not covered by a full-screen overlay": "Box(Modifier.fillMaxSize().zIndex(100f)" not in s,
     "panel itself consumes touches only inside panel bounds": ".height(animatedToolPanelHeight)" in s and ".clickable(" in s,
-    "compact 100dp initial panel height": "toolPanelHeightDp = 100f" in s,
-    "100dp collapsed minimum and 350dp maximum": "coerceIn(100f, 350f)" in s and "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 350f).dp" in s,
+    "200dp initial panel height": "toolPanelHeightDp = 200f" in s and "mutableFloatStateOf(200f)" in s,
+    "200dp collapsed minimum and 400dp maximum": "coerceIn(200f, 400f)" in s and "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp" in s,
     "no parent gesture interception on content": "toolPanelNestedScrollConnection" not in s and ".nestedScroll(" not in s,
     "content scroll is independent": ".verticalScroll(toolPanelScrollState)" in s,
     "remembered content scroll state": content_state in s,
-    "bottom-center drag handle": handle_marker in s and "toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 350f)" in s,
+    "bottom-center drag handle": handle_marker in s and "toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(200f, 400f)" in s,
+    "primary navigation hidden while secondary panel is open": "if (!previewMode && !showToolPopup)" in s,
     "text style updates are sent to the live canvas immediately": "NativeEditor.changed(root.innerHTML);" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
     "canvas redraw bridge remains connected": "NativeEditor.previewChanged==='function'" in s,
 }
