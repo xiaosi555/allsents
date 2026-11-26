@@ -209,9 +209,12 @@ callback_old = """                            { state ->
                                 if (state.kind == EditorSelectionKind.NONE) { floatingMenu = ""; floatingToolbarRequest = "" }
                             }"""
 callback_new = """                            { state ->
+                                val wasTextSelection = selectionState.kind == EditorSelectionKind.TEXT_BLOCK ||
+                                    selectionState.kind == EditorSelectionKind.TEXT_RANGE || selectionState.kind == EditorSelectionKind.CARET
+                                val isTextSelection = state.kind == EditorSelectionKind.TEXT_BLOCK ||
+                                    state.kind == EditorSelectionKind.TEXT_RANGE || state.kind == EditorSelectionKind.CARET
                                 val typeChanged = state.objectId != selectionState.objectId ||
-                                    (state.kind != selectionState.kind && state.kind != EditorSelectionKind.TEXT_RANGE &&
-                                        selectionState.kind != EditorSelectionKind.TEXT_BLOCK && state.kind != EditorSelectionKind.CARET)
+                                    (state.kind != selectionState.kind && !(wasTextSelection && isTextSelection))
                                 selectionState = state
                                 selectedTextActive = state.kind == EditorSelectionKind.TEXT_BLOCK ||
                                     state.kind == EditorSelectionKind.TEXT_RANGE || state.kind == EditorSelectionKind.CARET
