@@ -185,17 +185,7 @@ new_click = r"""                             root.addEventListener('click',funct
 """
 s = s[:click_start] + new_click + s[click_end:]
 
-# Text template/copy/duplicate actions must use the exact active object, including direct-text containers.
-replace_once(
-    "function selectedTextBlockHtml(){const e=selectedParagraph()||selectedTextElement();",
-    "function selectedTextBlockHtml(){const e=activeTextBlock||selectedParagraph()||selectedTextElement();",
-    "text template uses active hit-tested text object"
-)
-replace_once(
-    "function duplicateSelectedTextParagraph(){const e=selectedParagraph()||selectedTextElement();",
-    "function duplicateSelectedTextParagraph(){const e=activeTextBlock||selectedParagraph()||selectedTextElement();",
-    "duplicate uses active hit-tested text object"
-)
+# Text template/copy/duplicate helpers already prefer activeTextBlock in functional v3.
 
 # The dock is a pure projection of selectionChanged. Blank means DEFAULT; text/image/component
 # selection must never be inferred from a stale toolbar boolean.
