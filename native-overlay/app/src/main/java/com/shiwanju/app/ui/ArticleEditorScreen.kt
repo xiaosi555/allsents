@@ -50,6 +50,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.asImageBitmap
@@ -137,7 +138,7 @@ private fun CompactEditorSlider(
         value = value,
         onValueChange = onValueChange,
         valueRange = valueRange,
-        modifier = modifier.height(20.dp),
+        modifier = modifier.height(18.dp).scale(scaleX = 1f, scaleY = 0.78f),
         colors = SliderDefaults.colors(
             thumbColor = Color.White,
             activeTrackColor = Color(0xFF4A91FF),
@@ -183,10 +184,10 @@ private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, 
 
 @Composable
 private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Float, suffix: String, onValue: (Float) -> Unit) {
-        Row(Modifier.fillMaxWidth().height(26.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(label, Modifier.width(52.dp), color = Color(0xFFCCCCCC), fontSize = 11.sp, maxLines = 1)
             CompactEditorSlider(value = value, onValueChange = onValue, valueRange = min..max, modifier = Modifier.weight(1f))
-            Text(value.toInt().toString() + suffix, Modifier.width(40.dp), color = Color.White, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text((if (value % 1f == 0f) value.toInt().toString() else String.format(Locale.ROOT, "%.1f", value)) + suffix, Modifier.width(40.dp), color = Color.White, fontSize = 10.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
     }
 
