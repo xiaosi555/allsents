@@ -1577,7 +1577,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         IconButton(onClick = { showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
-                        Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = if (activePanel == EditorPanel.TEXT2) 0.dp else 6.dp)) {
+                        Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
                 when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
