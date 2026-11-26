@@ -45,6 +45,16 @@ s = s.replace(
 
 replace_once("let activeImage=null;", "let activeImage=null;let activeTextBlock=null;", "active text block state")
 replace_once(
+    "if(!r||r.collapsed||!root.contains(r.commonAncestorContainer))return !!root.querySelector('.text2-selection-preview');",
+    "if(!r||r.collapsed||!root.contains(r.commonAncestorContainer)){if(activeTextBlock&&root.contains(activeTextBlock)){root.querySelectorAll('.text2-selection-preview').forEach(el=>el.classList.remove('text2-selection-preview'));activeTextBlock.classList.add('text2-selection-preview');savedRange=null;if(s)s.removeAllRanges();notifyCanvasPreview();return true;}return !!root.querySelector('.text2-selection-preview');}",
+    "text2 applies to whole tapped paragraph"
+)
+replace_once(
+    "function enableSelectedTextEditing(){root.contentEditable='true';restoreSelection();root.focus();if(typeof saveSelection==='function')saveSelection();}",
+    "function enableSelectedTextEditing(){root.contentEditable='true';if(activeTextBlock&&root.contains(activeTextBlock)){const r=document.createRange();r.selectNodeContents(activeTextBlock);r.collapse(false);const sel=window.getSelection();if(sel){sel.removeAllRanges();sel.addRange(r);}savedRange=r.cloneRange();}else restoreSelection();root.focus();if(typeof saveSelection==='function')saveSelection();}",
+    "edit button focuses selected paragraph caret"
+)
+replace_once(
     "target=topLevelAt(node)||node;\n                                 if(!collapsed)kind='TEXT_RANGE';\n                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';",
     "target=(collapsed&&activeTextBlock&&root.contains(activeTextBlock))?activeTextBlock:(topLevelAt(node)||node);\n                                 if(!collapsed)kind='TEXT_RANGE';\n                                 else if(activeTextBlock&&root.contains(activeTextBlock)){kind='TEXT_BLOCK';target=activeTextBlock;}\n                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';",
     "prefer active text block over stale caret"
@@ -202,7 +212,8 @@ replace_once(
 
 replace_once(
     '    var blockOpacity by remember { mutableStateOf("100") }',
-    '    var blockOpacity by remember { mutableStateOf("100") }\n    var imageBrightness by remember { mutableFloatStateOf(100f) }\n    var imageContrast by remember { mutableFloatStateOf(100f) }\n    var imageSaturation by remember { mutableFloatStateOf(100f) }\n    var imageOpacity by remember { mutableFloatStateOf(100f) }',
+    '    var blockOpacity by remember { mutableStateOf("100") }\n    var imageBrightness by remember { mutableFloatStateOf(100f) }\n    var imageContrast by remember { mutableFloatStateOf(100f) }\n    var imageSaturation by remember { mutableFloatStateOf(100f) }\n    var imageOpacity by remember { mutableFloatStateOf(100f) }
+    var imageRadius by remember { mutableFloatStateOf(0f) }',
     "image adjustment states"
 )
 replace_once(
@@ -216,6 +227,8 @@ replace_once(
                             Slider(value = imageSaturation, onValueChange = { imageSaturation = it; runJs("previewSelectedImageFilters(" + imageBrightness + "," + imageContrast + "," + it + ")") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..200f)
                             Text("透明度 " + imageOpacity.toInt() + "%", color = Color(0xFFAAAAAA), fontSize = 10.sp)
                             Slider(value = imageOpacity, onValueChange = { imageOpacity = it; runJs("previewSelectedImageOpacity(" + it + ")") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..100f)
+                            Text("圆角 " + imageRadius.toInt() + "dp", color = Color(0xFFAAAAAA), fontSize = 10.sp)
+                            Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs("setSelectedImageRadius(" + it + " + 'px')") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..40f)
                             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 EditorTool("水平翻转") { runJs("flipSelectedImage('horizontal')") }
                                 EditorTool("垂直翻转") { runJs("flipSelectedImage('vertical')") }
