@@ -206,8 +206,11 @@ replace_once(
 
 replace_once(
     "function setSelectedImageFilter(v){if(!activeImage)return;activeImage.style.filter=v||'none';commitHistory();NativeEditor.changed(root.innerHTML);}",
-    "function setSelectedImageFilter(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter=v||'none';commitHistory();NativeEditor.changed(root.innerHTML);}\n                            function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}\n                            function previewSelectedImageOpacity(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(v)))/100);}
-                            function previewSelectedImageRadius(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.borderRadius=v;}\n                            function commitSelectedImageStyle(){if(!activeImage)return;commitHistory();NativeEditor.changed(root.innerHTML);}",
+    """function setSelectedImageFilter(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter=v||'none';commitHistory();NativeEditor.changed(root.innerHTML);}
+                            function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}
+                            function previewSelectedImageOpacity(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(v)))/100);}
+                            function previewSelectedImageRadius(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.borderRadius=v;}
+                            function commitSelectedImageStyle(){if(!activeImage)return;commitHistory();NativeEditor.changed(root.innerHTML);}""",
     "live image color and opacity preview"
 )
 
