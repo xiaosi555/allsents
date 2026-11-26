@@ -142,7 +142,7 @@ header_drag = """.pointerInput(Unit) {
                                 toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 400f)
                             }
                         }"""
-header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(44\.dp\)\.padding\(horizontal = 5\.dp\)),'
+header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\((?:44|48)\.dp\)\.padding\(horizontal = (?:5|9)\.dp\)),'
 if header_drag not in s:
     s, header_count = re.subn(header_pattern, r'\1' + header_drag + ',', s, count=1)
     if header_count != 1:
@@ -155,7 +155,7 @@ elif new_scroll not in s:
 
 checks = {
     "single independent primary dock": s.count("height(50.dp)") >= 1 and s.count(dock_marker) == 0,
-    "non-modal popup": "PopupProperties(focusable = false" in s,
+    "inline non-modal bottom sheet": "Box(Modifier.fillMaxWidth().align(Alignment.BottomCenter)" in s,
     "panel initial heights": ("EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s) or "toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f" in s,
     "secondary navigation drag surface": header_count == 1,
     "150dp collapsed minimum and 400dp maximum": "coerceIn(150f, 400f)" in s,
