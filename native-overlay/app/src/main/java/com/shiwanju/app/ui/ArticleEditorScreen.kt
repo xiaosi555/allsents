@@ -1445,8 +1445,10 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             Text("⠿", color = AppColors.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 6.dp))
                             Text(
                                 when {
-                                    floatingToolbarRequest == "image" || selectedImageHtml.isNotBlank() -> "图片工具"
-                                    floatingToolbarRequest == "text" || selectedTextActive -> "文字工具"
+                                    floatingToolbarRequest == "image" -> "图片工具"
+                                    floatingToolbarRequest == "text" -> "文字工具"
+                                    selectedImageHtml.isNotBlank() -> "图片工具"
+                                    selectedTextActive -> "文字工具"
                                     selectionState.kind == EditorSelectionKind.TABLE -> "表格工具"
                                     selectionState.kind == EditorSelectionKind.MULTI_BLOCK -> "组合工具"
                                     else -> "模块工具"
@@ -1461,7 +1463,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }) { Text("完成", color = AppColors.TextDim, fontSize = 11.sp) }
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
-                            if (floatingToolbarRequest == "image" || selectedImageHtml.isNotBlank()) {
+                            if (floatingToolbarRequest == "image" || (floatingToolbarRequest.isBlank() && selectedImageHtml.isNotBlank())) {
                                 if (floatingToolbarRequest == "image" && selectedImageHtml.isBlank()) {
                                     Text("请先在正文中选择图片，再使用图片工具", color = AppColors.TextDim, fontSize = 10.sp)
                                 }
@@ -1493,7 +1495,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { dialogValue = ""; showImageAlt = true }) { Text("ⓘ 说明", color = ink, fontSize = 11.sp) }
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("deleteSelectedImage()"); selectedImageHtml = "" }) { Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
                                 TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { selectedImageHtml = ""; activePanel = EditorPanel.IMAGE }) { Text("更多 ⋯", color = accent, fontSize = 11.sp) }
-                            } else if (floatingToolbarRequest == "text" || selectedTextActive) {
+                            } else if (floatingToolbarRequest == "text" || (floatingToolbarRequest.isBlank() && selectedTextActive)) {
                                 Box {
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { floatingMenu = if (floatingMenu == "text-size") "" else "text-size" }) { Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp) }
                                     DropdownMenu(expanded = floatingMenu == "text-size", onDismissRequest = { floatingMenu = "" }) {
