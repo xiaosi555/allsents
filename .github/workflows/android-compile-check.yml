@@ -183,6 +183,10 @@ jobs:
       - name: Apply object-safe editor actions and component tools v3
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_functional_v3.py
+
+      - name: Finalize text and image editor dock interactions v4
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_editor_functional_v4.py
       # Validate that camera/Edit/palette entries resolve to different Compose screens.
 
       # Run last because route enforcement rewrites MainActivity; verify the final source.
