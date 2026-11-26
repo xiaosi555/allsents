@@ -1733,7 +1733,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->
+                        EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }.forEach { panel ->
                             TextButton(
                                 onClick = {
                                     showTemplateSubnav = panel == EditorPanel.TEMPLATE
@@ -2318,7 +2318,7 @@ when (activePanel) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        EditorPanel.values().filterNot { it in templateSubPanels }.forEach { panel ->
+                        EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }.forEach { panel ->
                             TextButton(
                                 onClick = {
                                     showTemplateSubnav = panel == EditorPanel.TEMPLATE
