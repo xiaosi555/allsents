@@ -90,8 +90,8 @@ if handle_start > header_pos:
                 break
     if close_pos < 0:
         raise SystemExit("Could not find the end of the resize handle block")
-    line_start = s.rfind("\\n", 0, handle_start) + 1
-    line_end = s.find("\\n", close_pos)
+    line_start = s.rfind("\n", 0, handle_start) + 1
+    line_end = s.find("\n", close_pos)
     if line_end < 0:
         line_end = close_pos
     handle_block = s[line_start:line_end + 1]
