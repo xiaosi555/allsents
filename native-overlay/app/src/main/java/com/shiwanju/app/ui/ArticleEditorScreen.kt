@@ -227,6 +227,13 @@ private fun Text2EditorPanel(
     }
     var showTextColorPicker by remember { mutableStateOf(false) }
     var customTextColor by remember { mutableStateOf("#222222") }
+    val activeOpacity = when (styleTab) {
+        "描边" -> outlineOpacity
+        "阴影" -> shadowOpacity
+        "发光" -> glowOpacity
+        "背景" -> backgroundOpacity
+        else -> textOpacity
+    }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (mainTab == "样式") {
@@ -258,14 +265,7 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                val activeOpacity = when (styleTab) {
-        "描边" -> outlineOpacity
-        "阴影" -> shadowOpacity
-        "发光" -> glowOpacity
-        "背景" -> backgroundOpacity
-        else -> textOpacity
-    }
-    Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, activeOpacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, activeOpacity) + ",-1px 0 " + effectColor(color, activeOpacity) + ",0 1px " + effectColor(color, activeOpacity) + ",0 -1px " + effectColor(color, activeOpacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, activeOpacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, activeOpacity)); "背景" -> onApplyCss("background-color", effectColor(color, activeOpacity)); else -> onApplyColor(color, false) } }, onClear = {
+                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, activeOpacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, activeOpacity) + ",-1px 0 " + effectColor(color, activeOpacity) + ",0 1px " + effectColor(color, activeOpacity) + ",0 -1px " + effectColor(color, activeOpacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, activeOpacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, activeOpacity)); "背景" -> onApplyCss("background-color", effectColor(color, activeOpacity)); else -> onApplyColor(color, false) } }, onClear = {
                     selectedColor = "#222222"
                     when (styleTab) {
                         "文本" -> { onApplyColor("#222222", false); onApplyCss("background-image", "none"); onApplyCss("-webkit-background-clip", "initial") }
