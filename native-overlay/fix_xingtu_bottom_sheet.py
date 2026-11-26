@@ -105,12 +105,11 @@ if "val toolPanelScrollState = rememberScrollState()" not in s:
         raise SystemExit("Could not locate the unique tool panel density state")
     s = s.replace(state_anchor, state_anchor + "\\n" + content_state, 1)
 
-old_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding())'
+panel_pattern = r'Column\\(Modifier\\.fillMaxWidth\\(\\)\\.height\\(animatedToolPanelHeight\\)\\.background\\(Color\\(0xFF181818\\)\\)(?:\\.[A-Za-z0-9_]+(?:\\([^()]*\\))?)*\\)'
 new_panel = 'Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)))'
-if old_panel in s:
-    s = s.replace(old_panel, new_panel, 1)
-elif new_panel not in s:
-    raise SystemExit("Could not locate the Xingtu tool panel container")
+s, panel_count = re.subn(panel_pattern, new_panel, s, count=1)
+if panel_count != 1:
+    raise SystemExit(f"Could not locate the Xingtu tool panel container: matches={panel_count}")
 
 old_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp))'
 new_scroll = 'Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(toolPanelScrollState)).padding(horizontal = 13.dp, vertical = 4.dp))'
