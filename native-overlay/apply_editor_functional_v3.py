@@ -259,6 +259,7 @@ replace_once(
 )
 
 replace_once(
+    '    var blockOpacity by remember { mutableStateOf("100") }',
     '''    var blockOpacity by remember { mutableStateOf("100") }
     var imageBrightness by remember { mutableFloatStateOf(100f) }
     var imageContrast by remember { mutableFloatStateOf(100f) }
