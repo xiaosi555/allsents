@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
@@ -1747,7 +1748,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
             if (showToolPopup && activePanel != EditorPanel.CANVAS) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
+                Column(
+                    Modifier.fillMaxWidth()
+                        .height(animatedToolPanelHeight)
+                        .background(Color(0xFF181818))
+                        // Keep the tool sheet above the WebView and make the panel itself own
+                        // pointer input, so blank panel space cannot leak taps to the canvas.
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { }
+                        .navigationBarsPadding()
+                ) {
                     Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                         if (activePanel == EditorPanel.TEXT2) {
