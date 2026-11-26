@@ -150,6 +150,7 @@ private fun CompactEditorSlider(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 @Composable
+@Composable
 private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, glowWidth: Float, colors: List<String>, onColor: (String) -> Unit, onClear: () -> Unit, onEyedropper: () -> Unit, onGradient: () -> Unit) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("禁用", "取色", "渐变").forEachIndexed { index, label ->
@@ -174,13 +175,6 @@ private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, 
                         .then(if (selectedColor == color) Modifier.border(2.dp, Color.White, CircleShape) else Modifier.border(1.dp, Color(0xFF777777), CircleShape))
                         .clickable {
                             onColor(color)
-                            when (styleTab) {
-                                "描边" -> onColor(color)
-                                "阴影" -> onColor(color)
-                                "发光" -> onColor(color)
-                                "背景" -> onColor(color)
-                                else -> onColor(color)
-                            }
                         }
                 )
             }
