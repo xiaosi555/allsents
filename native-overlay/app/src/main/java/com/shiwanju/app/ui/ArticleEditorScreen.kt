@@ -1662,11 +1662,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             if (!previewMode) {
             if (showToolPopup && activePanel != EditorPanel.CANVAS) {
-                Popup(
-                    alignment = Alignment.BottomCenter,
-                    onDismissRequest = { showToolPopup = false },
-                    properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false, clippingEnabled = false)
-                ) {
+                Box(Modifier.fillMaxWidth().align(Alignment.BottomCenter), contentAlignment = Alignment.BottomCenter) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
                 Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
