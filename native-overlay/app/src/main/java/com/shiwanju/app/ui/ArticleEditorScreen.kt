@@ -262,12 +262,16 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, opacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, opacity) + ",-1px 0 " + effectColor(color, opacity) + ",0 1px " + effectColor(color, opacity) + ",0 -1px " + effectColor(color, opacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, opacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, opacity)); "背景" -> onApplyCss("background-color", effectColor(color, opacity)); else -> onApplyColor(color, false) } }, onClear = { when (styleTab) {
-                    "文本" -> { selectedColor = "#222222"; onApplyColor("#222222", false); onApplyCss("background-image", "none"); onApplyCss("-webkit-background-clip", "initial") }
-                    "描边" -> { onApplyCss("-webkit-text-stroke-width", "0px"); onApplyCss("-webkit-text-stroke-color", "transparent"); onApplyCss("text-shadow", "none") }
-                    "阴影", "发光" -> onApplyCss("text-shadow", "none")
-                    "背景" -> { onApplyCss("background-color", "transparent"); onApplyCss("border-radius", "0px") }
-                } }, onEyedropper = { showTextColorPicker = true }, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
+                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, opacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, opacity) + ",-1px 0 " + effectColor(color, opacity) + ",0 1px " + effectColor(color, opacity) + ",0 -1px " + effectColor(color, opacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, opacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, opacity)); "背景" -> onApplyCss("background-color", effectColor(color, opacity)); else -> onApplyColor(color, false) } }, onClear = {
+                    selectedColor = "#222222"
+                    when (styleTab) {
+                        "文本" -> { onApplyColor("#222222", false); onApplyCss("background-image", "none"); onApplyCss("-webkit-background-clip", "initial") }
+                        "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor("#222222", opacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor("#222222", opacity) + ",-1px 0 " + effectColor("#222222", opacity) + ",0 1px " + effectColor("#222222", opacity) + ",0 -1px " + effectColor("#222222", opacity)) }
+                        "阴影" -> { val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + effectColor("#222222", opacity)) }
+                        "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor("#222222", opacity))
+                        "背景" -> onApplyCss("background-color", effectColor("#222222", opacity))
+                    }
+                }, onEyedropper = { showTextColorPicker = true }, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
                 when (styleTab) {
                     "文本" -> {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
