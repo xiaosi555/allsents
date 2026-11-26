@@ -1453,24 +1453,46 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                              }
                              let text2PreviewCommitTimer=null;
                              function applyText2Style(property,value){
-                               // A canvas tap may change the active text target while TEXT2 stays open.
-                               // Never keep applying styles to an obsolete preview after an image is selected.
+                               // Follow the proven #653 flow: restore the saved canvas selection
+                               // after Compose controls take focus, then edit that live DOM element.
+                               restoreSelection();
                                if(activeImage&&root.contains(activeImage))return false;
-                               let target=typeof selectedTextElement==='function'?selectedTextElement():null;
+                               let target=null;
+                               const selection=window.getSelection();
+                               if(selection&&selection.rangeCount&&root.contains(selection.anchorNode)){
+                                 target=typeof selectedTextElement==='function'?selectedTextElement():null;
+                               }
                                if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');
-                               if(!target)target=root.querySelector('.selected-block');
+                               if(!target||!root.contains(target))target=root.querySelector('.selected-block');
+                               if(!target||!root.contains(target))target=typeof selectedParagraph==='function'?selectedParagraph():null;
                                if(!target||!root.contains(target))return false;
                                target.style.setProperty(property,value);
-                               // Refresh the canvas immediately; history and persistence remain debounced.
                                target.getBoundingClientRect();
+                               // Update the native HTML state immediately; only history grouping is debounced.
+                               NativeEditor.changed(root.innerHTML);
                                notifyCanvasPreview();
                                clearTimeout(text2PreviewCommitTimer);
-                               text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},120);
+                               text2PreviewCommitTimer=setTimeout(()=>commitHistory(),120);
                                return true;
                              }
                              function applyText2Command(name,value){
-                               if(activeImage&&root.contains(activeImage))return false;const target=(typeof selectedTextElement==='function'?selectedTextElement():null)||root.querySelector('.text2-selection-preview')||root.querySelector('.selected-block');
-                               if(!target||!root.contains(target)){restoreSelection();document.execCommand(name,false,value||null);saveSelection();return;}
+                               restoreSelection();
+                               if(activeImage&&root.contains(activeImage))return false;
+                               const selection=window.getSelection();
+                               let target=null;
+                               if(selection&&selection.rangeCount&&root.contains(selection.anchorNode)){
+                                 target=typeof selectedTextElement==='function'?selectedTextElement():null;
+                               }
+                               if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');
+                               if(!target||!root.contains(target))target=root.querySelector('.selected-block');
+                               if(!target||!root.contains(target))target=typeof selectedParagraph==='function'?selectedParagraph():null;
+                               if(!target||!root.contains(target)){
+                                 document.execCommand(name,false,value||null);
+                                 saveSelection();
+                                 commitHistory();
+                                 NativeEditor.changed(root.innerHTML);
+                                 return true;
+                               }
                                if(name==='fontName')return applyText2Style('font-family',value||'sans-serif');
                                if(name==='bold')return applyText2Style('font-weight','700');
                                if(name==='italic')return applyText2Style('font-style','italic');
@@ -1481,12 +1503,17 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                  const block=target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,div')||target;
                                  block.style.textAlign=align[name];
                                  block.getBoundingClientRect();
+                                 NativeEditor.changed(root.innerHTML);
                                  notifyCanvasPreview();
                                  clearTimeout(text2PreviewCommitTimer);
-                                 text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},250);
+                                 text2PreviewCommitTimer=setTimeout(()=>commitHistory(),120);
                                  return true;
                                }
-                               restoreSelection();document.execCommand(name,false,value||null);saveSelection();return true;
+                               document.execCommand(name,false,value||null);
+                               saveSelection();
+                               commitHistory();
+                               NativeEditor.changed(root.innerHTML);
+                               return true;
                              }
                             function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);commitHistory();NativeEditor.changed(root.innerHTML);return;}
                               const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}
