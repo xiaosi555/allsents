@@ -260,4 +260,9 @@ if missing:
     raise SystemExit("Bottom navigation v2 validation failed: " + ", ".join(missing))
 
 EDITOR.write_text(s, encoding="utf-8")
+debug_lines = s.splitlines()
+for first, last in ((1968, 2040), (2508, 2540)):
+    print(f"=== ArticleEditorScreen.kt {first}-{last} ===")
+    for number in range(first, min(last, len(debug_lines)) + 1):
+        print(f"{number}: {debug_lines[number - 1]}")
 print("Editor bottom navigation v2 applied: default/text/image/component docks, two-tap text activation, text opacity tab, image controls and component shortcut.")
