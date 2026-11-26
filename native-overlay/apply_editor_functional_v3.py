@@ -415,7 +415,7 @@ s = s.replace("if(!activeImage)return;", "if(!activeImage||activeImage.dataset.e
 s = s.replace("let activeImage=null;let activeTextBlock=null;", "let activeImage=null;let activeTextBlock=null;let componentDragMode=false;")
 s = s.replace(
     "function selectedMovableNode(){const e=selectedEditableObject();",
-    "function setComponentDragMode(v){const e=selectedMovableNode();componentDragMode=!!v&&!!e;if(e){e.draggable=componentDragMode;e.classList.toggle('component-drag-source',componentDragMode);}}\\n                            function selectedMovableNode(){const e=selectedEditableObject();"
+    "function setComponentDragMode(v){const e=selectedMovableNode();componentDragMode=!!v&&!!e;if(e){e.draggable=componentDragMode;e.classList.toggle('component-drag-source',componentDragMode);}}\n                            function selectedMovableNode(){const e=selectedEditableObject();"
 )
 touch_start_old = "root.addEventListener('touchstart',function(ev){if(!ev.touches||ev.touches.length!==1)return;const t=ev.touches[0],img=ev.target&&ev.target.closest?ev.target.closest('img'):null,cell=img?img.closest('td,th'):null;const block=topLevelAt(ev.target);if(cell&&activeImage&&cell.contains(activeImage)&&cell.parentElement&&cell.parentElement.children.length>1)"
 touch_start_new = "root.addEventListener('touchstart',function(ev){if(!ev.touches||ev.touches.length!==1)return;const t=ev.touches[0],img=ev.target&&ev.target.closest?ev.target.closest('img'):null,cell=img?img.closest('td,th'):null;const block=topLevelAt(ev.target);if(componentDragMode){const obj=selectedMovableNode();if(obj&&(obj===ev.target||obj.contains(ev.target))){touchDrag={kind:'object',source:obj,sourceParent:obj.parentElement,sourceCell:obj.closest('td,th'),x:t.clientX,y:t.clientY,started:Date.now(),active:false};return;}}if(cell&&activeImage&&cell.contains(activeImage)&&cell.parentElement&&cell.parentElement.children.length>1)"
@@ -434,7 +434,7 @@ if finish_old not in s:
 s = s.replace(finish_old, finish_new, 1)
 s = s.replace(
     "TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"moveSelectedObjectVertical(-1)\") }) { Text(\"↑ 上移\",",
-    "TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"setComponentDragMode(true)\") }) { Text(\"自由拖动\", color = accent, fontSize = 11.sp) }\\n                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"setComponentDragMode(false)\") }) { Text(\"结束拖动\", color = ink, fontSize = 11.sp) }\\n                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"moveSelectedObjectVertical(-1)\") }) { Text(\"↑ 上移\","
+    "TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"setComponentDragMode(true)\") }) { Text(\"自由拖动\", color = accent, fontSize = 11.sp) }\n                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"setComponentDragMode(false)\") }) { Text(\"结束拖动\", color = ink, fontSize = 11.sp) }\n                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs(\"moveSelectedObjectVertical(-1)\") }) { Text(\"↑ 上移\","
 )
 
 required = [
