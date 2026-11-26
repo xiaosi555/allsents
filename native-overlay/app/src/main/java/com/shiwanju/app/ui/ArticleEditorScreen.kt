@@ -195,7 +195,6 @@ private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Floa
 @Composable
 private fun Text2EditorPanel(
     mainTab: String,
-    onMainTabChange: (String) -> Unit,
     onCommand: (String, String?) -> Unit,
     onApplyCss: (String, String) -> Unit,
     onApplyColor: (String, Boolean) -> Unit,
@@ -205,7 +204,11 @@ private fun Text2EditorPanel(
     var selectedColor by remember { mutableStateOf("#222222") }
     var selectedFont by remember { mutableStateOf("系统默认") }
     var fontSize by remember { mutableFloatStateOf(18f) }
-    var opacity by remember { mutableFloatStateOf(100f) }
+    var textOpacity by remember { mutableFloatStateOf(100f) }
+    var outlineOpacity by remember { mutableFloatStateOf(100f) }
+    var shadowOpacity by remember { mutableFloatStateOf(100f) }
+    var glowOpacity by remember { mutableFloatStateOf(100f) }
+    var backgroundOpacity by remember { mutableFloatStateOf(100f) }
     var strokeWidth by remember { mutableFloatStateOf(2f) }
     var blur by remember { mutableFloatStateOf(8f) }
     var distance by remember { mutableFloatStateOf(4f) }
@@ -255,14 +258,21 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, opacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, opacity) + ",-1px 0 " + effectColor(color, opacity) + ",0 1px " + effectColor(color, opacity) + ",0 -1px " + effectColor(color, opacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, opacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, opacity)); "背景" -> onApplyCss("background-color", effectColor(color, opacity)); else -> onApplyColor(color, false) } }, onClear = {
+                val activeOpacity = when (styleTab) {
+        "描边" -> outlineOpacity
+        "阴影" -> shadowOpacity
+        "发光" -> glowOpacity
+        "背景" -> backgroundOpacity
+        else -> textOpacity
+    }
+    Text2ColorRow(styleTab, selectedColor, blur, glowWidth, colors, onColor = { color -> selectedColor = color; when (styleTab) { "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor(color, activeOpacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(color, activeOpacity) + ",-1px 0 " + effectColor(color, activeOpacity) + ",0 1px " + effectColor(color, activeOpacity) + ",0 -1px " + effectColor(color, activeOpacity)) }; "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(color, activeOpacity)); "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(color, activeOpacity)); "背景" -> onApplyCss("background-color", effectColor(color, activeOpacity)); else -> onApplyColor(color, false) } }, onClear = {
                     selectedColor = "#222222"
                     when (styleTab) {
                         "文本" -> { onApplyColor("#222222", false); onApplyCss("background-image", "none"); onApplyCss("-webkit-background-clip", "initial") }
-                        "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor("#222222", opacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor("#222222", opacity) + ",-1px 0 " + effectColor("#222222", opacity) + ",0 1px " + effectColor("#222222", opacity) + ",0 -1px " + effectColor("#222222", opacity)) }
-                        "阴影" -> { val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + effectColor("#222222", opacity)) }
-                        "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor("#222222", opacity))
-                        "背景" -> onApplyCss("background-color", effectColor("#222222", opacity))
+                        "描边" -> { onApplyCss("-webkit-text-stroke-color", effectColor("#222222", activeOpacity)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor("#222222", activeOpacity) + ",-1px 0 " + effectColor("#222222", activeOpacity) + ",0 1px " + effectColor("#222222", activeOpacity) + ",0 -1px " + effectColor("#222222", activeOpacity)) }
+                        "阴影" -> { val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + effectColor("#222222", activeOpacity)) }
+                        "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor("#222222", activeOpacity))
+                        "背景" -> onApplyCss("background-color", effectColor("#222222", activeOpacity))
                     }
                 }, onEyedropper = { showTextColorPicker = true }, onGradient = { onApplyCss("background-image", "linear-gradient(90deg,#F04438,#F5C542,#159765,#3978B7,#8B5CF6)"); onApplyCss("-webkit-background-clip", "text"); onApplyCss("color", "transparent") })
                 when (styleTab) {
@@ -285,24 +295,24 @@ private fun Text2EditorPanel(
                             Text(fontSize.toInt().toString(), color = Color.White, fontSize = 12.sp)
                             TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(72f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("＋", color = Color.White) }
                         }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyColor(effectColor(selectedColor, it), false) }
+                        Text2ParameterRow("透明度", textOpacity, 0f, 100f, "%") { textOpacity = it; onApplyColor(effectColor(selectedColor, it), false) }
                     }
                     "描边" -> {
-                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px"); if (outlineMode == "多层") onApplyCss("text-shadow", it.toString() + "px 0 " + effectColor(selectedColor, opacity) + ",-" + it.toString() + "px 0 " + effectColor(selectedColor, opacity) + ",0 " + it.toString() + "px " + effectColor(selectedColor, opacity) + ",0 -" + it.toString() + "px " + effectColor(selectedColor, opacity)) }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("-webkit-text-stroke-color", effectColor(selectedColor, it)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(selectedColor, it) + ",-1px 0 " + effectColor(selectedColor, it) + ",0 1px " + effectColor(selectedColor, it) + ",0 -1px " + effectColor(selectedColor, it)) }
+                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px"); if (outlineMode == "多层") onApplyCss("text-shadow", it.toString() + "px 0 " + effectColor(selectedColor, activeOpacity) + ",-" + it.toString() + "px 0 " + effectColor(selectedColor, activeOpacity) + ",0 " + it.toString() + "px " + effectColor(selectedColor, activeOpacity) + ",0 -" + it.toString() + "px " + effectColor(selectedColor, activeOpacity)) }
+                        Text2ParameterRow("透明度", outlineOpacity, 0f, 100f, "%") { outlineOpacity = it; onApplyCss("-webkit-text-stroke-color", effectColor(selectedColor, it)); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + effectColor(selectedColor, it) + ",-1px 0 " + effectColor(selectedColor, it) + ",0 1px " + effectColor(selectedColor, it) + ",0 -1px " + effectColor(selectedColor, it)) }
                     }
                     "阴影" -> {
-                        Text2ParameterRow("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + effectColor(selectedColor, opacity)) }
-                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * it).toString() + "px " + (kotlin.math.sin(rad) * it) + "px " + blur + "px " + effectColor(selectedColor, opacity)) }
-                        Text2ParameterRow("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + effectColor(selectedColor, opacity)) }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(selectedColor, it)) }
+                        Text2ParameterRow("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + effectColor(selectedColor, activeOpacity)) }
+                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; val rad = Math.toRadians(angle.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * it).toString() + "px " + (kotlin.math.sin(rad) * it) + "px " + blur + "px " + effectColor(selectedColor, activeOpacity)) }
+                        Text2ParameterRow("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + effectColor(selectedColor, activeOpacity)) }
+                        Text2ParameterRow("透明度", shadowOpacity, 0f, 100f, "%") { shadowOpacity = it; onApplyCss("text-shadow", "1px 1px " + blur + "px " + effectColor(selectedColor, it)) }
                     }
                     "发光" -> {
-                        Text2ParameterRow("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + effectColor(selectedColor, opacity)) }
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(selectedColor, it)) }
+                        Text2ParameterRow("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + effectColor(selectedColor, activeOpacity)) }
+                        Text2ParameterRow("透明度", glowOpacity, 0f, 100f, "%") { glowOpacity = it; onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + effectColor(selectedColor, it)) }
                     }
                     "背景" -> {
-                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("background-color", effectColor(selectedColor, it)) }
+                        Text2ParameterRow("透明度", backgroundOpacity, 0f, 100f, "%") { backgroundOpacity = it; onApplyCss("background-color", effectColor(selectedColor, it)) }
                         Text2ParameterRow("圆角", radius, 0f, 40f, "px") { radius = it; onApplyCss("border-radius", it.toString() + "px") }
                     }
                 }
@@ -357,7 +367,7 @@ private fun Text2EditorPanel(
                             "描边" -> { onApplyCss("-webkit-text-stroke-color", normalized); if (outlineMode == "多层") onApplyCss("text-shadow", "1px 0 " + normalized + ",-1px 0 " + normalized + ",0 1px " + normalized + ",0 -1px " + normalized) }
                             "阴影" -> onApplyCss("text-shadow", "1px 1px " + blur + "px " + normalized)
                             "发光" -> onApplyCss("text-shadow", "0 0 " + glowWidth + "px " + normalized)
-                            "背景" -> onApplyCss("background-color", "rgba(" + android.graphics.Color.red(parsed) + "," + android.graphics.Color.green(parsed) + "," + android.graphics.Color.blue(parsed) + "," + (opacity / 100f) + ")")
+                            "背景" -> onApplyCss("background-color", "rgba(" + android.graphics.Color.red(parsed) + "," + android.graphics.Color.green(parsed) + "," + android.graphics.Color.blue(parsed) + "," + (activeOpacity / 100f) + ")")
                             else -> onApplyColor(normalized, false)
                         }
                         showTextColorPicker = false
@@ -1873,7 +1883,6 @@ when (activePanel) {
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(
                             mainTab = text2MainTab,
-                            onMainTabChange = { text2MainTab = it },
                             onCommand = { name, value -> runJs("applyText2Command(" + JSONObject.quote(name) + "," + (value?.let { JSONObject.quote(it) } ?: "null") + ");") },
                             onApplyCss = { property, value ->
                                 runJs("applyText2Style(" + JSONObject.quote(property) + "," + JSONObject.quote(value) + ");")
