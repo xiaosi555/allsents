@@ -67,7 +67,7 @@ elif dock_visibility_new not in s:
     raise SystemExit("Could not locate the persistent primary navigation visibility condition")
 
 # Start at 200dp and clamp both the animated height and drag range to 200–400dp.
-s = s.replace("mutableFloatStateOf(100f)", "mutableFloatStateOf(200f)", 1)
+s = s.replace("var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }", "var toolPanelHeightDp by remember { mutableFloatStateOf(200f) }", 1)
 
 # Do not attach a parent NestedScrollConnection to the panel body. Such a
 # parent can consume vertical gestures intended for child scrolling, sliders
@@ -102,7 +102,7 @@ if inner_old in s:
 elif inner_new not in s:
     raise SystemExit("Could not locate the sheet's inner layout container")
 
-# Keep the sheet height and drag range aligned with the requested 100dp–350dp range.
+# Keep the sheet height and drag range aligned with the requested 200dp–400dp range.
 s = s.replace("coerceIn(100f, 400f)", "coerceIn(200f, 400f)")
 
 checks = {
@@ -112,7 +112,7 @@ checks = {
     "inner sheet container wraps content": inner_new in s,
     "canvas touch area is not covered by a full-screen overlay": "Box(Modifier.fillMaxSize().zIndex(100f)" not in s,
     "panel itself consumes touches only inside panel bounds": ".height(animatedToolPanelHeight)" in s and ".clickable(" in s,
-    "200dp initial panel height": "toolPanelHeightDp = 200f" in s and "mutableFloatStateOf(200f)" in s,
+    "200dp initial panel height": "toolPanelHeightDp = 200f" in s and "var toolPanelHeightDp by remember { mutableFloatStateOf(200f) }" in s,
     "200dp collapsed minimum and 400dp maximum": "coerceIn(200f, 400f)" in s and "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp" in s,
     "no parent gesture interception on content": "toolPanelNestedScrollConnection" not in s and ".nestedScroll(" not in s,
     "content scroll is independent": ".verticalScroll(toolPanelScrollState)" in s,
