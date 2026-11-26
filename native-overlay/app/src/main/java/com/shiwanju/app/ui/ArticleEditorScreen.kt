@@ -149,8 +149,6 @@ private fun CompactEditorSlider(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-@Composable
-@Composable
 private fun Text2ColorRow(styleTab: String, selectedColor: String, blur: Float, glowWidth: Float, colors: List<String>, onColor: (String) -> Unit, onClear: () -> Unit, onEyedropper: () -> Unit, onGradient: () -> Unit) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf("禁用", "取色", "渐变").forEachIndexed { index, label ->
@@ -1421,7 +1419,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 selectedTextActive = false; selectedImageHtml = ""; selectedBlockHtml = ""; floatingMenu = ""
                                 selectionState = EditorSelectionState()
                                 runJs("root.querySelectorAll('.selected-image,.selected-block').forEach(e=>e.classList.remove('selected-image','selected-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
-                            }, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) { Text("完成", color = AppColors.TextDim, fontSize = 11.sp) }
+                            }) { Text("完成", color = AppColors.TextDim, fontSize = 11.sp) }
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (selectedImageHtml.isNotBlank()) {
