@@ -71,9 +71,9 @@ elif dock_visibility_new not in s:
 # title/close row. Keep its gesture math unchanged: dragging upward increases
 # the panel height, while the bottom edge remains free of back-navigation taps.
 handle_pattern = re.compile(
-    r"(?m)^                    Box\\(\\n"
-    r"                        Modifier\\.fillMaxWidth\\(\\)\\.height\\(26\\.dp\\).*?"
-    r"^                    \\}\\n"
+    r"(?m)^                    Box\(\n"
+    r"                        Modifier\.fillMaxWidth\(\)\.height\(26\.dp\).*?"
+    r"^                    \}\n"
 )
 handle_match = handle_pattern.search(s)
 if handle_match:
