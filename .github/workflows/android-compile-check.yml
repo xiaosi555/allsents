@@ -187,6 +187,19 @@ jobs:
       - name: Finalize text and image editor dock interactions v4
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_functional_v4.py
+
+      - name: Unify canvas object hit testing and bottom dock routing v5
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_editor_selection_v5.py
+
+      - name: Upload canvas selection patch diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-selection-v5-diagnostic
+          path: editor_selection_v5_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 7
       # Validate that camera/Edit/palette entries resolve to different Compose screens.
 
       # Run last because route enforcement rewrites MainActivity; verify the final source.
