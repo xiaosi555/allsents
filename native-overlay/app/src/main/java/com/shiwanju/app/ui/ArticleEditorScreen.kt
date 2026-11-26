@@ -194,12 +194,13 @@ private fun Text2ParameterRow(label: String, value: Float, min: Float, max: Floa
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Text2EditorPanel(
+    mainTab: String,
+    onMainTabChange: (String) -> Unit,
     onCommand: (String, String?) -> Unit,
     onApplyCss: (String, String) -> Unit,
     onApplyColor: (String, Boolean) -> Unit,
     onEyedropper: () -> Unit
 ) {
-    var mainTab by remember { mutableStateOf("字体") }
     var styleTab by remember { mutableStateOf("文本") }
     var selectedColor by remember { mutableStateOf("#222222") }
     var selectedFont by remember { mutableStateOf("系统默认") }
@@ -225,14 +226,6 @@ private fun Text2EditorPanel(
     var customTextColor by remember { mutableStateOf("#222222") }
 
     Column(Modifier.fillMaxWidth().fillMaxHeight().background(Color(0xFF181818)), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            listOf("字体", "样式", "排版").forEach { tab ->
-                Column(Modifier.weight(1f).clickable { mainTab = tab }.padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(tab, color = if (mainTab == tab) Color.White else Color(0xFF888888), fontSize = 15.sp, fontWeight = if (mainTab == tab) FontWeight.Bold else FontWeight.Normal)
-                    Box(Modifier.padding(top = 4.dp).width(22.dp).height(3.dp).clip(RoundedCornerShape(4.dp)).background(if (mainTab == tab) Color(0xFF3987F7) else Color.Transparent))
-                }
-            }
-        }
         if (mainTab == "样式") {
             Row(Modifier.fillMaxWidth().height(28.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 listOf("文本", "描边", "阴影", "发光", "背景").forEach { tab ->
@@ -387,6 +380,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var editor by remember { mutableStateOf<WebView?>(null) }
     var webReady by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf(EditorPanel.TEXT) }
+    var text2MainTab by remember { mutableStateOf("字体") }
     var templateSubPanel by remember { mutableStateOf(EditorPanel.TITLE) }
     var showTemplateSubnav by remember { mutableStateOf(false) }
     var showInsertLauncherMenu by remember { mutableStateOf(false) }
@@ -1418,14 +1412,55 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                              function setText2SelectionPreview(enabled){
                                if(enabled){
                                  const s=window.getSelection();let r=s&&s.rangeCount&&!s.isCollapsed?s.getRangeAt(0).cloneRange():(savedRange?savedRange.cloneRange():null);
-                                 if(!r||r.collapsed||!root.contains(r.commonAncestorContainer))return false;
+                                 if(!r||r.collapsed||!root.contains(r.commonAncestorContainer))return !!root.querySelector('.text2-selection-preview');
                                  const start=r.startContainer.nodeType===1?r.startContainer:r.startContainer.parentElement;
-                                 if(start&&start.closest&&start.closest('.text2-selection-preview'))return true;
+                                 if(start&&start.closest&&start.closest('.text2-selection-preview')){if(s)s.removeAllRanges();return true;}
                                  const span=document.createElement('span');span.className='text2-selection-preview';
-                                 try{span.appendChild(r.extractContents());r.insertNode(span);const keep=document.createRange();keep.selectNodeContents(span);if(s){s.removeAllRanges();s.addRange(keep);}savedRange=keep.cloneRange();return true;}catch(e){return false;}
+                                 try{span.appendChild(r.extractContents());r.insertNode(span);const keep=document.createRange();keep.selectNodeContents(span);savedRange=keep.cloneRange();if(s)s.removeAllRanges();return true;}catch(e){return false;}
                                }
-                               root.querySelectorAll('.text2-selection-preview').forEach(el=>{const parent=el.parentNode;while(el.firstChild)parent.insertBefore(el.firstChild,el);el.remove();if(parent&&parent.normalize)parent.normalize();});
-                               saveSelection();return true;
+                               root.querySelectorAll('.text2-selection-preview').forEach(el=>{
+                                 const range=document.createRange();range.selectNodeContents(el);
+                                 const parent=el.parentNode;while(el.firstChild)parent.insertBefore(el.firstChild,el);el.remove();
+                                 savedRange=range.cloneRange();if(parent&&parent.normalize)parent.normalize();
+                               });
+                               if(savedRange){const s=window.getSelection();if(s){root.focus();s.removeAllRanges();s.addRange(savedRange);}}
+                               return true;
+                             }
+                             let text2PreviewCommitTimer=null;
+                             function applyText2Style(property,value){
+                               let target=root.querySelector('.text2-selection-preview');
+                               if(!target){
+                                 const s=window.getSelection();let r=s&&s.rangeCount&&!s.isCollapsed?s.getRangeAt(0).cloneRange():(savedRange?savedRange.cloneRange():null);
+                                 if(r&&!r.collapsed&&root.contains(r.commonAncestorContainer)){
+                                   target=document.createElement('span');target.className='text2-selection-preview';
+                                   try{target.appendChild(r.extractContents());r.insertNode(target);const keep=document.createRange();keep.selectNodeContents(target);savedRange=keep.cloneRange();if(s)s.removeAllRanges();}catch(e){target=null;}
+                                 }
+                               }
+                               if(!target)target=typeof selectedTextElement==='function'?selectedTextElement():null;
+                               if(!target)target=root.querySelector('.selected-block');
+                               if(!target||!root.contains(target))return false;
+                               target.style.setProperty(property,value);
+                               clearTimeout(text2PreviewCommitTimer);
+                               text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},250);
+                               return true;
+                             }
+                             function applyText2Command(name,value){
+                               const target=root.querySelector('.text2-selection-preview')||(typeof selectedTextElement==='function'?selectedTextElement():null)||root.querySelector('.selected-block');
+                               if(!target||!root.contains(target)){restoreSelection();document.execCommand(name,false,value||null);saveSelection();return;}
+                               if(name==='fontName')return applyText2Style('font-family',value||'sans-serif');
+                               if(name==='bold')return applyText2Style('font-weight','700');
+                               if(name==='italic')return applyText2Style('font-style','italic');
+                               if(name==='underline')return applyText2Style('text-decoration-line','underline');
+                               if(name==='strikeThrough')return applyText2Style('text-decoration-line','line-through');
+                               const align={justifyLeft:'left',justifyCenter:'center',justifyRight:'right',justifyFull:'justify'};
+                               if(align[name]){
+                                 const block=target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,div')||target;
+                                 block.style.textAlign=align[name];
+                                 clearTimeout(text2PreviewCommitTimer);
+                                 text2PreviewCommitTimer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},250);
+                                 return true;
+                               }
+                               restoreSelection();document.execCommand(name,false,value||null);saveSelection();return true;
                              }
                             function insertHtml(v){restoreSelection();const s=window.getSelection();if(!s||!s.rangeCount){root.insertAdjacentHTML('beforeend',v);commitHistory();NativeEditor.changed(root.innerHTML);return;}
                               const r=s.getRangeAt(0);r.deleteContents();const t=document.createElement('div');t.innerHTML=v;const f=document.createDocumentFragment();while(t.firstChild)f.appendChild(t.firstChild);const last=f.lastChild;r.insertNode(f);if(last){r.setStartAfter(last);r.collapse(true);s.removeAllRanges();s.addRange(r);}saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}
@@ -1687,7 +1722,16 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Column(Modifier.fillMaxWidth().height(animatedToolPanelHeight).background(Color(0xFF181818)).navigationBarsPadding()) {
                     Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
-                        if (showTemplateSubnav) {
+                        if (activePanel == EditorPanel.TEXT2) {
+                            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                                listOf("字体", "样式", "排版").forEach { tab ->
+                                    Column(Modifier.weight(1f).clickable { text2MainTab = tab }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(tab, color = if (text2MainTab == tab) Color.White else Color(0xFF888888), fontSize = 15.sp, fontWeight = if (text2MainTab == tab) FontWeight.Bold else FontWeight.Normal)
+                                        Box(Modifier.padding(top = 2.dp).width(20.dp).height(2.dp).clip(RoundedCornerShape(4.dp)).background(if (text2MainTab == tab) AppColors.Theme else Color.Transparent))
+                                    }
+                                }
+                            }
+                        } else if (showTemplateSubnav) {
                             Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                                 listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
@@ -1828,16 +1872,15 @@ when (activePanel) {
                     }
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(
-                            onCommand = { name, value -> command(name, value) },
+                            mainTab = text2MainTab,
+                            onMainTabChange = { text2MainTab = it },
+                            onCommand = { name, value -> runJs("applyText2Command(" + JSONObject.quote(name) + "," + (value?.let { JSONObject.quote(it) } ?: "null") + ");") },
                             onApplyCss = { property, value ->
-                                val prop = property.replace("'", "")
-                                val css = value.replace("'", "")
-                                runJs("restoreSelection();(function(){var root=document.getElementById('editor');var sel=window.getSelection();var range=sel&&sel.rangeCount?sel.getRangeAt(0):null;var target=null;if(range&&!range.collapsed){var span=document.createElement('span');span.style.setProperty('" + prop + "','" + css + "');var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);target=span;var keep=document.createRange();keep.selectNodeContents(span);sel.removeAllRanges();sel.addRange(keep);}else{target=typeof selectedTextElement==='function'?selectedTextElement():null;if(!target&&root)target=root.querySelector('.selected-block');if(!target&&range){var node=range.startContainer;target=node.nodeType===1?node:node.parentElement;}if(target&&root&&root.contains(target))target.style.setProperty('" + prop + "','" + css + "');}if(target){saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}})();")
+                                runJs("applyText2Style(" + JSONObject.quote(property) + "," + JSONObject.quote(value) + ");")
                             },
                             onApplyColor = { color, background ->
                                 val property = if (background) "background-color" else "color"
-                                val safe = color.replace("'", "")
-                                runJs("restoreSelection();(function(){var root=document.getElementById('editor');var sel=window.getSelection();var range=sel&&sel.rangeCount?sel.getRangeAt(0):null;var target=null;if(range&&!range.collapsed){var span=document.createElement('span');span.style.setProperty('" + property + "','" + safe + "');var frag=range.extractContents();span.appendChild(frag);range.insertNode(span);target=span;var keep=document.createRange();keep.selectNodeContents(span);sel.removeAllRanges();sel.addRange(keep);}else{target=typeof selectedTextElement==='function'?selectedTextElement():null;if(!target&&root)target=root.querySelector('.selected-block');if(!target&&range){var node=range.startContainer;target=node.nodeType===1?node:node.parentElement;}if(target&&root&&root.contains(target))target.style.setProperty('" + property + "','" + safe + "');}if(target){saveSelection();commitHistory();NativeEditor.changed(root.innerHTML);}})();")
+                                runJs("applyText2Style(" + JSONObject.quote(property) + "," + JSONObject.quote(color) + ");")
                             },
                             onEyedropper = { vm.toast("吸管取色：请先使用下方预设色；屏幕取色能力待接入") }
                         )
