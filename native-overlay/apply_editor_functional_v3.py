@@ -69,7 +69,7 @@ new_click = r"""                            root.addEventListener('click',functi
                               const clickedImage=!!(imageNode&&root.contains(imageNode));
                               const clickedText=!!(textNode&&root.contains(textNode));
                               const top=topLevelAt(ev.target);
-                              const blankTarget=!clickedImage&&!clickedText&&(!top||(!top.textContent.trim()&&!top.querySelector('img,table,svg,video,iframe,canvas,details')));
+                              const blankTarget=!clickedImage&&!clickedText&&(!top||top===root||(!top.textContent.trim()&&!top.querySelector('img,table,svg,video,iframe,canvas,details')));
                               const clearBlockSelection=()=>{
                                 root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});
                                 NativeEditor.blockSelected('');
