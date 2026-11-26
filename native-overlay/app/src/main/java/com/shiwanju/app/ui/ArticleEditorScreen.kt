@@ -275,25 +275,25 @@ private fun Text2EditorPanel(
                             Text(fontSize.toInt().toString(), color = Color.White, fontSize = 12.sp)
                             TextButton(onClick = { fontSize = (fontSize + 1).coerceAtMost(72f); onApplyCss("font-size", fontSize.toInt().toString() + "px") }, contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)) { Text("＋", color = Color.White) }
                         }
-                        parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "描边" -> {
-                        parameter("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px") }
-                        parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("粗细", strokeWidth, 0f, 12f, "px") { strokeWidth = it; onApplyCss("-webkit-text-stroke-width", it.toString() + "px") }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "阴影" -> {
-                        parameter("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + selectedColor) }
-                        parameter("距离", distance, 0f, 30f, "px") { distance = it; onApplyCss("text-shadow", it.toString() + "px " + it + "px " + blur + "px " + selectedColor) }
-                        parameter("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + selectedColor) }
-                        parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("模糊", blur, 0f, 30f, "px") { blur = it; onApplyCss("text-shadow", "1px 1px " + it + "px " + selectedColor) }
+                        Text2ParameterRow("距离", distance, 0f, 30f, "px") { distance = it; onApplyCss("text-shadow", it.toString() + "px " + it + "px " + blur + "px " + selectedColor) }
+                        Text2ParameterRow("角度", angle, 0f, 360f, "°") { angle = it; val rad = Math.toRadians(it.toDouble()); onApplyCss("text-shadow", (kotlin.math.cos(rad) * distance).toString() + "px " + (kotlin.math.sin(rad) * distance) + "px " + blur + "px " + selectedColor) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "发光" -> {
-                        parameter("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + selectedColor) }
-                        parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
+                        Text2ParameterRow("粗细", glowWidth, 0f, 30f, "px") { glowWidth = it; onApplyCss("text-shadow", "0 0 " + it + "px " + selectedColor) }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("opacity", (it / 100f).toString()) }
                     }
                     "背景" -> {
-                        parameter("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("background-color", selectedColor) }
-                        parameter("圆角", radius, 0f, 40f, "px") { radius = it; onApplyCss("border-radius", it.toString() + "px") }
+                        Text2ParameterRow("透明度", opacity, 0f, 100f, "%") { opacity = it; onApplyCss("background-color", selectedColor) }
+                        Text2ParameterRow("圆角", radius, 0f, 40f, "px") { radius = it; onApplyCss("border-radius", it.toString() + "px") }
                     }
                 }
             } else {
@@ -320,8 +320,8 @@ private fun Text2EditorPanel(
                         }
                     }
                 }
-                parameter("行间距", lineSpacing, 1f, 3f, "x") { lineSpacing = it; onApplyCss("line-height", it.toString()) }
-                parameter("字间距", letterSpacing, -2f, 12f, "px") { letterSpacing = it; onApplyCss("letter-spacing", it.toString() + "px") }
+                Text2ParameterRow("行间距", lineSpacing, 1f, 3f, "x") { lineSpacing = it; onApplyCss("line-height", it.toString()) }
+                Text2ParameterRow("字间距", letterSpacing, -2f, 12f, "px") { letterSpacing = it; onApplyCss("letter-spacing", it.toString() + "px") }
             }
         }
     }
