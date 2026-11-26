@@ -182,6 +182,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_bottom_nav_v2.py
 
+      - name: Apply object-safe editor actions and component tools v3
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_editor_functional_v3.py
+
       # Run last because route enforcement rewrites MainActivity; verify the final source.
       - name: Apply and verify status bar icon contrast
         if: steps.source.outputs.present == 'true'
