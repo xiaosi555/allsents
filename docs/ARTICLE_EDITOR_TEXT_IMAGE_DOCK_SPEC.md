@@ -13,12 +13,13 @@
 | `native-overlay/apply_editor_bottom_nav_v2.py` | 对象类型底部导航、文字四个二级栏目、图片/组件导航入口 |
 | `native-overlay/apply_editor_functional_v3.py` | 类型化剪贴板、文字/图片/组件操作、组件自由拖动、图片调整面板 |
 | `native-overlay/apply_editor_functional_v4.py` | 文字输入法显式唤起、隐藏旧“文字2”一级入口、图片调整值同步、图片对象粘贴后重新选中 |
+| `native-overlay/apply_editor_selection_v5.py` | 统一 WebView 触摸命中、文字/图片/组件选中、空白画布恢复默认导航、选中状态与底部 Dock 同步 |
 | `.github/workflows/android.yml` | APK 注入与打包 |
 | `.github/workflows/android-compile-check.yml` | Kotlin 编译检查 |
 | `docs/ARTICLE_EDITOR_INTERACTION_TECHNICAL_PLAN.md` | 编辑器交互技术方案 |
 | `docs/ARTICLE_EDITOR_FUNCTIONAL_AUDIT.md` | 功能审计和回归记录 |
 
-构建顺序必须保持：文章编辑器基础补丁 → Stage B/C2 → 底部导航 v2 → 功能 v3 → 功能 v4 → 最终状态栏处理 → Kotlin 编译/ APK 打包。v4 依赖 v2/v3 已注入的状态和函数，不能提前执行。
+构建顺序必须保持：文章编辑器基础补丁 → Stage B/C2 → 底部导航 v2 → 功能 v3 → 功能 v4 → 画布选中 v5 → 最终状态栏处理 → Kotlin 编译/ APK 打包。v4 依赖 v2/v3 已注入的状态和函数，不能提前执行。
 
 ## 2. 文字底部导航
 
@@ -90,3 +91,12 @@
 - [ ] 真机确认自由拖动跨段落、跨列时不破坏表格和嵌套布局。
 
 > 构建通过仅证明注入源码可编译和 APK 可打包；没有真机实测前，不将触控、IME、剪贴板或图像显示标记为运行验收通过。
+
+
+## 7. 画布命中与导航唤起 V5
+
+本轮新增专项方案见 [ARTICLE_EDITOR_SELECTION_DOCK_V5.md](ARTICLE_EDITOR_SELECTION_DOCK_V5.md)。核心要求：触摸命中优先使用 `elementFromPoint` 复核，点击图片/文字直接产生 IMAGE/TEXT_BLOCK 选择状态，画布内其他空白位置清除选择并恢复 DEFAULT；点击画布外不改变当前状态。二级面板打开时沿用既有隐藏一级导航规则，但仍允许画布切换选中对象。
+
+- [ ] V5 选择事件补丁通过 Kotlin 编译检查。
+- [ ] V5 选择事件补丁通过 APK 构建。
+- [ ] 真机逐项验收文字/图片/组件/空白连续切换和双击文字输入法。
