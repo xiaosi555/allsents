@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep Xingtu tool-sheet content fully interactive while retaining explicit resize handles."""
+"""Keep Xingtu tool-sheet content interactive with a top-center resize handle."""
 from pathlib import Path
 import re
 
@@ -47,8 +47,8 @@ if dock_start >= 0:
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Open the secondary panel at 200dp. Users expand it from the dedicated
-# bottom-center handle, up to the requested 400dp maximum.
+# Open the secondary panel at 200dp. Users resize it from the dedicated
+# top-center handle, keeping the bottom edge clear of system navigation.
 old_height = "toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f"
 new_height = "toolPanelHeightDp = 200f"
 if old_height in s:
@@ -65,6 +65,27 @@ if dock_visibility_old in s:
     s = s.replace(dock_visibility_old, dock_visibility_new, 1)
 elif dock_visibility_new not in s:
     raise SystemExit("Could not locate the persistent primary navigation visibility condition")
+
+
+# Move the resize handle from the sheet footer to the top center, before the
+# title/close row. Keep its gesture math unchanged: dragging upward increases
+# the panel height, while the bottom edge remains free of back-navigation taps.
+handle_pattern = re.compile(
+    r"(?m)^                    Box\\(\\n"
+    r"                        Modifier\\.fillMaxWidth\\(\\)\\.height\\(26\\.dp\\).*?"
+    r"^                    \\}\\n"
+)
+handle_match = handle_pattern.search(s)
+if handle_match:
+    handle_block = handle_match.group(0)
+    s = s[:handle_match.start()] + s[handle_match.end():]
+    header_anchor = '                    Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp)'
+    header_pos = s.find(header_anchor)
+    if header_pos < 0:
+        raise SystemExit("Could not locate the tool-sheet header to position the top resize handle")
+    s = s[:header_pos] + handle_block + s[header_pos:]
+elif s.count("Modifier.fillMaxWidth().height(26.dp)") != 1:
+    raise SystemExit("Could not safely locate the existing resize handle for relocation")
 
 # Start at 200dp and clamp both the animated height and drag range to 200–400dp.
 s = s.replace("var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }", "var toolPanelHeightDp by remember { mutableFloatStateOf(200f) }", 1)
@@ -117,7 +138,7 @@ checks = {
     "no parent gesture interception on content": "toolPanelNestedScrollConnection" not in s and ".nestedScroll(" not in s,
     "content scroll is independent": ".verticalScroll(toolPanelScrollState)" in s,
     "remembered content scroll state": content_state in s,
-    "bottom-center drag handle": handle_marker in s and "toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(200f, 400f)" in s,
+    "top-center drag handle": handle_marker in s and s.find(handle_marker) < s.find('Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp)') and "toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(200f, 400f)" in s,
     "primary navigation hidden while secondary panel is open": "if (!previewMode && !showToolPopup)" in s,
     "text style updates are sent to the live canvas immediately": "NativeEditor.changed(root.innerHTML);" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
     "canvas redraw bridge remains connected": "NativeEditor.previewChanged==='function'" in s,
@@ -128,4 +149,4 @@ if failed:
     raise SystemExit("Xingtu bottom-sheet validation failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Xingtu bottom sheet fixed: panel-specific initial heights, independent content taps/selection/scrolling, dedicated header/handle resizing and separate primary dock.")
+print("Xingtu bottom sheet fixed: panel-specific initial heights, independent content taps/selection/scrolling, dedicated top-center handle resizing and separate primary dock.")
