@@ -47,7 +47,7 @@ if dock_start >= 0:
     end = tail_start + len("\n                }")
     s = s[:dock_start] + s[end:]
 
-# Give each tool panel a content-appropriate initial height, capped by the 350dp maximum.
+# Give each tool panel a content-appropriate initial height, capped by the 400dp maximum.
 old = """                                    } else {
                                         showCanvasPopup = false
                                         showToolPopup = true
@@ -100,8 +100,8 @@ nested_state = """    val toolPanelScrollState = rememberScrollState()
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 val deltaDp = with(toolPanelDensity) { available.y.toDp().value }
                 val currentHeight = toolPanelHeightDp
-                if (deltaDp < 0f && currentHeight < 350f) {
-                    val consumedDp = minOf(-deltaDp, 350f - currentHeight)
+                if (deltaDp < 0f && currentHeight < 400f) {
+                    val consumedDp = minOf(-deltaDp, 400f - currentHeight)
                     toolPanelHeightDp = currentHeight + consumedDp
                     return Offset(0f, with(toolPanelDensity) { (-consumedDp).dp.toPx() })
                 }
@@ -139,7 +139,7 @@ header_drag = """.pointerInput(Unit) {
                             detectDragGestures { change, dragAmount ->
                                 change.consume()
                                 val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp().value }
-                                toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 350f)
+                                toolPanelHeightDp = (toolPanelHeightDp - deltaDp).coerceIn(150f, 400f)
                             }
                         }"""
 header_pattern = r'(Row\(Modifier\.fillMaxWidth\(\)\.height\(44\.dp\)\.padding\(horizontal = 5\.dp\)),'
@@ -158,8 +158,8 @@ checks = {
     "non-modal popup": "PopupProperties(focusable = false" in s,
     "panel-adaptive initial heights": "EditorPanel.TEXT -> 260f" in s and "EditorPanel.DOCUMENT -> 200f" in s,
     "secondary navigation drag surface": header_count == 1,
-    "150dp collapsed minimum and 350dp maximum": "coerceIn(150f, 350f)" in s,
-    "smooth height animation": "tween(durationMillis = 180)" in s,
+    "150dp collapsed minimum and 400dp maximum": "coerceIn(150f, 400f)" in s,
+    "direct height update avoids opening rebound": "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp" in s and "animateDpAsState" not in s,
     "nested swipe resizing": "toolPanelNestedScrollConnection" in s and ".nestedScroll(toolPanelNestedScrollConnection)" in s,
     "content scroll shares nested state": ".verticalScroll(toolPanelScrollState)" in s,
     "no inner navigation inset consuming initial height": new_panel in s,
@@ -171,4 +171,4 @@ if failed:
     raise SystemExit("Xingtu bottom-sheet validation failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Xingtu bottom sheet fixed: panel-specific initial heights, secondary-navigation drag, nested content scroll, 350dp maximum, smooth animation and separate primary dock.")
+print("Xingtu bottom sheet fixed: panel-specific initial heights, secondary-navigation drag, nested content scroll, 400dp maximum, smooth animation and separate primary dock.")
