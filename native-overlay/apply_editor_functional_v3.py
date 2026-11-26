@@ -206,7 +206,8 @@ replace_once(
 
 replace_once(
     "function setSelectedImageFilter(v){if(!activeImage)return;activeImage.style.filter=v||'none';commitHistory();NativeEditor.changed(root.innerHTML);}",
-    "function setSelectedImageFilter(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter=v||'none';commitHistory();NativeEditor.changed(root.innerHTML);}\n                            function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}\n                            function previewSelectedImageOpacity(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(v)))/100);}\n                            function commitSelectedImageStyle(){if(!activeImage)return;commitHistory();NativeEditor.changed(root.innerHTML);}",
+    "function setSelectedImageFilter(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter=v||'none';commitHistory();NativeEditor.changed(root.innerHTML);}\n                            function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}\n                            function previewSelectedImageOpacity(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(v)))/100);}
+                            function previewSelectedImageRadius(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.borderRadius=v;}\n                            function commitSelectedImageStyle(){if(!activeImage)return;commitHistory();NativeEditor.changed(root.innerHTML);}",
     "live image color and opacity preview"
 )
 
@@ -232,7 +233,7 @@ replace_once(
                             Text("透明度 " + imageOpacity.toInt() + "%", color = Color(0xFFAAAAAA), fontSize = 10.sp)
                             Slider(value = imageOpacity, onValueChange = { imageOpacity = it; runJs("previewSelectedImageOpacity(" + it + ")") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..100f)
                             Text("圆角 " + imageRadius.toInt() + "dp", color = Color(0xFFAAAAAA), fontSize = 10.sp)
-                            Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs("setSelectedImageRadius(" + it + " + 'px')") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..40f)
+                            Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs("previewSelectedImageRadius(" + it + " + 'px')") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..40f)
                             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 EditorTool("水平翻转") { runJs("flipSelectedImage('horizontal')") }
                                 EditorTool("垂直翻转") { runJs("flipSelectedImage('vertical')") }
@@ -394,6 +395,16 @@ component_branch = """                            } else if (floatingToolbarRequ
                                 when (selectionState.kind) {
                                     EditorSelectionKind.TABLE -> {"""
 replace_once(component_anchor, component_branch, "component floating window action group")
+
+# A locked object remains selectable but routes to component tools for unlocking.
+s = s.replace("if(activeImage){kind='IMAGE';target=activeImage;}", "if(activeImage){kind=activeImage.dataset.editorLocked==='1'?'COMPONENT':'IMAGE';target=activeImage;}")
+s = s.replace("kind='TEXT_BLOCK';target=activeTextBlock;", "kind=activeTextBlock.dataset.editorLocked==='1'?'COMPONENT':'TEXT_BLOCK';target=activeTextBlock;")
+s = s.replace("if(second){root.contentEditable='true';root.focus();}", "if(second&&hit.dataset.editorLocked!=='1'){root.contentEditable='true';root.focus();}")
+s = s.replace("selected.classList.add('selected-block');selected.draggable=true;", "selected.classList.add('selected-block');selected.draggable=selected.dataset.editorLocked!=='1';")
+s = s.replace("if(activeTextBlock&&root.contains(activeTextBlock)){const r=document.createRange();", "if(activeTextBlock&&activeTextBlock.dataset.editorLocked==='1')return;if(activeTextBlock&&root.contains(activeTextBlock)){const r=document.createRange();")
+s = s.replace("if(!target||!root.contains(target))return false;", "if(!target||!root.contains(target)||target.closest('[data-editor-locked=\"1\"]'))return false;")
+s = s.replace("if(e.tagName==='IMG')e.draggable=!locked;else e.contentEditable=locked?'false':'true';", "e.draggable=!locked;if(e.tagName!=='IMG')e.contentEditable=locked?'false':'true';")
+s = s.replace("if(!activeImage)return;", "if(!activeImage||activeImage.dataset.editorLocked==='1')return;")
 
 required = [
     'Triple("组件", "▦", "component")',
