@@ -1313,10 +1313,18 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                             function updateMultiDragHandle(preferred){const selected=Array.from(root.querySelectorAll('.selected-block'));selected.forEach(e=>e.draggable=false);const handle=preferred&&selected.includes(preferred)?preferred:selected[selected.length-1];if(handle)handle.draggable=true;}
                             function setMultiSelectMode(v){multiSelectMode=!!v;root.querySelectorAll('.selected-block').forEach(e=>{e.classList.remove('selected-block');e.draggable=false;});NativeEditor.blockSelected('');}
                             root.addEventListener('click',function(ev){
-                              if(ev.target&&ev.target.tagName==='IMG'){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.textSelected('0');}
+                              const clickedImage=!!(ev.target&&ev.target.tagName==='IMG');
+                              const clickedText=!!(!clickedImage&&ev.target!==root&&(
+                                (ev.target.closest&&ev.target.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,span,strong,b,em,i,u,a')) ||
+                                (ev.target.childNodes&&ev.target.childNodes.length===1&&ev.target.firstChild&&ev.target.firstChild.nodeType===3)
+                              ));
+                              if(clickedImage){root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));activeImage=ev.target;if(activeImage.dataset.originalWidth===undefined){activeImage.dataset.originalWidth=activeImage.style.width;activeImage.dataset.originalHeight=activeImage.style.height;activeImage.dataset.originalObjectFit=activeImage.style.objectFit;activeImage.dataset.originalObjectPosition=activeImage.style.objectPosition;}activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.textSelected('0');}
                               else {if(activeImage){activeImage.classList.remove('selected-image');activeImage=null;NativeEditor.imageSelected('');}NativeEditor.textSelected(ev.target!==root?'1':'0');}
                               let e=ev.target;while(e&&e!==root&&e.parentElement!==root)e=e.parentElement;
-                              if(e&&e!==root){
+                              if(clickedImage||clickedText){
+                                root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});
+                                NativeEditor.blockSelected('');
+                              } else if(e&&e!==root){
                                 if(multiSelectMode){e.classList.toggle('selected-block');updateMultiDragHandle(e);NativeEditor.blockSelected(Array.from(root.querySelectorAll('.selected-block')).map(x=>cleanBlockHtml(x)).join(''));}
                                 else{root.querySelectorAll('.selected-block').forEach(x=>{x.classList.remove('selected-block');x.draggable=false;});e.classList.add('selected-block');e.draggable=true;NativeEditor.blockSelected(cleanBlockHtml(e));}
                               }
@@ -1640,7 +1648,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
-remove content secondary navigation                when (activePanel) {
+when (activePanel) {
                     EditorPanel.TEXT -> {
                         Text("文字与段落", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
