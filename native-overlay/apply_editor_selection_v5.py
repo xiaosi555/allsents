@@ -209,6 +209,9 @@ callback_old = """                            { state ->
                                 if (state.kind == EditorSelectionKind.NONE) { floatingMenu = ""; floatingToolbarRequest = "" }
                             }"""
 callback_new = """                            { state ->
+                                val typeChanged = state.objectId != selectionState.objectId ||
+                                    (state.kind != selectionState.kind && state.kind != EditorSelectionKind.TEXT_RANGE &&
+                                        selectionState.kind != EditorSelectionKind.TEXT_BLOCK && state.kind != EditorSelectionKind.CARET)
                                 selectionState = state
                                 selectedTextActive = state.kind == EditorSelectionKind.TEXT_BLOCK ||
                                     state.kind == EditorSelectionKind.TEXT_RANGE || state.kind == EditorSelectionKind.CARET
@@ -222,6 +225,12 @@ callback_new = """                            { state ->
                                     selectedTextActive = false
                                     floatingMenu = ""
                                     floatingToolbarRequest = ""
+                                    showToolPopup = false
+                                    showCanvasPopup = false
+                                } else if (typeChanged) {
+                                    // A different canvas object takes focus; reveal its matching dock.
+                                    showToolPopup = false
+                                    showCanvasPopup = false
                                 }
                             }"""
 replace_once(callback_old, callback_new, "selection callback is the single dock state source")
