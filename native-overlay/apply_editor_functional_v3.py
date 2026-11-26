@@ -271,11 +271,6 @@ if s.count(copy_text_command) != 2:
 copy_component_at = s.rfind(copy_text_command)
 s = s[:copy_component_at] + s[copy_component_at:].replace(copy_text_command, '"复制" -> runJs("copySelectedObject()")', 1)
 replace_once(
-    'onClick = { runJs("copySelectedTextBlock()") }) { Text("复制对象",',
-    'onClick = { runJs("copySelectedObject()") }) { Text("复制对象",',
-    "floating component copy selected object"
-)
-replace_once(
     '"上移" -> runJs("moveSelectedBlock(-1)")',
     '"上移" -> runJs("moveSelectedObjectVertical(-1)")',
     "component move up"
@@ -324,7 +319,7 @@ component_branch = """                            } else if (floatingToolbarRequ
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("moveSelectedObjectHorizontal(-1)") }) { Text("← 左移/移入左栏", color = ink, fontSize = 11.sp) }
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("moveSelectedObjectHorizontal(1)") }) { Text("右移/移入右栏 →", color = ink, fontSize = 11.sp) }
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("copySelectedObjectStyle()") }) { Text("复制样式", color = ink, fontSize = 11.sp) }
-                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("copySelectedTextBlock()") }) { Text("复制对象", color = ink, fontSize = 11.sp) }
+                                    TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("copySelectedObject()") }) { Text("复制对象", color = ink, fontSize = 11.sp) }
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("pasteEditorObjectClipboard()") }) { Text("粘贴", color = ink, fontSize = 11.sp) }
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("toggleSelectedObjectLock()") }) { Text("锁定/解锁", color = accent, fontSize = 11.sp) }
                                     TextButton(contentPadding = PaddingValues(horizontal = 3.dp, vertical = 0.dp), onClick = { runJs("deleteSelectedObject()") }) { Text("删除", color = Color(0xFFCC5555), fontSize = 11.sp) }
