@@ -100,7 +100,7 @@ body = r"""
                                         }
                                     }
                                     "font", "style", "layout", "text-opacity" -> {
-                                        text2MainTab = when (action) { "text-opacity" -> "透明度"; else -> action.replaceFirstChar { it.uppercase() } }
+                                        text2MainTab = when (action) { "font" -> "字体"; "style" -> "样式"; "layout" -> "排版"; else -> "透明度" }
                                         activePanel = EditorPanel.TEXT2
                                         showToolPopup = true
                                         showCanvasPopup = false
