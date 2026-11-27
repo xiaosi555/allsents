@@ -24,11 +24,17 @@ def replace_once(old: str, new: str, label: str):
     s = s.replace(old, new, 1)
 
 # WindowInsets.ime is an extension property in Compose Foundation Layout.
-if not re.search(r"import androidx\.compose\.foundation\.layout\.ime(?:\s|$)", s) and not re.search(r"import androidx\.compose\.foundation\.layout\.\*", s):
+layout_wildcard_import = "import androidx.compose.foundation.layout.*" in s
+imports_to_add = []
+if not layout_wildcard_import and "import androidx.compose.foundation.layout.WindowInsets" not in s:
+    imports_to_add.append("import androidx.compose.foundation.layout.WindowInsets")
+if not layout_wildcard_import and "import androidx.compose.foundation.layout.ime" not in s:
+    imports_to_add.append("import androidx.compose.foundation.layout.ime")
+if imports_to_add:
     package = re.search(r"(?m)^package [^\n]+\n", s)
     if not package:
-        fail("Kotlin package declaration missing; cannot add IME import safely")
-    s = s[:package.end()] + "import androidx.compose.foundation.layout.ime\n" + s[package.end():]
+        fail("Kotlin package declaration missing; cannot add IME imports safely")
+    s = s[:package.end()] + "\n".join(imports_to_add) + "\n" + s[package.end():]
 
 keyboard_anchor = "    val keyboardController = LocalSoftwareKeyboardController.current\n"
 if "val editorImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0" not in s:
