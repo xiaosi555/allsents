@@ -28,22 +28,18 @@ old_text_action = '''                                    "font", "style", "layou
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
 new_text_action = '''                                    "font", "style", "layout", "text-opacity" -> {
-                                        text2MainTab = when (action) { "font" -> "字体"; "style" -> "样式"; "layout" -> "排版"; else -> "样式" }
-                                        activePanel = EditorPanel.TEXT2
-                                        showToolPopup = true
+                                        activeObjectDialog = action
+                                        showToolPopup = false
                                         showCanvasPopup = false
-                                        toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
 once(old_text_action, new_text_action, "unify selected text secondary panel")
 once(
     '                                    "text-align" -> activeObjectDialog = action',
     '''                                    "text-align" -> {
-                                        text2MainTab = "排版"
-                                        activePanel = EditorPanel.TEXT2
-                                        showToolPopup = true
+                                        activeObjectDialog = action
+                                        showToolPopup = false
                                         showCanvasPopup = false
-                                        toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }''',
     "route text alignment through full Text2 panel"
@@ -99,4 +95,4 @@ if failed:
     raise SystemExit("Bottom panel verification failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Selected text/image secondary panels now use a bottom-anchored non-modal popup with live canvas previews.")
+print("Each selected-text tool opens its own bottom non-modal popup; image actions retain individual popups and dedicated crop/color panels.")
