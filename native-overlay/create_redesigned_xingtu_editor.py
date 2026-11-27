@@ -129,7 +129,8 @@ else:
 # current selection and WebView Range are intentionally not cleared here.
 effect_anchor = "    BackHandler {\n        when {"
 effect_insert = """    LaunchedEffect(showToolPopup, showCanvasPopup) {
-        if (showToolPopup || showCanvasPopup) keyboardController?.hide()\n        if (!showToolPopup) showPanelDragHandle = false
+        if (showToolPopup || showCanvasPopup) keyboardController?.hide()
+        if (!showToolPopup) showPanelDragHandle = false
     }
 
 """
