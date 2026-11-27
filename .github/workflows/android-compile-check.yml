@@ -208,6 +208,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_default_dock_panel_dismiss.py
 
+      - name: Keep selected editor content visible above keyboard and tool panels
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/keep_editor_target_visible_above_ime_and_panel.py
+
 
       - name: Upload canvas selection patch diagnostic
         if: always()
