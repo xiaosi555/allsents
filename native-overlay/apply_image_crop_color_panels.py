@@ -35,12 +35,7 @@ rep('''                    EditorPanel.TEXT2 -> {
                     EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, { runJs(it) })
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(''')
-nav_start = s.find("EditorPanel.values().filterNot")
-nav_end = s.find(".forEach { panel ->", nav_start)
-if nav_start < 0 or nav_end < 0:
-    raise SystemExit("primary navigation filter not found")
-nav_end += len(".forEach { panel ->")
-s = s[:nav_start] + "EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 || it == EditorPanel.IMAGE_CROP || it == EditorPanel.IMAGE_COLOR }.forEach { panel ->" + s[nav_end:]
+rep('private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)','private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.IMAGE_CROP, EditorPanel.IMAGE_COLOR, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)')
 anchor="function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}"
 addition=anchor+"""
                             function previewSelectedImageAdvanced(b,c,s,temp,tint,hue,gray,sepia,blur,rotation){
