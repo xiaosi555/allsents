@@ -127,7 +127,7 @@ for marker in ("RedesignedEditorPanel.IMAGE_CROP -> ImageCropColorPanel", "Redes
         fail("Dedicated image function panel missing: " + marker)
 if "function previewSelectedTextOpacity(v)" not in new or "notifyCanvasPreview();" not in new[new.index("function previewSelectedTextOpacity(v)"):new.index("function commitSelectedTextOpacity")]:
     fail("Text opacity no longer synchronizes to the live canvas")
-if "function syncSelectedImageLive()" not in new or "syncSelectedImageLive();" not in new[new.index("function previewSelectedImageOpacity"):new.index("function previewSelectedImageRadius")]:
+if "function syncSelectedImageLive()" not in new or "syncSelectedImageLive();" not in new[new.index("function previewSelectedImageOpacity(v)"):new.index("function previewSelectedImageOpacity(v)") + 500]:
     fail("Image opacity no longer synchronizes to the live canvas")
 
 # Check the coordinator's actual branch order and uniqueness of the image picker.
