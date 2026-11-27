@@ -203,6 +203,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_empty_line_default_dock.py
 
+      - name: Keep default dock secondary panels open
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/fix_default_dock_panel_dismiss.py
+
       - name: Upload editor selection and image import diagnostics v6
         if: always()
         uses: actions/upload-artifact@v4
