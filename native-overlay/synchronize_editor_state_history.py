@@ -61,14 +61,14 @@ old_panel = """private fun ImageCropColorPanel(kind: String, tab: String, onJs: 
  var tint by remember { mutableFloatStateOf(0f) }; var vibrance by remember { mutableFloatStateOf(0f) }; var hue by remember { mutableFloatStateOf(0f) }
  var gray by remember { mutableFloatStateOf(0f) }; var sepia by remember { mutableFloatStateOf(0f) }; var blur by remember { mutableFloatStateOf(0f) }
 """
-new_panel = """private fun ImageCropColorPanel(kind: String, tab: String, selectedImageHtml: String, onJs: (String) -> Unit, onPixelCrop: (Float) -> Unit = {}, onCustomCrop: () -> Unit = {}) {
+new_panel = '''private fun ImageCropColorPanel(kind: String, tab: String, selectedImageHtml: String, onJs: (String) -> Unit, onPixelCrop: (Float) -> Unit = {}, onCustomCrop: () -> Unit = {}) {
  fun imageValue(key: String, fallback: Float): Float = Regex("""data-$key=[\"']([^\"']+)[\"']""").find(selectedImageHtml)?.groupValues?.getOrNull(1)?.toFloatOrNull() ?: fallback
  var a by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-brightness", 100f)) }; var b by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-contrast", 100f)) }; var c by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-saturation", 100f)) }
  var angle by remember(selectedImageHtml) { mutableFloatStateOf(if (kind == "color") imageValue("color-temperature", 0f) else imageValue("editor-rotation", 0f)) }; var x by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("editor-crop-x", 50f)) }; var y by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("editor-crop-y", 50f)) }
  var exposure by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-exposure", 0f)) }; var highlights by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-highlights", 0f)) }; var shadows by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-shadows", 0f)) }
  var tint by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-tint", 0f)) }; var vibrance by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-vibrance", 0f)) }; var hue by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-hue", 0f)) }
  var gray by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-grayscale", 0f)) }; var sepia by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-sepia", 0f)) }; var blur by remember(selectedImageHtml) { mutableFloatStateOf(imageValue("color-blur", 0f)) }
-"""
+'''
 once(old_panel, new_panel, "image panel state hydration")
 once('''EditorPanel.IMAGE_CROP -> ImageCropColorPanel("crop", imageCropMainTab, { runJs(it) }, { cropSelectedImagePixels(it) }, { openCustomImageCrop() })''','''EditorPanel.IMAGE_CROP -> ImageCropColorPanel("crop", imageCropMainTab, selectedImageHtml, { runJs(it) }, { cropSelectedImagePixels(it) }, { openCustomImageCrop() })''', "crop panel binding")
 once('''EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, { runJs(it) })''','''EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, selectedImageHtml, { runJs(it) })''', "color panel binding")
