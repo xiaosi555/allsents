@@ -45,13 +45,13 @@ once(
 
 once(
     "    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp",
-    """    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp
+    """    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp
     val editorWindowDensity = LocalDensity.current
     val editorImeBottomPx = WindowInsets.ime.getBottom(editorWindowDensity)
-    LaunchedEffect(showToolPopup, showCanvasPopup, toolPanelHeightDp, editorImeBottomPx, activePanel) {
+    LaunchedEffect(showToolPopup, toolPanelHeightDp, editorImeBottomPx, activePanel) {
         delay(140)
         val coveredPanelPx = with(editorWindowDensity) {
-            (if (showToolPopup) toolPanelHeightDp else if (showCanvasPopup) 200f else 0f).dp.toPx()
+            (if (showToolPopup) toolPanelHeightDp.coerceIn(200f, 400f) else 0f).dp.toPx()
         }
         editor?.evaluateJavascript("ensureEditorTargetVisible(${coveredPanelPx.toInt()})", null)
     }""",
