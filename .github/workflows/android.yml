@@ -226,6 +226,9 @@ jobs:
       - name: Add selected-image crop and color secondary panels
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_image_crop_color_panels.py
+      - name: Restore complete Text2 and image secondary panels
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/upgrade_selection_bottom_nonmodal.py
 
       - name: Repair image crop/color runtime actions and live canvas sync
         if: steps.source.outputs.present == 'true'
