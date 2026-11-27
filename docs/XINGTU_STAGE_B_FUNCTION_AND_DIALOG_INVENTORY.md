@@ -23,13 +23,13 @@
 | 文档 | 文章信息、文章列表、新建、复制、删除、收藏、状态筛选、版本历史、导入导出、预览、兼容性检查 | 文章列表、文章信息、版本列表/预览、HTML 导入预览、文章包导入预览、查找替换、兼容性报告 | 文章元数据、历史快照、资源 ID、草稿/完成状态全部保留 |
 | 画布 | 画布/页面相关操作与可拖动的画布工具窗口 | 画布浮层 | 与普通底部工具面板区分，不能让全屏透明层拦截画布点击 |
 
-### 内部面板枚举映射
+### 内部面板枚举映射与发现的导航缺陷
 
-源码中的 `EditorPanel` 共 13 个枚举项：
+源码中的 `EditorPanel` 共 13 个枚举项。当前旧导航通过 `filterNot { it in templateSubPanels || it == TEXT2 }` 同时过滤模板子分类，导致 `IMAGE`、`LAYOUT`、`CARD`、`COMPONENT`、`SVG` 虽然有完整面板实现，却没有直接出现在一级导航中，普通用户只能从模板子导航或对象上下文入口间接触达。这是阶段 B 发现的实际入口缺陷。
 
-- 一级主导航：`TEXT`、`IMAGE`、`LAYOUT`、`CARD`、`COMPONENT`、`SVG`、`LAYER`、`STYLE`、`TEMPLATE`、`DOCUMENT`、`CANVAS`。
-- 文字属性工作区：`TEXT2`，作为文字二级工作区，不应作为重复的一级入口。
-- 模板子分类：`TITLE`、`CARD`、`IMAGE`、`LAYOUT`、`SVG`、`COMPONENT`，由模板子导航承载，不能在一级导航重复显示。
+- 新版一级主导航：`TEXT`、`IMAGE`、`LAYOUT`、`CARD`、`COMPONENT`、`SVG`、`LAYER`、`STYLE`、`TEMPLATE`、`DOCUMENT`、`CANVAS`。
+- 文字属性工作区：`TEXT2`，作为文字二级工作区，不作为重复的一级入口。
+- 模板子分类：`TITLE`、`CARD`、`IMAGE`、`LAYOUT`、`SVG`、`COMPONENT`，继续由模板子导航承载。模板子分类代表“模板素材类别”，一级入口代表“直接编辑/插入工具”，两者用途不同，因此保留两处入口不是重复删减。
 - `TEMPLATE` 是模板主入口，`templateSubPanel` 负责保存当前模板子分类。
 
 ## 2. 弹窗与浮层清单
