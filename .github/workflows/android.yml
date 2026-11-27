@@ -198,6 +198,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_selection_v6.py
 
+      - name: Restore default dock on empty canvas lines
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/fix_empty_line_default_dock.py
+
       - name: Upload editor selection and image import diagnostics v6
         if: always()
         uses: actions/upload-artifact@v4
