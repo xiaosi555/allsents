@@ -90,8 +90,9 @@ new_advanced = """                              el.dataset.colorBrightness=Strin
                               const f=['brightness('+Math.max(0,Math.min(300,Number(b)||100))+'%)','contrast('+Math.max(0,Math.min(300,Number(c)||100))+'%)','saturate('+Math.max(0,Math.min(300,Number(sat)||100))+'%)','hue-rotate('+((Number(hue)||0)+(Number(tint)||0)*.12)+'deg)'];"""
 once(old_advanced, new_advanced, "persist advanced image adjustment values")
 
-if "el.dataset.editorCropX=String(Math.max(0,Math.min(100,Number(x)||50)))" not in s:
-    raise SystemExit("crop position data binding anchor missing")
+old_pos = "el.style.objectPosition=Math.max(0,Math.min(100,Number(x)||50))+'% '+Math.max(0,Math.min(100,Number(y)||50))+'%';\n                              syncSelectedImageLive();scheduleImageColorCommit();"
+new_pos = "el.dataset.editorCropX=String(Math.max(0,Math.min(100,Number(x)||50)));el.dataset.editorCropY=String(Math.max(0,Math.min(100,Number(y)||50)));el.style.objectPosition=el.dataset.editorCropX+'% '+el.dataset.editorCropY+'%';\n                              syncSelectedImageLive();scheduleImageColorCommit();"
+once(old_pos, new_pos, "persist crop position values")
 
 checks = {
     "5dp slider track applied": s.count("track = { sliderState ->") == slider_calls,
