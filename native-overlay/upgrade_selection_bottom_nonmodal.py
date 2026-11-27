@@ -28,10 +28,27 @@ old_text_action = '''                                    "font", "style", "layou
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
 new_text_action = '''                                    "font", "style", "layout", "text-opacity" -> {
-                                        activeObjectDialog = action
+                                        text2MainTab = when (action) { "font" -> "字体"; "style" -> "样式"; "layout" -> "排版"; else -> "样式" }
+                                        activePanel = EditorPanel.TEXT2
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
 once(old_text_action, new_text_action, "unify selected text secondary panel")
+once(
+    '                                    "text-align" -> activeObjectDialog = action',
+    '''                                    "text-align" -> {
+                                        text2MainTab = "排版"
+                                        activePanel = EditorPanel.TEXT2
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
+                                        runJs("setText2SelectionPreview(true);")
+                                    }''',
+    "route text alignment through full Text2 panel"
+)
+
 
 old_dialog = '        Dialog(onDismissRequest = { activeObjectDialog = "" }) {'
 new_popup = '''        androidx.compose.ui.window.Popup(
