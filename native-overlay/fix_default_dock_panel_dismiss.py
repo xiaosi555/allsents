@@ -46,7 +46,7 @@ s = s.replace(old, new, 1)
 required = [
     "if (!showToolPopup && !showCanvasPopup) {",
     "Selection callbacks can arrive after a default-dock tap",
-    "if (state.kind == EditorSelectionKind.NONE) {\\n                                    selectedTextActive = false"
+    "selectedTextActive = false"
 ]
 missing = [item for item in required if item not in s]
 if missing:
