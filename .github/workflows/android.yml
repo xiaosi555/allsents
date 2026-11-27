@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'ui/**'
   workflow_dispatch:
 
 permissions:
@@ -171,7 +172,11 @@ jobs:
 
       - name: Enforce separate Xingtu and Xiumi editor routes
         if: steps.source.outputs.present == 'true'
-        run: python3 native-overlay/ensure_article_editor_route.py\n\n      - name: Add redesigned Xingtu entry to app Home\n        if: steps.source.outputs.present == 'true'\n        run: python3 native-overlay/add_redesigned_xingtu_home_entry.py
+        run: python3 native-overlay/ensure_article_editor_route.py
+
+      - name: Add redesigned Xingtu entry to app Home
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/add_redesigned_xingtu_home_entry.py
       # Validate that camera/Edit/palette entries resolve to different Compose screens.
 
 
@@ -263,7 +268,11 @@ jobs:
       # Run last because route enforcement rewrites MainActivity; verify the final source.
       - name: Apply and verify status bar icon contrast
         if: steps.source.outputs.present == 'true'
-        run: python3 native-overlay/fix_status_bar.py\n\n      - name: Generate redesigned Xingtu editor while preserving legacy screen\n        if: steps.source.outputs.present == 'true'\n        run: python3 native-overlay/create_redesigned_xingtu_editor.py
+        run: python3 native-overlay/fix_status_bar.py
+
+      - name: Generate redesigned Xingtu editor while preserving legacy screen
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/create_redesigned_xingtu_editor.py
 
 
       - name: Finalize Android resources and version
@@ -294,8 +303,10 @@ jobs:
           gradle.write_text(source, encoding="utf-8")
           print(f"APK version set to {version_name} (versionCode {code})")
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
-              env.write(f"APK_VERSION_NAME={version_name}\n")
-              env.write(f"APK_BUILD_NUMBER={build_number}\n")
+              env.write(f"APK_VERSION_NAME={version_name}
+")
+              env.write(f"APK_BUILD_NUMBER={build_number}
+")
           PY
           sed -i 's/android:roundIcon="@mipmap\/ic_launcher"/android:roundIcon="@mipmap\/ic_launcher_round"/' "$PROJECT/app/src/main/AndroidManifest.xml"
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
