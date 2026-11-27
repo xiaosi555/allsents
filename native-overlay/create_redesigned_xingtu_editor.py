@@ -35,6 +35,18 @@ redesigned = source.replace(
     1
 )
 
+# Kotlin top-level classes/enums cannot be duplicated across files even when
+# declared private. Give the redesigned copy its own type namespace so the
+# legacy screen remains byte-for-byte independent and both files compile.
+for original, redesigned_name in (
+    ("EditorSelectionKind", "RedesignedEditorSelectionKind"),
+    ("EditorSelectionState", "RedesignedEditorSelectionState"),
+    ("ArticleEditorBridge", "RedesignedArticleEditorBridge"),
+    ("EditorPanel", "RedesignedEditorPanel"),
+    ("EditorLayerItem", "RedesignedEditorLayerItem"),
+):
+    redesigned = re.sub(r"\\b" + original + r"\\b", redesigned_name, redesigned)
+
 # Keep the established visual language. Only normalize the new screen's panel
 # geometry and interaction; do not replace its page/background/theme surfaces.
 if "import androidx.compose.ui.platform.LocalSoftwareKeyboardController" not in redesigned:
