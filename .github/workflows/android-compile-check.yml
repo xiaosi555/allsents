@@ -2,7 +2,7 @@ name: Android Kotlin Compile Check
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'ui/**']
   workflow_dispatch:
 
 permissions:
