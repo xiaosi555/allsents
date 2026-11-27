@@ -118,7 +118,7 @@ checks = {
     "selected text retained after edit": "selectedTextActive = true\n                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)" in s,
     "system Back uses coordinator": "BackHandler(enabled = !editorImeVisible) { handleEditorBack() }" in s,
     "top Back uses coordinator": "IconButton(onClick = { handleEditorBack() })" in s,
-    "IME explicitly gets first Back": "if (editorImeVisible) {\\n            keyboardController?.hide()\\n            return\\n        }" in s,
+    "IME explicitly gets first Back": "if (editorImeVisible) {\n            keyboardController?.hide()\n            return\n        }" in s,
     "single terminal save/leave": "else -> saveDocument(onComplete = onBack)" in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
