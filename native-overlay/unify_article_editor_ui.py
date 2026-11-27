@@ -73,7 +73,10 @@ new_dock_item = """                                val itemTint = if (item in li
                                     EditorVectorIcon(item, tint = itemTint, modifier = Modifier.size(18.dp))
                                     Text(item, color = itemTint, fontSize = 10.sp, maxLines = 1)
                                 }"""
-once(old_dock_item, new_dock_item, "vector icons in primary dock")
+if old_dock_item in s:
+    once(old_dock_item, new_dock_item, "vector icons in primary dock")
+elif "EditorVectorIcon(item" not in s:
+    raise SystemExit("Primary dock icon anchor is missing")
 
 # Fail fast if a future patch changes the contract unexpectedly.
 required = [
