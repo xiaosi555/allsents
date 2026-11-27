@@ -53,9 +53,9 @@ ime_effect_anchor = """    LaunchedEffect(showToolPopup, showCanvasPopup) {
 ime_effect = ime_effect_anchor + """    LaunchedEffect(editorImeVisible, selectedTextActive, selectionState.kind) {
         if (editorImeVisible && (
             selectedTextActive ||
-            selectionState.kind == EditorSelectionKind.TEXT_RANGE ||
-            selectionState.kind == EditorSelectionKind.TEXT_BLOCK ||
-            selectionState.kind == EditorSelectionKind.CARET
+            selectionState.kind == RedesignedEditorSelectionKind.TEXT_RANGE ||
+            selectionState.kind == RedesignedEditorSelectionKind.TEXT_BLOCK ||
+            selectionState.kind == RedesignedEditorSelectionKind.CARET
         )) {
             textEditingActive = true
         }
@@ -94,14 +94,14 @@ old_text_edit = """            textEditingActive -> {
                 textEditingActive = false
                 keyboardController?.hide()
                 editor?.evaluateJavascript("restoreSelection();", null)
-                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)
+                selectionState = selectionState.copy(kind = RedesignedEditorSelectionKind.TEXT_BLOCK, collapsed = true)
             }"""
 new_text_edit = """            textEditingActive -> {
                 textEditingActive = false
                 keyboardController?.hide()
                 editor?.evaluateJavascript("restoreSelection();setText2SelectionPreview(true);", null)
                 selectedTextActive = true
-                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)
+                selectionState = selectionState.copy(kind = RedesignedEditorSelectionKind.TEXT_BLOCK, collapsed = true)
             }"""
 replace_once(old_text_edit, new_text_edit, "editing returns to a stable selected-text state")
 
@@ -112,7 +112,7 @@ checks = {
     "floating menu closes before parent": "floatingMenu.isNotBlank() -> floatingMenu = \"\"" in s,
     "exactly one image picker dismissal": s.count("showImage -> showImage = false") == 1,
     "text editing restores selection": 'restoreSelection();setText2SelectionPreview(true);' in s,
-    "selected text retained after edit": "selectedTextActive = true\n                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)" in s,
+    "selected text retained after edit": "selectedTextActive = true\n                selectionState = selectionState.copy(kind = RedesignedEditorSelectionKind.TEXT_BLOCK, collapsed = true)" in s,
     "system Back uses coordinator": "BackHandler(enabled = !editorImeVisible) { handleEditorBack() }" in s,
     "top Back uses coordinator": "IconButton(onClick = { handleEditorBack() })" in s,
     "IME explicitly gets first Back": "if (editorImeVisible) {\n            keyboardController?.hide()\n            return\n        }" in s,
