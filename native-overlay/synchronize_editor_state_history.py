@@ -19,13 +19,13 @@ def once(old: str, new: str, label: str):
 
 
 # Use a thin 5dp track for every editor slider without shrinking its touch target.
-slider_calls = len(re.findall(r"(?<![A-Za-z0-9_])Slider\\(", s))
+slider_calls = len(re.findall(r"(?<![A-Za-z0-9_])Slider\(", s))
 if slider_calls < 5:
     raise SystemExit(f"Unexpected Slider count: {slider_calls}")
 if "track = { sliderState ->" not in s:
     s = re.sub(
-        r"(?<![A-Za-z0-9_])Slider\\(",
-        "Slider(\\n        track = { sliderState -> val range = sliderState.valueRange; val fraction = if (range.endInclusive > range.start) ((sliderState.value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f) else 0f; Canvas(Modifier.fillMaxWidth().height(5.dp)) { val centerY = size.height / 2f; drawLine(Color(0xFF4A4A4A), Offset(0f, centerY), Offset(size.width, centerY), strokeWidth = size.height, cap = androidx.compose.ui.graphics.StrokeCap.Round); drawLine(Color(0xFF4A91FF), Offset(0f, centerY), Offset(size.width * fraction, centerY), strokeWidth = size.height, cap = androidx.compose.ui.graphics.StrokeCap.Round) } },",
+        r"(?<![A-Za-z0-9_])Slider\(",
+        "Slider(\n        track = { sliderState -> val range = sliderState.valueRange; val fraction = if (range.endInclusive > range.start) ((sliderState.value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f) else 0f; Canvas(Modifier.fillMaxWidth().height(5.dp)) { val centerY = size.height / 2f; drawLine(Color(0xFF4A4A4A), Offset(0f, centerY), Offset(size.width, centerY), strokeWidth = size.height, cap = androidx.compose.ui.graphics.StrokeCap.Round); drawLine(Color(0xFF4A91FF), Offset(0f, centerY), Offset(size.width * fraction, centerY), strokeWidth = size.height, cap = androidx.compose.ui.graphics.StrokeCap.Round) } },",
         s,
     )
 
@@ -50,7 +50,7 @@ new_history = """                            let historyObserver=null,historyCom
 once(old_history, new_history, "history manager core")
 
 old_input = "                            root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{commitHistory();NativeEditor.changed(root.innerHTML);},300);});"
-new_input = "                            installHistoryObserver();\\n                            root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{flushHistoryCommit();NativeEditor.changed(root.innerHTML);},300);});"
+new_input = "                            installHistoryObserver();\n                            root.addEventListener('input',()=>{saveSelection();clearTimeout(timer);timer=setTimeout(()=>{flushHistoryCommit();NativeEditor.changed(root.innerHTML);},300);});"
 once(old_input, new_input, "install history observer")
 
 # Hydrate the crop/color panel from the selected image's serialized style state.
@@ -73,7 +73,7 @@ once(old_panel, new_panel, "image panel state hydration")
 once('''EditorPanel.IMAGE_CROP -> ImageCropColorPanel("crop", imageCropMainTab, { runJs(it) }, { cropSelectedImagePixels(it) }, { openCustomImageCrop() })''','''EditorPanel.IMAGE_CROP -> ImageCropColorPanel("crop", imageCropMainTab, selectedImageHtml, { runJs(it) }, { cropSelectedImagePixels(it) }, { openCustomImageCrop() })''', "crop panel binding")
 once('''EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, { runJs(it) })''','''EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, selectedImageHtml, { runJs(it) })''', "color panel binding")
 
-# Commit slider previews to history and send the selected element state back to Compose.
+# Commit slider previews to history and send selected image state back to Compose.
 old_commit = "function commitSelectedImageStyle(){const el=selectedImageTarget();if(!el)return;try{if(typeof commitHistory==='function')commitHistory();}catch(e){}try{if(typeof NativeEditor!=='undefined'&&typeof NativeEditor.changed==='function')NativeEditor.changed(root.innerHTML);}catch(e){}syncSelectedImageLive();}"
 new_commit = "function commitSelectedImageStyle(){const el=selectedImageTarget();if(!el)return;try{if(typeof commitHistory==='function')commitHistory();}catch(e){}try{if(typeof NativeEditor!=='undefined'&&typeof NativeEditor.changed==='function')NativeEditor.changed(root.innerHTML);if(typeof NativeEditor!=='undefined'&&typeof NativeEditor.imageSelected==='function')NativeEditor.imageSelected(el.outerHTML);}catch(e){}syncSelectedImageLive();}"
 once(old_commit, new_commit, "image panel state callback")
@@ -90,17 +90,16 @@ new_advanced = """                              el.dataset.colorBrightness=Strin
                               const f=['brightness('+Math.max(0,Math.min(300,Number(b)||100))+'%)','contrast('+Math.max(0,Math.min(300,Number(c)||100))+'%)','saturate('+Math.max(0,Math.min(300,Number(sat)||100))+'%)','hue-rotate('+((Number(hue)||0)+(Number(tint)||0)*.12)+'deg)'];"""
 once(old_advanced, new_advanced, "persist advanced image adjustment values")
 
-old_pos = "el.dataset.editorCropX=String(Math.max(0,Math.min(100,Number(x)||50)));el.dataset.editorCropY=String(Math.max(0,Math.min(100,Number(y)||50)));el.style.objectPosition=el.dataset.editorCropX+'% '+el.dataset.editorCropY+'%';"
-if old_pos not in s:
+if "el.dataset.editorCropX=String(Math.max(0,Math.min(100,Number(x)||50)))" not in s:
     raise SystemExit("crop position data binding anchor missing")
 
 checks = {
     "5dp slider track applied": s.count("track = { sliderState ->") == slider_calls,
     "history observer wired": "new MutationObserver(records=>" in s and "installHistoryObserver();" in s,
     "undo and redo restore selected image": "NativeEditor.imageSelected(activeImage?activeImage.outerHTML:'')" in s,
-    "crop/color panel receives selected HTML": "ImageCropColorPanel(\"color\", imageColorMainTab, selectedImageHtml" in s,
+    "crop/color panel receives selected HTML": 'ImageCropColorPanel("color", imageColorMainTab, selectedImageHtml' in s,
     "image values hydrate from dataset": "remember(selectedImageHtml)" in s and "color-brightness" in s,
-    "slider position state stored": "data-editor-crop-x" in s.lower() or "editorCropX" in s,
+    "slider position state stored": "editorCropX" in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:
