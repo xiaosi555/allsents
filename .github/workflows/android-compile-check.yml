@@ -172,10 +172,6 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/ensure_article_editor_route.py
 
-      - name: Fix Xingtu expandable bottom sheet interaction
-        if: steps.source.outputs.present == 'true'
-        run: python3 native-overlay/fix_xingtu_bottom_sheet.py
-
       - name: Apply object-aware editor bottom navigation v2
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_bottom_nav_v2.py
