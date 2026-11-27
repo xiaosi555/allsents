@@ -200,13 +200,14 @@ def normalize_call_arguments(text: str, name: str, defaults: dict, force: dict |
 source, alert_count = normalize_call_arguments(
     source,
     "AlertDialog",
+    {},
     {
+        "shape": "RoundedCornerShape(16.dp)",
         "containerColor": "Color(0xFF242424)",
         "titleContentColor": "Color(0xFFF5F5F5)",
         "textContentColor": "Color(0xFFD0D0D0)",
         "tonalElevation": "0.dp",
     },
-    {"shape": "RoundedCornerShape(16.dp)"},
 )
 if alert_count < 1:
     fail("No AlertDialog calls found; source shape changed unexpectedly")
@@ -274,13 +275,20 @@ missing = [name for name, ok in required.items() if not ok]
 if missing:
     fail("Stage D preservation validation failed: " + ", ".join(missing))
 
-# Re-scan every AlertDialog to ensure the standard frame is present.
+# Re-scan every AlertDialog and DropdownMenu to ensure the shared frame is present.
 for _, opening, closing in call_spans(source, "AlertDialog"):
     args = source[opening + 1:closing]
     names = named_argument_names(args)
     for required_name in ("shape", "containerColor", "titleContentColor", "textContentColor", "tonalElevation"):
         if required_name not in names:
             fail(f"AlertDialog missing shared style argument: {required_name}")
+
+for _, opening, closing in call_spans(source, "DropdownMenu"):
+    args = source[opening + 1:closing]
+    names = named_argument_names(args)
+    for required_name in ("shape", "containerColor", "tonalElevation", "shadowElevation"):
+        if required_name not in names:
+            fail(f"DropdownMenu missing shared style argument: {required_name}")
 
 EDITOR.write_text(source, encoding="utf-8")
 print(
