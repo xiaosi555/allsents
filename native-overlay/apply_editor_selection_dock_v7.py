@@ -28,30 +28,7 @@ once(
                             function commitSelectedTextOpacity(){const e=activeTextBlock||selectedParagraph();if(!e||e.dataset.editorLocked==='1')return;commitHistory();NativeEditor.changed(root.innerHTML);}""",
 "text opacity preview")
 
-once(
-"function setSelectedImageBorder(v){if(!activeImage)return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}",
-"function setSelectedImageBorder(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}",
-"image border lock guard")
-
-def guard_image_function(name):
-    global s
-    pattern = re.compile(r"(function " + re.escape(name) + r"\([^)]*\)\{)if\(!activeImage\)return;")
-    updated, count = pattern.subn(r"\1if(!activeImage||activeImage.dataset.editorLocked==='1')return;", s, count=1)
-    if count:
-        s = updated
-        return
-    existing = re.search(r"function " + re.escape(name) + r"\([^)]*\)\{[^}]{0,260}editorLocked", s)
-    if not existing:
-        raise SystemExit("Could not verify image lock protection for " + name)
-
-for name in [
-    "setSelectedImageOpacity", "setSelectedImageShadow", "flipSelectedImage",
-    "alignSelectedImage", "setSelectedImageAsBackground", "setSelectedImageWidth",
-    "setSelectedImageObjectPosition", "rotateSelectedImage", "setSelectedImageRadius",
-    "cropSelectedImage", "resetSelectedImageCrop", "replaceSelectedImage",
-    "deleteSelectedImage", "setSelectedImageAlt", "commitSelectedImageStyle"
-]:
-    guard_image_function(name)
+# Existing v2/v3 image action functions are retained and receive lock guards below.
 
 constAnchor = "@Composable\nprivate fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {"
 helper = """@Composable
