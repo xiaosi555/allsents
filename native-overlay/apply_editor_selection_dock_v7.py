@@ -70,7 +70,14 @@ private fun SelectionDockItem(label: String, glyph: String, onClick: () -> Unit)
 """
 once(constAnchor, helper + constAnchor, "selection dock composable")
 
-floating_old = 'if (!previewMode && (floatingToolbarRequest.isNotBlank() || selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||)'\nfloating_new = 'if (!previewMode && (floatingToolbarRequest.isNotBlank() || selectedBlockHtml.isNotBlank() ||)'\nif floating_old in s:\n    s = s.replace(floating_old, floating_new + "\\n\\n" + "# Replace only the contents of the existing horizontally-scrollable bottom dock.\\n" + 'rowAnchor = "Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),"', 1)\nelif floating_new not in s:\n    raise SystemExit("floating toolbar selection anchor missing")
+floating_old = 'if (!previewMode && (floatingToolbarRequest.isNotBlank() || selectedImageHtml.isNotBlank() || selectedTextActive || selectedBlockHtml.isNotBlank() ||'
+floating_new = 'if (!previewMode && (floatingToolbarRequest.isNotBlank() || selectedBlockHtml.isNotBlank() ||'
+if floating_old in s:
+    s = s.replace(floating_old, floating_new, 1)
+elif floating_new not in s:
+    raise SystemExit("floating toolbar selection anchor missing")
+
+rowAnchor = "Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),"
 rs = s.find(rowAnchor)
 if rs < 0: raise SystemExit("v7 cannot find primary horizontal dock")
 ob = s.find("{", rs)
