@@ -27,11 +27,43 @@ old_text_action = '''                                    "font", "style", "layou
                                         toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
-new_text_action = '''                                    "font", "style", "layout", "text-opacity" -> {
-                                        activeObjectDialog = action
+new_text_action = '''                                    "font", "style", "layout", "text-opacity", "text-align" -> {
+                                        text2MainTab = when (action) {
+                                            "font" -> "字体"
+                                            "style", "text-opacity" -> "样式"
+                                            else -> "排版"
+                                        }
+                                        activePanel = EditorPanel.TEXT2
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
 once(old_text_action, new_text_action, "unify selected text secondary panel")
+
+once(
+    '                                    else -> activeObjectDialog = action',
+    '''                                    else -> {
+                                        activePanel = EditorPanel.IMAGE
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
+                                    }''',
+    "route image appearance tools through full image panel"
+)
+
+once(
+    '                                    "text-align" -> activeObjectDialog = action',
+    '''                                    "text-align" -> {
+                                        text2MainTab = "排版"
+                                        activePanel = EditorPanel.TEXT2
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
+                                        runJs("setText2SelectionPreview(true);")
+                                    }''',
+    "route text alignment through full Text2 panel"
+)
 
 old_dialog = '        Dialog(onDismissRequest = { activeObjectDialog = "" }) {'
 new_popup = '''        androidx.compose.ui.window.Popup(
@@ -44,10 +76,10 @@ new_popup = '''        androidx.compose.ui.window.Popup(
         ) {'''
 once(old_dialog, new_popup, "replace modal dialog with non-modal bottom popup")
 
-old_surface = '            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color(0xFF242424), shadowElevation = 18.dp) {'
+old_surface = '            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = Color(0xFF181818), shadowElevation = 18.dp) {'
 new_surface = '''            Surface(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp).heightIn(max = 390.dp),
-                shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 8.dp, bottomEnd = 8.dp),
+                shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
                 color = Color(0xFF242424),
                 shadowElevation = 18.dp
             ) {'''
