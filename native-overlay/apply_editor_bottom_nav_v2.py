@@ -141,8 +141,8 @@ dock_comment = "// Persistent primary navigation: keep it in the editor's main B
 comment_pos = s.find(dock_comment)
 if comment_pos < 0:
     raise SystemExit("Could not locate persistent primary dock")
-dock_if = "            if (!previewMode) {"
-start = s.find(dock_if, comment_pos)
+dock_if = next((candidate for candidate in ("            if (!previewMode && !showToolPopup) {", "            if (!previewMode) {") if s.find(candidate, comment_pos) >= 0), None)
+start = s.find(dock_if, comment_pos) if dock_if else -1
 end_marker = "\n            }\n        }\n\n        if (!previewMode) {"
 end = s.find(end_marker, start)
 if start < 0 or end < 0:
