@@ -128,7 +128,7 @@ required = {
     "independent panel scroll": '.verticalScroll(toolPanelScrollState)' in s,
     "direct default dock entries": all(f'"{label}"' in s for label in ("文字", "图片", "布局", "卡片", "组件", "SVG")),
     "direct panel routes": all(f'"{label}" -> {{ activePanel = RedesignedEditorPanel.{panel};' in s for label, panel in (("文字", "TEXT"), ("图片", "IMAGE"), ("布局", "LAYOUT"), ("卡片", "CARD"), ("组件", "COMPONENT"), ("SVG", "SVG"))),
-    "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2RedesignedEditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2RedesignedEditorPanel') + 1)],
+    "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2EditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2EditorPanel') + 1)],
     "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
     "all feature cases retained": all(f'RedesignedEditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","IMAGE_CROP","IMAGE_COLOR","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
     "direct primary entries exposed": 'else -> listOf("加图", "加字", "文字", "图片", "布局", "卡片", "组件", "SVG", "图文模板", "图文收藏", "文档", "画布", "图层")' in s,
