@@ -35,7 +35,7 @@ once(
 )
 
 once(
-    "function setSelectedImageBorder(v){if(!activeImage)return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}",
+    "function setSelectedImageBorder(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}",
     """function setSelectedImageBorder(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.border=v;commitSelectedImageStyle();}
                             function previewSelectedImageBorder(w,style,color){if(!activeImage||activeImage.dataset.editorLocked==='1')return;w=Math.max(0,Math.min(12,Number(w)||0));activeImage.style.border=w===0?'none':w+'px '+(style||'solid')+' '+(color||'#DDE3EA');}
                             function previewSelectedImageRadius(tl,tr,br,bl){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.borderRadius=[tl,tr,br,bl].map(v=>Math.max(0,Math.min(120,Number(v)||0))+'px').join(' ');}
@@ -44,7 +44,7 @@ once(
 )
 
 once(
-    "function alignSelectedImage(v){if(!activeImage)return;activeImage.style.display='block';activeImage.style.marginLeft=v==='left'?'0':'auto';activeImage.style.marginRight=v==='right'?'0':'auto';if(v==='center'){activeImage.style.marginLeft='auto';activeImage.style.marginRight='auto';}commitHistory();NativeEditor.changed(root.innerHTML);}",
+    "function alignSelectedImage(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.display='block';activeImage.style.marginLeft=v==='left'?'0':'auto';activeImage.style.marginRight=v==='right'?'0':'auto';if(v==='center'){activeImage.style.marginLeft='auto';activeImage.style.marginRight='auto';}commitHistory();NativeEditor.changed(root.innerHTML);}",
     """function alignSelectedImage(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;if(v==='top'||v==='middle'||v==='bottom'){activeImage.style.display='inline-block';activeImage.style.verticalAlign=v==='middle'?'middle':v;}else if(v==='fit'){activeImage.style.display='block';activeImage.style.width='100%';activeImage.style.height='auto';activeImage.style.marginLeft='0';activeImage.style.marginRight='0';}else if(v==='reset'){activeImage.style.display='';activeImage.style.marginLeft='';activeImage.style.marginRight='';activeImage.style.verticalAlign='';}else{activeImage.style.display='block';activeImage.style.marginLeft=v==='left'?'0':'auto';activeImage.style.marginRight=v==='right'?'0':'auto';if(v==='center'){activeImage.style.marginLeft='auto';activeImage.style.marginRight='auto';}}commitSelectedImageStyle();}""",
     "image alignment"
 )
