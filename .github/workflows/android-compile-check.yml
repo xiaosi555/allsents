@@ -196,6 +196,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_selection_dock_v7.py
 
+      - name: Upgrade Meitu-style image and module appearance commands
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/upgrade_meitu_object_style_commands.py
+
       - name: Fix Xingtu expandable bottom sheet interaction
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_xingtu_bottom_sheet.py
