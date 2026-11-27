@@ -326,3 +326,16 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: gradle --no-daemon -p source/ShiWanJu-Android :app:compileDebugKotlin
 
+      - name: Build debug APK after successful Kotlin compilation
+        if: steps.source.outputs.present == 'true'
+        run: gradle --no-daemon -p source/ShiWanJu-Android :app:assembleDebug
+
+      - name: Verify and upload debug APK
+        if: steps.source.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShiWanJu-debug-apk-${{ github.run_number }}
+          path: source/ShiWanJu-Android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
