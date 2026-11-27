@@ -57,11 +57,13 @@ once(
     'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }',
     "left close action"
 )
-once(
-    'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }',
-    'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }',
-    "right confirm action"
-)
+right_close = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }'
+right_check = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }'
+if right_check not in s:
+    if s.count(right_close) != 2:
+        raise SystemExit(f"Expected left/right close anchors before right-button swap, found {s.count(right_close)}")
+    right_pos = s.rfind(right_close)
+    s = s[:right_pos] + right_check + s[right_pos + len(right_close):]
 
 # Make the persistent category dock use the same vector icon language as the
 # selection tools, while retaining its existing labels and click behavior.
