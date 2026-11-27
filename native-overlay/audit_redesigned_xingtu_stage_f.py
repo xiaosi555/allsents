@@ -123,10 +123,11 @@ main = (ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/MainA
 # MainActivity may live in the package root in some source archive versions.
 if not main.is_file():
     main = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/MainActivity.kt"
-if main.is_file():
-    main_source = main.read_text(encoding="utf-8")
-    if "ArticleEditorRedesignedScreen" not in main_source or "xingtu_article_editor_legacy" not in main_source:
-        fail("Redesigned and legacy editor routes are not both registered")
+if not main.is_file():
+    fail("MainActivity source missing; cannot verify redesigned/legacy editor routes")
+main_source = main.read_text(encoding="utf-8")
+if "ArticleEditorRedesignedScreen" not in main_source or "xingtu_article_editor_legacy" not in main_source:
+    fail("Redesigned and legacy editor routes are not both registered")
 
 print(
     "Stage F static audit passed: "
