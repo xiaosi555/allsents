@@ -247,12 +247,16 @@ jobs:
           rm -f "$PROJECT/app/src/main/res/drawable/ic_launcher_foreground.xml"
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import os, re
           root = Path(".")
           code = int((root / "APP_VERSION").read_text(encoding="utf-8").strip())
-          version_name = (root / "APP_VERSION_NAME").read_text(encoding="utf-8").strip()
-          if not re.fullmatch(r"\d+\.\d+\.\d+", version_name):
-              raise SystemExit(f"Invalid APP_VERSION_NAME: {version_name}")
+          base_version = (root / "APP_VERSION_NAME").read_text(encoding="utf-8").strip()
+          if not re.fullmatch(r"\d+\.\d+\.\d+", base_version):
+              raise SystemExit(f"Invalid APP_VERSION_NAME: {base_version}")
+          build_number = os.environ.get("GITHUB_RUN_NUMBER", "").strip()
+          if not build_number.isdigit():
+              raise SystemExit(f"Invalid APK build number: {build_number!r}")
+          version_name = f"{base_version}:{build_number}"
           gradle = Path("source/ShiWanJu-Android/app/build.gradle.kts")
           source = gradle.read_text(encoding="utf-8")
           source, n1 = re.subn(r'(?m)^(\s*versionCode\s*=\s*)\d+', rf'\g<1>{code}', source, count=1)
@@ -261,6 +265,9 @@ jobs:
               raise SystemExit(f"Unable to set APK version: versionCode={n1}, versionName={n2}")
           gradle.write_text(source, encoding="utf-8")
           print(f"APK version set to {version_name} (versionCode {code})")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"APK_VERSION_NAME={version_name}\n")
+              env.write(f"APK_BUILD_NUMBER={build_number}\n")
           PY
           sed -i 's/android:roundIcon="@mipmap\/ic_launcher"/android:roundIcon="@mipmap\/ic_launcher_round"/' "$PROJECT/app/src/main/AndroidManifest.xml"
           sed -i 's/fun setTextViewMode(/fun updateTextViewMode(/' "$PROJECT/app/src/main/java/com/shiwanju/app/ui/AppViewModel.kt"
@@ -281,11 +288,21 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: gradle --no-daemon -p source/ShiWanJu-Android :app:assembleDebug
 
+      - name: Label APK with version and build number
+        if: steps.source.outputs.present == 'true'
+        shell: bash
+        run: |
+          APK_DIR="source/ShiWanJu-Android/app/build/outputs/apk/debug"
+          APK_FILE="$APK_DIR/app-debug.apk"
+          test -f "$APK_FILE"
+          APK_LABEL="${APK_VERSION_NAME//:/-}"
+          mv "$APK_FILE" "$APK_DIR/ShiWanJu-${APK_LABEL}.apk"
+
       - name: Upload APK
         if: steps.source.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ShiWanJu-debug-apk
+          name: ShiWanJu-debug-apk-${{ github.run_number }}
           path: source/ShiWanJu-Android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
