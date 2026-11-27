@@ -114,7 +114,7 @@ if missing_markers:
 
 # Selected-object controls must open one feature popup, not the legacy combined
 # TEXT2/IMAGE panel. Crop and color remain their own dedicated feature panels.
-text_action = re.search(r'"font", "style", "layout", "text-opacity" -> \\{(.*?)\\n\\s*\\}', new, re.S)
+text_action = re.search(r'"font", "style", "layout", "text-opacity" -> \{(.*?)\n\s*\}', new, re.S)
 if not text_action or "activeObjectDialog = action" not in text_action.group(1):
     fail("Selected text tools are not routed to their own bottom popup")
 if "activePanel = RedesignedEditorPanel.TEXT2" in text_action.group(1) or "showToolPopup = true" in text_action.group(1):
