@@ -99,7 +99,15 @@ body = r"""
                                             }
                                         }
                                     }
-                                    "font", "style", "layout", "text-opacity", "text-align" -> activeObjectDialog = action
+                                    "font", "style", "layout", "text-opacity" -> {
+                                        text2MainTab = when (action) { "text-opacity" -> "透明度"; else -> action.replaceFirstChar { it.uppercase() } }
+                                        activePanel = EditorPanel.TEXT2
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
+                                        runJs("setText2SelectionPreview(true);")
+                                    }
+                                    "text-align" -> activeObjectDialog = action
                                     "save-template" -> editor?.evaluateJavascript("selectedObjectHtml()") { raw ->
                                         val saved = runCatching { org.json.JSONTokener(raw ?: "null").nextValue() as? String }.getOrNull().orEmpty()
                                         if (saved.isNotBlank()) {
