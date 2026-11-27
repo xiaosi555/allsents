@@ -6,8 +6,6 @@ import re
 P = Path(__file__).resolve().parents[1] / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt"
 s = P.read_text(encoding="utf-8")
 
-# Keep all image preview edits in the WebView's live document, and notify the native
-# canvas bridge using the same path already used by the working text-style editor.
 anchor = "function resetSelectedImageColor(){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='';commitHistory();NativeEditor.changed(root.innerHTML);}"
 if anchor not in s:
     raise SystemExit("image color reset anchor missing")
@@ -89,12 +87,12 @@ replacement = r"""
 """
 s = s.replace(anchor, replacement.strip(), 1)
 
-# The old crop helper committed on every ratio selection and changed the image's
-# intrinsic height in a way that could distort the canvas. Ensure the panel's reset
-# and apply actions are always backed by the safe functions above.
 for fn in ("resetSelectedImageCrop", "flipSelectedImage", "rotateSelectedImage", "commitSelectedImageStyle", "syncSelectedImageLive"):
     if "function " + fn + "(" not in s:
         raise SystemExit("missing repaired image function: " + fn)
 
 P.write_text(s, encoding="utf-8")
 print("Image crop/color runtime actions repaired; preview updates now notify the native canvas.")
+
+import runpy
+runpy.run_path(str(Path(__file__).with_name("upgrade_image_crop_color_controls.py")))
