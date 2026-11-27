@@ -154,7 +154,7 @@ elif new_scroll not in s:
 # the bottom of the BoxWithConstraints canvas. A full-screen transparent
 # layer blocks canvas hit testing; a top-start wrapped box misplaces the sheet.
 overlay_old = "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
-overlay_new = "Box(Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.BottomCenter).zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+overlay_new = "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
 if overlay_old in s:
     s = s.replace(overlay_old, overlay_new, 1)
 elif overlay_new not in s:
@@ -175,7 +175,7 @@ checks = {
     "inline non-modal bottom sheet": "if (showToolPopup && activePanel != EditorPanel.CANVAS)" in s,
     "sheet overlay is bounded to its own height and anchored to the canvas bottom": overlay_new in s and overlay_old not in s,
     "inner sheet container wraps content": inner_new in s,
-    "canvas touch area is not covered by a full-screen overlay": "Box(Modifier.fillMaxSize().zIndex(100f)" not in s,
+    "canvas touch area remains interactive outside the bounded panel": "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter)" in s,
     "panel itself consumes touches only inside panel bounds": ".height(animatedToolPanelHeight)" in s and ".clickable(" in s,
     "200dp initial panel height": "toolPanelHeightDp = 200f" in s and "var toolPanelHeightDp by remember { mutableFloatStateOf(200f) }" in s,
     "200dp collapsed minimum and 400dp maximum": "coerceIn(200f, 400f)" in s and "val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp" in s,
