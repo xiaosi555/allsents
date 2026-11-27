@@ -42,6 +42,17 @@ new_text_action = '''                                    "font", "style", "layou
 once(old_text_action, new_text_action, "unify selected text secondary panel")
 
 once(
+    '                                    else -> activeObjectDialog = action',
+    '''                                    else -> {
+                                        activePanel = EditorPanel.IMAGE
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
+                                    }''',
+    "route image appearance tools through full image panel"
+)
+
+once(
     '                                    "text-align" -> activeObjectDialog = action',
     '''                                    "text-align" -> {
                                         text2MainTab = "排版"
