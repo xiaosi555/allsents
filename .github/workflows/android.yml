@@ -215,6 +215,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/keep_editor_target_visible_above_ime_and_panel.py
 
+      - name: Repair live canvas preview and replace editor glyphs with vector icons
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/repair_editor_live_preview_and_icons.py
+
 
       - name: Upload editor selection and image import diagnostics v6
         if: always()
