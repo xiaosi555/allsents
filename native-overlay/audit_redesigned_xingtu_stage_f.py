@@ -102,10 +102,32 @@ required_markers = [
     "showArticlePackagePreview",
     "revisionPreview",
     "templatePreview",
+    "height(64.dp).background(pageBg)",
+    "EditorVectorIcon(panel.label",
+    "alignment = Alignment.BottomCenter",
+    "focusable = false",
+    "activeObjectDialog.isNotBlank() -> activeObjectDialog = \"\"",
 ]
 missing_markers = [marker for marker in required_markers if marker not in new]
 if missing_markers:
     fail("Redesigned editor is missing required interaction markers: " + ", ".join(missing_markers))
+
+# Selected-object controls must open one feature popup, not the legacy combined
+# TEXT2/IMAGE panel. Crop and color remain their own dedicated feature panels.
+text_action = re.search(r'"font", "style", "layout", "text-opacity" -> \\{(.*?)\\n\\s*\\}', new, re.S)
+if not text_action or "activeObjectDialog = action" not in text_action.group(1):
+    fail("Selected text tools are not routed to their own bottom popup")
+if "activePanel = RedesignedEditorPanel.TEXT2" in text_action.group(1) or "showToolPopup = true" in text_action.group(1):
+    fail("Selected text tools still open the combined Text2 panel")
+if "else -> activeObjectDialog = action" not in new:
+    fail("Selected image tools are not routed to individual popups")
+for marker in ("RedesignedEditorPanel.IMAGE_CROP -> ImageCropColorPanel", "RedesignedEditorPanel.IMAGE_COLOR -> ImageCropColorPanel"):
+    if marker not in new:
+        fail("Dedicated image function panel missing: " + marker)
+if "function previewSelectedTextOpacity(v)" not in new or "notifyCanvasPreview();" not in new[new.index("function previewSelectedTextOpacity(v)"):new.index("function commitSelectedTextOpacity")]:
+    fail("Text opacity no longer synchronizes to the live canvas")
+if "function syncSelectedImageLive()" not in new or "syncSelectedImageLive();" not in new[new.index("function previewSelectedImageOpacity"):new.index("function previewSelectedImageRadius")]:
+    fail("Image opacity no longer synchronizes to the live canvas")
 
 # Check the coordinator's actual branch order and uniqueness of the image picker.
 start = new.find("    fun handleEditorBack()")
@@ -115,6 +137,7 @@ if start < 0 or end < 0:
 handler = new[start:end]
 ordered = [
     "floatingMenu.isNotBlank() ->",
+    "activeObjectDialog.isNotBlank() -> activeObjectDialog = \"\"",
     "showDeleteConfirm != null ->",
     "showToolPopup -> {",
     "previewMode ->",
