@@ -32,7 +32,12 @@ replace_once(close_right, 'IconButton(onClick = { if (activePanel == EditorPanel
 # Keep the established dark work-surface (#181818) and accent color. Add only
 # a subtle separator to distinguish panel navigation from its working content.
 anchor = '                    CompositionLocalProvider(LocalEditorToolDark provides true) {'
-replace_once(anchor, '                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF303030)))\n' + anchor, "panel header separator")
+anchor_count = s.count(anchor)
+if anchor_count < 1:
+    fail("Stage C anchor mismatch [panel header separator]: expected at least 1, found 0")
+separator = '                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF303030)))\\n'
+s = s.replace(anchor, separator + anchor)
+print(f"Stage C panel separators inserted: {anchor_count}")
 
 # The old dock filtered every template sub-panel from the primary navigation,
 # which also hid direct access to Image/Layout/Card/Component/SVG tools. Keep
