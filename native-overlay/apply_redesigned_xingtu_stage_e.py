@@ -24,8 +24,8 @@ def replace_once(old: str, new: str, label: str):
     s = s.replace(old, new, 1)
 
 # WindowInsets.ime is an extension property in Compose Foundation Layout.
-if not re.search(r"import androidx\\.compose\\.foundation\\.layout\\.ime(?:\\s|$)", s) and not re.search(r"import androidx\\.compose\\.foundation\\.layout\\.\\*", s):
-    package = re.search(r"(?m)^package [^\\n]+\\n", s)
+if not re.search(r"import androidx\.compose\.foundation\.layout\.ime(?:\s|$)", s) and not re.search(r"import androidx\.compose\.foundation\.layout\.\*", s):
+    package = re.search(r"(?m)^package [^\n]+\n", s)
     if not package:
         fail("Kotlin package declaration missing; cannot add IME import safely")
     s = s[:package.end()] + "import androidx.compose.foundation.layout.ime\n" + s[package.end():]
