@@ -35,12 +35,12 @@ rep('''                    EditorPanel.TEXT2 -> {
                     EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, { runJs(it) })
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(''')
-import re
-nav_pattern = r'EditorPanel\\.values\\(\\)\\.filterNot\\s*\\{[^}]*\\}\\.forEach\\s*\\{\\s*panel\\s*->'
-nav_replacement = 'EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 || it == EditorPanel.IMAGE_CROP || it == EditorPanel.IMAGE_COLOR }.forEach { panel ->'
-s, nav_count = re.subn(nav_pattern, nav_replacement, s, count=1)
-if nav_count != 1:
-    raise SystemExit("primary navigation filter not found exactly once: " + str(nav_count))
+nav_start = s.find("EditorPanel.values().filterNot")
+nav_end = s.find(".forEach { panel ->", nav_start)
+if nav_start < 0 or nav_end < 0:
+    raise SystemExit("primary navigation filter not found")
+nav_end += len(".forEach { panel ->")
+s = s[:nav_start] + "EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 || it == EditorPanel.IMAGE_CROP || it == EditorPanel.IMAGE_COLOR }.forEach { panel ->" + s[nav_end:]
 anchor="function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}"
 addition=anchor+"""
                             function previewSelectedImageAdvanced(b,c,s,temp,tint,hue,gray,sepia,blur,rotation){
