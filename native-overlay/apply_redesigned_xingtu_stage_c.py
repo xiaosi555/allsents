@@ -35,7 +35,7 @@ anchor = '                    CompositionLocalProvider(LocalEditorToolDark provi
 anchor_count = s.count(anchor)
 if anchor_count < 1:
     fail("Stage C anchor mismatch [panel header separator]: expected at least 1, found 0")
-separator = '                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF303030)))\\n'
+separator = '                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF303030)))\n'
 s = s.replace(anchor, separator + anchor)
 print(f"Stage C panel separators inserted: {anchor_count}")
 
