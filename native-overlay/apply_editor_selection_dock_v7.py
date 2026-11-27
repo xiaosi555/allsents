@@ -33,7 +33,7 @@ once(
 # Existing v2/v3 image action functions are retained and receive lock guards below.
 def guard_image_function(name):
     global s
-    pattern = re.compile(r"(function " + re.escape(name) + r"\\([^)]*\\)\\{)")
+    pattern = re.compile(r"(function " + re.escape(name) + r"\([^)]*\)\{)")
     match = pattern.search(s)
     if not match:
         raise SystemExit("Could not locate image handler " + name)
