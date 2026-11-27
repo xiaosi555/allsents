@@ -218,24 +218,24 @@ back_new = """    fun handleEditorBack() {
                 textEditingActive = false
                 keyboardController?.hide()
                 editor?.evaluateJavascript("restoreSelection();", null)
-                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)
+                selectionState = selectionState.copy(kind = RedesignedEditorSelectionKind.TEXT_BLOCK, collapsed = true)
             }
-            selectedTextActive || selectionState.kind == EditorSelectionKind.TEXT_RANGE ||
-                selectionState.kind == EditorSelectionKind.TEXT_BLOCK || selectionState.kind == EditorSelectionKind.CARET -> {
+            selectedTextActive || selectionState.kind == RedesignedEditorSelectionKind.TEXT_RANGE ||
+                selectionState.kind == RedesignedEditorSelectionKind.TEXT_BLOCK || selectionState.kind == RedesignedEditorSelectionKind.CARET -> {
                 selectedTextActive = false
                 floatingToolbarRequest = ""
                 floatingMenu = ""
-                selectionState = EditorSelectionState()
+                selectionState = RedesignedEditorSelectionState()
                 runJs("clearSelectedText();")
             }
             selectedImageHtml.isNotBlank() || selectedBlockHtml.isNotBlank() ||
-                selectionState.kind != EditorSelectionKind.NONE || multiSelectMode -> {
+                selectionState.kind != RedesignedEditorSelectionKind.NONE || multiSelectMode -> {
                 selectedImageHtml = ""
                 selectedBlockHtml = ""
                 multiSelectMode = false
                 floatingToolbarRequest = ""
                 floatingMenu = ""
-                selectionState = EditorSelectionState()
+                selectionState = RedesignedEditorSelectionState()
                 runJs("root.querySelectorAll('.selected-image,.selected-block,.selected-text-block').forEach(e=>e.classList.remove('selected-image','selected-block','selected-text-block'));activeImage=null;NativeEditor.imageSelected('');NativeEditor.textSelected('0');NativeEditor.blockSelected('');")
             }
             else -> saveDocument(onComplete = onBack)
