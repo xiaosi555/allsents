@@ -1,0 +1,71 @@
+name: Xingtu Source Static Audit
+
+on:
+  push:
+    branches:
+      - 'ui/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  xingtu-static-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Android source archive
+        id: source
+        shell: bash
+        run: |
+          if [ -f "ShiWanJu-Android-deploy.zip" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "Source archive missing; static audit cannot run."
+          fi
+
+      - name: Set up Python
+        if: steps.source.outputs.present == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install source-patch dependencies
+        if: steps.source.outputs.present == 'true'
+        run: python -m pip install --disable-pip-version-check pillow cairosvg
+
+      - name: Extract Android source
+        if: steps.source.outputs.present == 'true'
+        run: |
+          mkdir -p source
+          unzip -q ShiWanJu-Android-deploy.zip -d source
+          test -f source/ShiWanJu-Android/app/build.gradle.kts
+
+      - name: Run full native patch chain through Xingtu Stage F
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/run_xingtu_static_validation.py
+
+      - name: Package patched native source for review
+        if: steps.source.outputs.present == 'true'
+        run: |
+          cd source
+          zip -qr ../Xingtu-static-audit-native-source.zip ShiWanJu-Android \
+            -x 'ShiWanJu-Android/build/*' 'ShiWanJu-Android/app/build/*' 'ShiWanJu-Android/.gradle/*'
+
+      - name: Upload static audit source and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xingtu-source-static-audit
+          path: |
+            Xingtu-static-audit-native-source.zip
+            xingtu_redesign_patch_error.txt
+            xingtu_stage_c_patch_error.txt
+            xingtu_stage_d_patch_error.txt
+            xingtu_stage_e_patch_error.txt
+            xingtu_stage_f_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 14
