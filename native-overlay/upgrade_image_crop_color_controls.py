@@ -48,6 +48,45 @@ full='''
 '''
 s=s.replace(new,new+full,1)
 
+# Every continuous preview path must save once the user stops interacting.
+rep('''                              syncSelectedImageLive();
+                            }
+                            function previewSelectedImageAdvanced''','''                              syncSelectedImageLive();scheduleImageColorCommit();
+                            }
+                            function previewSelectedImageAdvanced''','basic filter debounce')
+rep('''                              syncSelectedImageLive();
+                            }
+                            function previewSelectedImageTransform''','''                              syncSelectedImageLive();scheduleImageColorCommit();
+                            }
+                            function previewSelectedImageTransform''','advanced filter debounce')
+rep('''                              el.dataset.editorRotation=String(Number(deg)||0);selectedImageTransform(el);syncSelectedImageLive();
+                            }''','''                              el.dataset.editorRotation=String(Number(deg)||0);selectedImageTransform(el);syncSelectedImageLive();scheduleImageColorCommit();
+                            }''','rotation debounce')
+rep('''                              el.style.objectPosition=Math.max(0,Math.min(100,Number(x)||50))+'% '+Math.max(0,Math.min(100,Number(y)||50))+'%';
+                              syncSelectedImageLive();
+                            }''','''                              el.style.objectPosition=Math.max(0,Math.min(100,Number(x)||50))+'% '+Math.max(0,Math.min(100,Number(y)||50))+'%';
+                              syncSelectedImageLive();scheduleImageColorCommit();
+                            }''','position debounce')
+rep('''                              selectedImageTransform(el);syncSelectedImageLive();
+                            }
+                            function flipSelectedImage''','''                              selectedImageTransform(el);syncSelectedImageLive();commitSelectedImageStyle();
+                            }
+                            function flipSelectedImage''','rotate button commit')
+rep('''                              selectedImageTransform(el);syncSelectedImageLive();
+                            }
+                            function cropSelectedImageCustom''','''                              selectedImageTransform(el);syncSelectedImageLive();commitSelectedImageStyle();
+                            }
+                            function cropSelectedImageCustom''','flip button commit')
+rep('''                              el.dataset.editorCropRatio=w+':'+h;syncSelectedImageLive();
+                            }''','''                              el.dataset.editorCropRatio=w+':'+h;syncSelectedImageLive();commitSelectedImageStyle();
+                            }''','custom ratio commit')
+rep('''                              delete el.dataset.editorCropRatio;syncSelectedImageLive();
+                            }''','''                              delete el.dataset.editorCropRatio;syncSelectedImageLive();commitSelectedImageStyle();
+                            }''','reset crop commit')
+rep('''                              el.style.filter='';syncSelectedImageLive();
+                            }''','''                              el.style.filter='';syncSelectedImageLive();commitSelectedImageStyle();
+                            }''','reset color commit')
+
 rep('''private fun ImageCropColorPanel(kind: String, tab: String, onJs: (String) -> Unit) {''','''private fun ImageCropColorPanel(kind: String, tab: String, onJs: (String) -> Unit, onPixelCrop: (Float) -> Unit = {}, onCustomCrop: () -> Unit = {}) {''','crop panel callback')
 rep('''                    EditorPanel.IMAGE_CROP -> ImageCropColorPanel("crop", imageCropMainTab, { runJs(it) })''','''                    EditorPanel.IMAGE_CROP -> ImageCropColorPanel("crop", imageCropMainTab, { runJs(it) }, { cropSelectedImagePixels(it) }, { openCustomImageCrop() })''','crop panel call')
 rep('''    FlowRow(horizontalArrangement=Arrangement.spacedBy(5.dp)){listOf("原始","1:1","3:4","4:3","9:16","16:9","2:3","3:2").forEach{r->OutlinedButton(onClick={if(r=="原始")onJs("resetSelectedImageCrop()") else {val p=r.split(":");onJs("cropSelectedImageCustom("+p[0]+","+p[1]+")")}}){Text(r,color=ink)}}}''','''    FlowRow(horizontalArrangement=Arrangement.spacedBy(5.dp)){listOf("原始","1:1","3:4","4:3","9:16","16:9","2:3","3:2").forEach{r->OutlinedButton(onClick={if(r=="原始")onJs("resetSelectedImageCrop();commitSelectedImageStyle()") else {val p=r.split(":");onJs("cropSelectedImageCustom("+p[0]+","+p[1]+");commitSelectedImageStyle()")}}){Text(r,color=ink)}}}
