@@ -143,7 +143,7 @@ if "activePanel = RedesignedEditorPanel.TEXT2" in text_action.group(1) or "showT
     fail("Selected text action still opens the combined Text2 panel")
 if not re.search(r'"text-align"\s*->\s*activeObjectDialog\s*=\s*action', s):
     fail("Text alignment does not open its own popup")
-if not re.search(r"else -> \\{\\s*activeObjectDialog = action", s):
+if "else -> {\n                                        activeObjectDialog = action" not in s:
     fail("Selected image actions do not open their individual popup")
 if 'activePanel = RedesignedEditorPanel.IMAGE_CROP' not in s or 'activePanel = RedesignedEditorPanel.IMAGE_COLOR' not in s:
     fail("Dedicated image crop/color panels were lost")
@@ -210,7 +210,7 @@ checks = {
     "paper canvas clipping": "Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(Color.White)" in s,
     "icon primary dock": "EditorVectorIcon(panel.label" in s and "height(68.dp)" in s,
     "selected text opens one popup": "activeObjectDialog = action" in text_action.group(1) and "showToolPopup = false" in text_action.group(1),
-    "selected image opens one popup": re.search(r"else -> \\{\\s*activeObjectDialog = action", s) is not None,
+    "selected image opens one popup": "else -> {\n                                        activeObjectDialog = action" in s,
     "dedicated crop panel": "RedesignedEditorPanel.IMAGE_CROP -> ImageCropColorPanel" in s,
     "dedicated color panel": "RedesignedEditorPanel.IMAGE_COLOR -> ImageCropColorPanel" in s,
     "bottom non-modal popup": "alignment = Alignment.BottomCenter" in s and "focusable = false" in s,
