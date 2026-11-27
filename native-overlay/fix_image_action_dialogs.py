@@ -106,6 +106,7 @@ dialog = r'''    if (activeImageDialog.isNotBlank()) {
                                     TextButton(onClick = { runJs("cropSelectedImage('" + ratio + "')"); activeImageDialog = "" }) { Text(ratio) }
                                 }
                             }
+                            TextButton(onClick = { openCustomImageCrop(); activeImageDialog = "" }) { Text("自定义裁剪") }
                             TextButton(onClick = { runJs("resetSelectedImageCrop()"); activeImageDialog = "" }) { Text("恢复原始比例") }
                         }
                         "调色" -> {
