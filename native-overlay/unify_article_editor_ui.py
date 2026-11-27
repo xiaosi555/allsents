@@ -52,18 +52,18 @@ s = s.replace(
 
 # The bottom editor sheet uses a semantic close action on the left and
 # confirmation action on the right, with category tabs centered between them.
-once(
-    'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }',
-    'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }',
-    "left close action"
-)
-right_close = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }'
+left_check = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }'
+left_close = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }'
+right_close = left_close
 right_check = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }'
-if right_check not in s:
-    if s.count(right_close) != 2:
-        raise SystemExit(f"Expected left/right close anchors before right-button swap, found {s.count(right_close)}")
+if left_check in s:
+    if s.count(left_check) != 1 or s.count(right_close) != 1:
+        raise SystemExit("Could not uniquely locate both secondary-panel header actions")
+    s = s.replace(left_check, left_close, 1)
     right_pos = s.rfind(right_close)
     s = s[:right_pos] + right_check + s[right_pos + len(right_close):]
+elif left_close not in s or right_check not in s:
+    raise SystemExit("Secondary-panel header actions are in an unexpected state")
 
 # Make the persistent category dock use the same vector icon language as the
 # selection tools, while retaining its existing labels and click behavior.
