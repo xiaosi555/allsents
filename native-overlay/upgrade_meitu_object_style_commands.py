@@ -174,6 +174,58 @@ new_align = '''                        "image-align" -> {
                         }'''
 once(old_align, new_align, "image alignment controls")
 
+# Extend the existing module-style dialog rather than adding a duplicate command.
+once(
+    '    var blockAlign by remember { mutableStateOf("left") }',
+    '    var blockAlign by remember { mutableStateOf("left") }\n    var blockObjectAlign by remember { mutableStateOf("center") }',
+    "module object alignment state"
+)
+once(
+    '                    OutlinedTextField(blockBorderWidth, { blockBorderWidth = it.filter { c -> c.isDigit() }.take(1) }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框宽度（0–8 px）") })',
+    '''                    OutlinedTextField(blockBorderWidth, { blockBorderWidth = it.filter { c -> c.isDigit() }.take(1) }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框宽度（0–8 px）") })
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) { listOf("0", "1", "2", "3", "4", "8").forEach { v -> TextButton(onClick = { blockBorderWidth = v }) { Text(v + "px", color = if (blockBorderWidth == v) accent else ink, fontSize = 10.sp) } } }''',
+    "module border width presets"
+)
+once(
+    '                    OutlinedTextField(blockBorderStyle, { blockBorderStyle = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框样式（solid / dashed / dotted）") })',
+    '''                    OutlinedTextField(blockBorderStyle, { blockBorderStyle = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("边框样式（solid / dashed / dotted）") })
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) { listOf("solid" to "实线", "dashed" to "虚线", "dotted" to "点线").forEach { (v, label) -> TextButton(onClick = { blockBorderStyle = v }) { Text(label, color = if (blockBorderStyle == v) accent else ink, fontSize = 11.sp) } } }''',
+    "module border style presets"
+)
+once(
+    '                    OutlinedTextField(blockRadius, { blockRadius = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("圆角（例如 8px）") })',
+    '''                    OutlinedTextField(blockRadius, { blockRadius = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("圆角（1–4 个值，可分别控制四角）") })
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) { listOf("0px", "4px", "8px", "12px", "20px", "32px", "50%").forEach { v -> TextButton(onClick = { blockRadius = v }) { Text(v, color = if (blockRadius == v) accent else ink, fontSize = 10.sp) } } }''',
+    "module radius presets"
+)
+once(
+    '                    OutlinedTextField(blockShadow, { blockShadow = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("阴影（none / 0 2px 8px #0002）") })',
+    '''                    OutlinedTextField(blockShadow, { blockShadow = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("阴影（X / Y / 模糊 / 扩散 / 颜色）") })
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(3.dp)) { listOf("none" to "无", "0px 2px 6px #00000024" to "轻", "0px 4px 14px 0px #00000030" to "中", "0px 8px 24px 0px #0000003D" to "强", "0px 0px 0px 2px #00000020" to "描边").forEach { (v, label) -> TextButton(onClick = { blockShadow = v }) { Text(label, color = if (blockShadow == v) accent else ink, fontSize = 10.sp) } } }''',
+    "module shadow presets"
+)
+once(
+    '                    OutlinedTextField(blockAlign, { blockAlign = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("内容对齐（left / center / right / justify）") })',
+    '''                    Text("内容对齐", color = ink, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) { listOf("left" to "左", "center" to "中", "right" to "右", "justify" to "两端").forEach { (v, label) -> TextButton(onClick = { blockAlign = v }) { Text(label, color = if (blockAlign == v) accent else ink, fontSize = 11.sp) } } }
+                    Text("模块位置", color = ink, fontSize = 12.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) { listOf("left" to "靠左", "center" to "居中", "right" to "靠右").forEach { (v, label) -> TextButton(onClick = { blockObjectAlign = v }) { Text(label, color = if (blockObjectAlign == v) accent else ink, fontSize = 11.sp) } } }''',
+    "module alignment controls"
+)
+once(
+    'val shadowValue = Regex("""^(?:none|0(?:px)?\\s+\\d{1,3}px\\s+\\d{1,3}px\\s+#[0-9a-fA-F]{3,8})$""")',
+    'val shadowValue = Regex("""^(?:none|[-+]?\\d{1,3}px\\s+[-+]?\\d{1,3}px\\s+\\d{1,3}px(?:\\s+[-+]?\\d{1,3}px)?\\s+#[0-9a-fA-F]{6,8})$""")',
+    "module shadow validator"
+)
+old_apply = 'runJs("applySelectedBlockStyle(§{JSONObject.quote(blockPadding)},§{JSONObject.quote(blockMargin)},§{JSONObject.quote(blockWidth)},§{JSONObject.quote(blockBackground)},§{JSONObject.quote(blockBorder)},§{JSONObject.quote(blockBorderWidth)},§{JSONObject.quote(blockBorderStyle)},§{JSONObject.quote(blockRadius)},§{JSONObject.quote(blockShadow)},§{JSONObject.quote(blockAlign)},§{JSONObject.quote(blockOpacity)})")'.replace("§", "$")
+new_apply = 'runJs("applySelectedBlockStyle(§{JSONObject.quote(blockPadding)},§{JSONObject.quote(blockMargin)},§{JSONObject.quote(blockWidth)},§{JSONObject.quote(blockBackground)},§{JSONObject.quote(blockBorder)},§{JSONObject.quote(blockBorderWidth)},§{JSONObject.quote(blockBorderStyle)},§{JSONObject.quote(blockRadius)},§{JSONObject.quote(blockShadow)},§{JSONObject.quote(blockAlign)},§{JSONObject.quote(blockOpacity)},§{JSONObject.quote(blockObjectAlign)})")'.replace("§", "$")
+once(old_apply, new_apply, "module alignment command binding")
+once(
+    "function applySelectedBlockStyle(padding,margin,width,bg,border,borderWidth,borderStyle,radius,shadow,align,opacity){const e=selectedBlock();if(!e)return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.margin=margin+' auto';e.style.width=width;e.style.maxWidth='100%';e.style.background='none';e.style.background=bg;e.style.border=borderWidth+'px '+borderStyle+' '+border;e.style.borderRadius=radius;e.style.boxShadow=shadow;e.style.textAlign=align;e.style.opacity=String(Math.max(0,Math.min(100,Number(opacity))))/100;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}",
+    "function applySelectedBlockStyle(padding,margin,width,bg,border,borderWidth,borderStyle,radius,shadow,align,opacity,objectAlign){const e=selectedBlock();if(!e||e.dataset.editorLocked==='1')return;e.style.boxSizing='border-box';e.style.padding=padding;e.style.marginTop=margin;e.style.marginBottom=margin;e.style.marginLeft=objectAlign==='left'?'0':'auto';e.style.marginRight=objectAlign==='right'?'0':'auto';e.style.width=width;e.style.maxWidth='100%';e.style.background='none';e.style.background=bg;e.style.border=borderWidth+'px '+borderStyle+' '+border;e.style.borderRadius=radius;e.style.boxShadow=shadow;e.style.textAlign=align;e.style.opacity=String(Math.max(0,Math.min(100,Number(opacity))))/100;commitHistory();NativeEditor.blockSelected(cleanBlockHtml(e));NativeEditor.changed(root.innerHTML);}",
+    "module object alignment implementation"
+)
+
 checks = [
     ("image border controls", "previewSelectedImageBorder(w,style,color)" in s and '"border" -> {' in s),
     ("four corner radius controls", "imageRadiusBL" in s and "previewSelectedImageRadius(tl,tr,br,bl)" in s),
