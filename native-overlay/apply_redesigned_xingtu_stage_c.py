@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Stage C: normalize redesigned Xingtu secondary panel chrome without changing theme surfaces or actions."""
+from pathlib import Path
+
+ROOT = Path(".")
+EDITOR = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorRedesignedScreen.kt"
+ERROR = ROOT / "xingtu_stage_c_patch_error.txt"
+
+def fail(message: str):
+    ERROR.write_text(message + "\n", encoding="utf-8")
+    raise SystemExit(message)
+
+if not EDITOR.is_file():
+    fail("Redesigned editor source missing; Stage C must run after the clone step")
+
+s = EDITOR.read_text(encoding="utf-8")
+
+def replace_once(old: str, new: str, label: str):
+    global s
+    count = s.count(old)
+    if count != 1:
+        fail(f"Stage C anchor mismatch [{label}]: expected 1, found {count}")
+    s = s.replace(old, new, 1)
+
+# The left action is always close/back; the right action is confirm/finish.
+# Both preserve the original live-preview behavior and close only this panel.
+confirm_left = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }'
+close_right = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }'
+replace_once(confirm_left, 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能面板", tint = Color.White) }', "left close action")
+replace_once(close_right, 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "完成并关闭", tint = AppColors.Theme) }', "right confirm action")
+
+# Keep the established dark work-surface (#181818) and accent color. Add only
+# a subtle separator to distinguish panel navigation from its working content.
+anchor = '                    CompositionLocalProvider(LocalEditorToolDark provides true) {'
+replace_once(anchor, '                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF303030)))\n' + anchor, "panel header separator")
+
+# Normalize panel content inset. This does not alter the canvas, page background,
+# article styles, theme palette, or any feature content.
+old_padding = '.padding(horizontal = 13.dp, vertical = 4.dp)'
+new_padding = '.padding(horizontal = 14.dp, vertical = 8.dp)'
+if s.count(old_padding) != 1:
+    fail(f"Stage C panel padding anchor mismatch: expected 1, found {s.count(old_padding)}")
+s = s.replace(old_padding, new_padding, 1)
+
+# Standardize the spacing between wrapped action tiles. Only FlowRows that do
+# not already define vertical spacing are changed; all tool callbacks stay intact.
+old_flow = 'horizontalArrangement = Arrangement.spacedBy(6.dp)) {'
+new_flow = 'horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {'
+s = s.replace(old_flow, new_flow)
+
+# Normalize the small section captions in the secondary panel while preserving
+# their text and location. Dynamic labels and explanatory copy are untouched.
+old_color = 'color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp)'
+new_color = 'color = Color(0xFFB0B0B0), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 2.dp, bottom = 7.dp)'
+count = s.count(old_color)
+if count < 4:
+    fail(f"Expected multiple secondary-panel section captions, found {count}")
+s = s.replace(old_color, new_color)
+
+# Explicitly preserve the independent scroll container created by the existing
+# bottom-sheet patch. TEXT2 keeps its own internal scroll container.
+required = {
+    "left close icon": 'contentDescription = "关闭功能面板"' in s,
+    "right confirm icon": 'contentDescription = "完成并关闭"' in s,
+    "subtle panel separator": 'background(Color(0xFF303030))' in s,
+    "existing panel surface preserved": '.background(Color(0xFF181818))' in s,
+    "panel content inset": '.padding(horizontal = 14.dp, vertical = 8.dp)' in s,
+    "independent panel scroll": '.verticalScroll(toolPanelScrollState)' in s,
+    "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2EditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2EditorPanel') + 1)],
+    "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
+    "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
+}
+failed = [name for name, ok in required.items() if not ok]
+if failed:
+    fail("Stage C post-patch validation failed: " + ", ".join(failed))
+
+EDITOR.write_text(s, encoding="utf-8")
+print(f"Stage C panel chrome normalized; {count} section captions updated; feature callbacks and existing theme surface preserved.")
