@@ -104,7 +104,7 @@ body = r"""
                                     "copy" -> runJs("copySelectedTextBlock()")
                                     "copy-style" -> runJs("copySelectedTextStyle()")
                                     "paste" -> runJs("pasteTextClipboard()")
-                                    "multi" -> { multiSelectMode = !multiSelectMode; runJs("setMultiSelectMode(\${multiSelectMode})") }
+                                    "multi" -> { multiSelectMode = !multiSelectMode; runJs("setMultiSelectMode(${multiSelectMode})") }
                                     "lock" -> runJs("toggleSelectedObjectLock()")
                                 }
                             }
@@ -156,11 +156,11 @@ dialog = r'''
                             Text("字号", color = Color.LightGray, fontSize = 12.sp)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                                 listOf("14", "16", "18", "20", "24", "28", "32").forEach { size ->
-                                    TextButton(onClick = { runJs("styleSelectionOrParagraph('fontSize','\${size}px')") }) { Text(size, color = Color.White) }
+                                    TextButton(onClick = { runJs("styleSelectionOrParagraph('fontSize','${size}px')") }) { Text(size, color = Color.White) }
                                 }
                             }
                             listOf("PingFang SC" to "苹方", "Microsoft YaHei" to "微软雅黑", "SimSun" to "宋体", "SimHei" to "黑体", "KaiTi" to "楷体").forEach { (font, name) ->
-                                TextButton(onClick = { runJs("styleSelectionOrParagraph('fontFamily',\${JSONObject.quote(font)})"); activeObjectDialog = "" }) { Text(name, color = Color.White) }
+                                TextButton(onClick = { runJs("styleSelectionOrParagraph('fontFamily',${JSONObject.quote(font)})"); activeObjectDialog = "" }) { Text(name, color = Color.White) }
                             }
                         }
                         "style" -> {
@@ -186,7 +186,7 @@ dialog = r'''
                             }
                         }
                         "text-opacity" -> {
-                            Text("透明度 \${textOpacity.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
+                            Text("透明度 ${textOpacity.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
                             Slider(value = textOpacity, onValueChange = { textOpacity = it; runJs("previewSelectedTextOpacity($it)") }, onValueChangeFinished = { runJs("commitSelectedTextOpacity()") }, valueRange = 0f..100f)
                         }
                         "image-replace" -> {
@@ -198,27 +198,27 @@ dialog = r'''
                             TextButton(onClick = { runJs("resetSelectedImageCrop()"); activeObjectDialog = "" }) { Text("恢复原始比例", color = Color.LightGray) }
                         }
                         "color" -> {
-                            Text("亮度 \${imageBrightness.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
+                            Text("亮度 ${imageBrightness.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
                             Slider(value = imageBrightness, onValueChange = { imageBrightness = it; runJs("previewSelectedImageFilters($it,$imageContrast,$imageSaturation)") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..200f)
-                            Text("对比度 \${imageContrast.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
+                            Text("对比度 ${imageContrast.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
                             Slider(value = imageContrast, onValueChange = { imageContrast = it; runJs("previewSelectedImageFilters($imageBrightness,$it,$imageSaturation)") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..200f)
-                            Text("饱和度 \${imageSaturation.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
+                            Text("饱和度 ${imageSaturation.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
                             Slider(value = imageSaturation, onValueChange = { imageSaturation = it; runJs("previewSelectedImageFilters($imageBrightness,$imageContrast,$it)") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..200f)
                         }
                         "image-opacity" -> {
-                            Text("透明度 \${imageOpacity.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
+                            Text("透明度 ${imageOpacity.toInt()}%", color = Color.LightGray, fontSize = 12.sp)
                             Slider(value = imageOpacity, onValueChange = { imageOpacity = it; runJs("previewSelectedImageOpacity($it)") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..100f)
                         }
                         "radius" -> {
-                            Text("圆角 \${imageRadius.toInt()}px", color = Color.LightGray, fontSize = 12.sp)
-                            Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs("previewSelectedImageRadius('\${it}px')") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..40f)
+                            Text("圆角 ${imageRadius.toInt()}px", color = Color.LightGray, fontSize = 12.sp)
+                            Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs("previewSelectedImageRadius('${it}px')") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..40f)
                             TextButton(onClick = { imageRadius = 0f; runJs("previewSelectedImageRadius('0px');commitSelectedImageStyle()") }) { Text("直角", color = AppColors.Theme) }
                         }
                         "border" -> listOf("无边框" to "0", "细边框" to "1px solid #dfe5e1", "主题色边框" to "2px solid #159765").forEach { (label, value) ->
                             TextButton(onClick = { runJs("setSelectedImageBorder('$value')"); activeObjectDialog = "" }) { Text(label, color = Color.White) }
                         }
                         "shadow" -> listOf("无阴影" to "none", "轻阴影" to "0 2px 6px rgba(0,0,0,.14)", "中阴影" to "0 4px 14px rgba(0,0,0,.22)", "强阴影" to "0 8px 24px rgba(0,0,0,.28)").forEach { (label, value) ->
-                            TextButton(onClick = { runJs("setSelectedImageShadow(\${JSONObject.quote(value)})"); activeObjectDialog = "" }) { Text(label, color = Color.White) }
+                            TextButton(onClick = { runJs("setSelectedImageShadow(${JSONObject.quote(value)})"); activeObjectDialog = "" }) { Text(label, color = Color.White) }
                         }
                         "flip" -> {
                             TextButton(onClick = { runJs("flipSelectedImage('horizontal')") }) { Text("水平翻转", color = Color.White) }
