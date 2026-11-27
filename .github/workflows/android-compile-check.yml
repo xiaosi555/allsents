@@ -200,6 +200,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/upgrade_meitu_object_style_commands.py
 
+      - name: Make selected text and image panels non-modal bottom popups
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/upgrade_selection_bottom_nonmodal.py
+
       - name: Fix Xingtu expandable bottom sheet interaction
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_xingtu_bottom_sheet.py
