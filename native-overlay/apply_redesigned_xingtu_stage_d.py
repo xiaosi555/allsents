@@ -201,7 +201,6 @@ source, alert_count = normalize_call_arguments(
     source,
     "AlertDialog",
     {
-        "shape": "RoundedCornerShape(16.dp)",
         "containerColor": "Color(0xFF242424)",
         "titleContentColor": "Color(0xFFF5F5F5)",
         "textContentColor": "Color(0xFFD0D0D0)",
@@ -219,7 +218,6 @@ source, menu_count = normalize_call_arguments(
     "DropdownMenu",
     {
         "containerColor": "Color(0xFF242424)",
-        "shape": "RoundedCornerShape(12.dp)",
         "tonalElevation": "0.dp",
         "shadowElevation": "8.dp",
     },
