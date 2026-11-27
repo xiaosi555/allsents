@@ -29,13 +29,13 @@ def panel_cases(source: str):
     # Capture grouped when branches such as
     # EditorPanel.CARD, EditorPanel.COMPONENT -> { ... } as well as singles.
     case_groups = re.findall(
-        r"((?:EditorPanel\.[A-Z_]+\s*,\s*)*EditorPanel\.[A-Z_]+)\s*->",
+        r"((?:EditorPanel\.[A-Z0-9_]+\s*,\s*)*EditorPanel\.[A-Z0-9_]+)\s*->",
         source
     )
     return {
         panel
         for group in case_groups
-        for panel in re.findall(r"EditorPanel\.([A-Z_]+)", group)
+        for panel in re.findall(r"EditorPanel\.([A-Z0-9_]+)", group)
     }
 
 def remembered_states(source: str):
