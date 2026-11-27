@@ -284,6 +284,7 @@ jobs:
         with:
           name: xingtu-stage-c-f-diagnostics
           path: |
+            source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorRedesignedScreen.kt
             xingtu_redesign_patch_error.txt
             xingtu_stage_c_patch_error.txt
             xingtu_stage_d_patch_error.txt
