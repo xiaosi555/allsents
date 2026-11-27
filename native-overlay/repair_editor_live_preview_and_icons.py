@@ -23,19 +23,25 @@ def once(old: str, new: str, label: str):
 # Text2 can be opened after a single-tap object selection. That selection deliberately
 # clears the browser Range to avoid opening the keyboard. Resolve the selected object
 # explicitly instead of relying only on a restored Range or a selected-block class.
-old_text2_targets = """                                if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');
-                                if(!target||!root.contains(target))target=root.querySelector('.selected-block');
-                                if(!target||!root.contains(target))target=typeof selectedParagraph==='function'?selectedParagraph():null;"""
-new_text2_targets = """                                if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');
-                                if(!target||!root.contains(target))target=(activeTextBlock&&root.contains(activeTextBlock))?activeTextBlock:root.querySelector('.selected-text-block');
-                                if(!target||!root.contains(target))target=root.querySelector('.selected-block');
-                                if(!target||!root.contains(target))target=typeof selectedParagraph==='function'?selectedParagraph():null;"""
-if new_text2_targets not in s:
-    count = s.count(old_text2_targets)
-    if count != 2:
-        raise SystemExit(f"Text2 target fallback expected 2 anchors, found {count}")
-    s = s.replace(old_text2_targets, new_text2_targets)
-    print("Updated both Text2 style and command target fallbacks.")
+import re
+text2_target_pattern = re.compile(
+    r"(?m)^([ \\t]*)if\\(!target\\|\\|!root\\.contains\\(target\\)\\)target=root\\.querySelector\\('\\.text2-selection-preview'\\);\\n"
+    r"[ \\t]*if\\(!target\\|\\|!root\\.contains\\(target\\)\\)target=root\\.querySelector\\('\\.selected-block'\\);\\n"
+    r"[ \\t]*if\\(!target\\|\\|!root\\.contains\\(target\\)\\)target=typeof selectedParagraph==='function'\\?selectedParagraph\\(\\):null;"
+)
+text2_target_matches = list(text2_target_pattern.finditer(s))
+if len(text2_target_matches) != 2:
+    raise SystemExit(f"Text2 target fallback expected 2 anchors, found {len(text2_target_matches)}")
+def replace_text2_target(match):
+    indent = match.group(1)
+    return (
+        indent + "if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');\\n" +
+        indent + "if(!target||!root.contains(target))target=(activeTextBlock&&root.contains(activeTextBlock))?activeTextBlock:root.querySelector('.selected-text-block');\\n" +
+        indent + "if(!target||!root.contains(target))target=root.querySelector('.selected-block');\\n" +
+        indent + "if(!target||!root.contains(target))target=typeof selectedParagraph==='function'?selectedParagraph():null;"
+    )
+s = text2_target_pattern.sub(replace_text2_target, s)
+print("Updated both Text2 style and command target fallbacks.")
 
 # The first-tap selection must be previewable even when no live Range remains.
 once(
