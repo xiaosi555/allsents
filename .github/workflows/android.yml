@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -261,6 +264,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_status_bar.py
 
+
+      - name: Unify article editor dialogs, panel actions and dock icons
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/unify_article_editor_ui.py
 
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
