@@ -9,7 +9,7 @@ s = P.read_text(encoding="utf-8")
 
 # The custom Material3 Slider track uses experimental SliderState APIs.
 # Opt in at file scope so every generated slider call is covered.
-file_opt_in = "@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)\\n"
+file_opt_in = "@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)\n"
 if not s.startswith("@file:OptIn("):
     s = file_opt_in + s
 
