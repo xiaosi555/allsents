@@ -274,6 +274,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/create_redesigned_xingtu_editor.py
 
+      - name: Apply redesigned Xingtu Stage C panel UI consistency
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_redesigned_xingtu_stage_c.py
+
 
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
