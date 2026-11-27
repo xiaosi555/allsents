@@ -43,6 +43,24 @@ if count != 1:
     ERROR.write_text(f"selection callback dismissal block count: {count}\\n", encoding="utf-8")
     raise SystemExit(f"Default dock panel patch anchor mismatch: expected 1, found {count}")
 s = s.replace(old, new, 1)
+
+# The v6 bridge has three independent callbacks (component, image and text)
+# that also route the dock. Guard those routes as well: a delayed callback must
+# never close a panel opened by the user's latest default-dock tap.
+guarded_routes = [
+    ('selectedDockMode = "COMPONENT"; showToolPopup = false; showCanvasPopup = false', 1),
+    ('selectedDockMode = "IMAGE"; showToolPopup = false; showCanvasPopup = false', 1),
+    ('selectedDockMode = "TEXT"; floatingMenu = ""; showToolPopup = false; showCanvasPopup = false', 1),
+    ('selectedDockMode = "DEFAULT"; showToolPopup = false; showCanvasPopup = false', 2),
+]
+for statement, expected in guarded_routes:
+    count = s.count(statement)
+    if count != expected:
+        ERROR.write_text(f"bridge route anchor count for {statement!r}: {count}\\n", encoding="utf-8")
+        raise SystemExit(f"Default dock bridge guard mismatch: expected {expected}, found {count}: {statement}")
+    guarded = "if (!showToolPopup && !showCanvasPopup) { " + statement + " }"
+    s = s.replace(statement, guarded)
+
 required = [
     "if (!showToolPopup && !showCanvasPopup) {",
     "Selection callbacks can arrive after a default-dock tap",
