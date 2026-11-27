@@ -39,14 +39,23 @@ separator = '                    Box(Modifier.fillMaxWidth().height(1.dp).backgr
 s = s.replace(anchor, separator + anchor)
 print(f"Stage C panel separators inserted: {anchor_count}")
 
-# The old dock filtered every template sub-panel from the primary navigation,
-# which also hid direct access to Image/Layout/Card/Component/SVG tools. Keep
-# TITLE as a template-only category and TEXT2 as the text-properties workspace,
-# but expose the functional panels as direct primary entries as well.
+# The object-aware navigation v2 replaced the old EditorPanel.values() dock.
+# Extend its DEFAULT dock instead of patching an obsolete filter expression.
 replace_once(
-    'EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }.forEach { panel ->',
-    'EditorPanel.values().filterNot { it == EditorPanel.TEXT2 || it == EditorPanel.TITLE }.forEach { panel ->',
+    'else -> listOf("加图", "加字", "图文模板", "图文收藏", "文档", "画布", "图层")',
+    'else -> listOf("加图", "加字", "文字", "图片", "布局", "卡片", "组件", "SVG", "图文模板", "图文收藏", "文档", "画布", "图层")',
     "complete primary panel navigation"
+)
+replace_once(
+    '                                            "加字" -> { runJs("enableSelectedTextEditing()"); insert("<p><br></p>") }',
+    '''                                            "加字" -> { runJs("enableSelectedTextEditing()"); insert("<p><br></p>") }
+                                            "文字" -> { activePanel = EditorPanel.TEXT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "图片" -> { activePanel = EditorPanel.IMAGE; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "布局" -> { activePanel = EditorPanel.LAYOUT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "卡片" -> { activePanel = EditorPanel.CARD; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "组件" -> { activePanel = EditorPanel.COMPONENT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "SVG" -> { activePanel = EditorPanel.SVG; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }''',
+    "direct functional panel routes"
 )
 
 # Normalize panel content inset. This does not alter the canvas, page background,
@@ -117,6 +126,8 @@ required = {
     "existing panel surface preserved": '.background(Color(0xFF181818))' in s,
     "panel content inset": '.padding(horizontal = 14.dp, vertical = 8.dp)' in s,
     "independent panel scroll": '.verticalScroll(toolPanelScrollState)' in s,
+    "direct default dock entries": all(f'"{label}"' in s for label in ("文字", "图片", "布局", "卡片", "组件", "SVG")),
+    "direct panel routes": all(f'"{label}" -> {{ activePanel = EditorPanel.{panel};' in s for label, panel in (("文字", "TEXT"), ("图片", "IMAGE"), ("布局", "LAYOUT"), ("卡片", "CARD"), ("组件", "COMPONENT"), ("SVG", "SVG"))),
     "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2EditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2EditorPanel') + 1)],
     "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
     "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
