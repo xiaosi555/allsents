@@ -25,9 +25,9 @@ def once(old: str, new: str, label: str):
 # explicitly instead of relying only on a restored Range or a selected-block class.
 import re
 text2_target_pattern = re.compile(
-    r"(?m)^([ \\t]*)if\\(!target\\|\\|!root\\.contains\\(target\\)\\)target=root\\.querySelector\\('\\.text2-selection-preview'\\);\\n"
-    r"[ \\t]*if\\(!target\\|\\|!root\\.contains\\(target\\)\\)target=root\\.querySelector\\('\\.selected-block'\\);\\n"
-    r"[ \\t]*if\\(!target\\|\\|!root\\.contains\\(target\\)\\)target=typeof selectedParagraph==='function'\\?selectedParagraph\\(\\):null;"
+    r"(?m)^([ \t]*)if\(!target\|\|!root\.contains\(target\)\)target=root\.querySelector\('\.text2-selection-preview'\);\n"
+    r"[ \t]*if\(!target\|\|!root\.contains\(target\)\)target=root\.querySelector\('\.selected-block'\);\n"
+    r"[ \t]*if\(!target\|\|!root\.contains\(target\)\)target=typeof selectedParagraph==='function'\?selectedParagraph\(\):null;"
 )
 text2_target_matches = list(text2_target_pattern.finditer(s))
 if len(text2_target_matches) != 2:
@@ -35,9 +35,9 @@ if len(text2_target_matches) != 2:
 def replace_text2_target(match):
     indent = match.group(1)
     return (
-        indent + "if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');\\n" +
-        indent + "if(!target||!root.contains(target))target=(activeTextBlock&&root.contains(activeTextBlock))?activeTextBlock:root.querySelector('.selected-text-block');\\n" +
-        indent + "if(!target||!root.contains(target))target=root.querySelector('.selected-block');\\n" +
+        indent + "if(!target||!root.contains(target))target=root.querySelector('.text2-selection-preview');\n" +
+        indent + "if(!target||!root.contains(target))target=(activeTextBlock&&root.contains(activeTextBlock))?activeTextBlock:root.querySelector('.selected-text-block');\n" +
+        indent + "if(!target||!root.contains(target))target=root.querySelector('.selected-block');\n" +
         indent + "if(!target||!root.contains(target))target=typeof selectedParagraph==='function'?selectedParagraph():null;"
     )
 s = text2_target_pattern.sub(replace_text2_target, s)
