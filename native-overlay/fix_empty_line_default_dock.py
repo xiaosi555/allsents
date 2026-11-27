@@ -24,7 +24,8 @@ if s.count(helper_anchor) != 1:
     raise SystemExit("Empty-line dock patch: reportSelection anchor mismatch")
 s = s.replace(helper_anchor, helper, 1)
 old = "                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';"
-new = "                                 else if(collapsed&&isEmptyCanvasCaretLine(node)){kind='NONE';target=null;}\\n                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';"
+new = """                                 else if(collapsed&&isEmptyCanvasCaretLine(node)){kind='NONE';target=null;}
+                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';"""
 if s.count(old) != 1:
     ERROR.write_text(f"empty caret classification anchor count: {s.count(old)}\\n", encoding="utf-8")
     raise SystemExit("Empty-line dock patch: caret classification anchor mismatch")
