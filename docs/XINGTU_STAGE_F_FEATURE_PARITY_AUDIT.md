@@ -9,7 +9,7 @@
 `native-overlay/audit_redesigned_xingtu_stage_f.py` 在阶段 E 之后运行，逐项对照：
 
 - `EditorTool("…")` 工具标签：按多重集合比较，检查数量与重复项，确保新版没有少于旧版。
-- `EditorPanel` 分支：检查旧版分支全部保留，并确认 TEXT、IMAGE、TEXT2、TITLE、LAYOUT、CARD、COMPONENT、SVG、STYLE、LAYER、CANVAS、DOCUMENT、TEMPLATE 均存在。
+- 面板分支：分别读取旧版 `EditorPanel` 与新版 `RedesignedEditorPanel`，检查分支集合完整；新版同时包含图片裁切/调色专用分支。
 - Compose `remember` 状态：旧版状态集合必须是新版状态集合的子集。
 - `AlertDialog`、`DropdownMenu`、`Dialog` 调用点数量：外观统一不得删掉弹窗入口。
 - WebView 选区桥接、Range 保存/恢复、裁切、图片替代文本、查找替换、文章信息、历史版本、布局、兼容性报告、文章包预览和模板预览等关键入口。
