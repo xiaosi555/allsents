@@ -11,10 +11,9 @@ if not EDITOR.is_file():
 s = EDITOR.read_text(encoding="utf-8")
 old = '                                    else -> activeObjectDialog = action'
 new = '''                                    else -> {
-                                        activePanel = EditorPanel.IMAGE
-                                        showToolPopup = true
+                                        activeObjectDialog = action
+                                        showToolPopup = false
                                         showCanvasPopup = false
-                                        toolPanelHeightDp = 200f
                                     }'''
 if new not in s:
     count = s.count(old)
@@ -24,10 +23,10 @@ if new not in s:
     s = s.replace(old, new, 1)
 
 checks = {
-    "complete image panel route": "activePanel = EditorPanel.IMAGE" in s,
+    "each image function opens its own popup": "activeObjectDialog = action" in s and "activePanel = EditorPanel.IMAGE" not in s,
     "dedicated crop panel remains available": "EditorPanel.IMAGE_CROP -> ImageCropColorPanel" in s,
     "dedicated color panel remains available": "EditorPanel.IMAGE_COLOR -> ImageCropColorPanel" in s,
-    "image tools open the non-modal sheet": "showToolPopup = true" in s and "showCanvasPopup = false" in s,
+    "image function popup closes combined sheet": "showToolPopup = false" in s and "showCanvasPopup = false" in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:
