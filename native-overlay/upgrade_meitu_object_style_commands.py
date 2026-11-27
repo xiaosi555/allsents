@@ -231,6 +231,8 @@ checks = [
     ("four corner radius controls", "imageRadiusBL" in s and "previewSelectedImageRadius(tl,tr,br,bl)" in s),
     ("shadow controls", "previewSelectedImageShadow(x,y,blur,spread,color,opacity)" in s),
     ("horizontal and vertical alignment", "垂直对齐" in s and "alignSelectedImage(v)" in s),
+    ("module border/radius/shadow presets", "blockBorderWidth" in s and "blockRadius" in s and "blockShadow" in s),
+    ("module object alignment", "blockObjectAlign" in s),
 ]
 failed = [name for name, ok in checks if not ok]
 if failed:
