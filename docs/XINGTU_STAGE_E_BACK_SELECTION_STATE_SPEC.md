@@ -23,6 +23,7 @@
 - 图片素材选择窗口沿用生成器中的单一独立关闭分支；补丁会验证该分支恰好出现一次，避免重复注入。
 - 文字编辑结束后调用 `restoreSelection()`，重新启用文字选区预览，并保留选中态；下一次返回才清除选区。
 - 系统返回和顶部返回继续共用同一个协调器。
+- 新版文件将 `EditorPanel`、`EditorSelectionKind`、`EditorSelectionState`、`ArticleEditorBridge`、`EditorLayerItem` 等文件级类型重命名为 `Redesigned…` 独立类型，避免 Kotlin 在旧版/新版两个文件中出现重复顶层类型声明；旧版类型和页面不改。
 - 保留所有保存回调、文章状态、导入导出、模板、图片、裁切、调色、布局、组件和历史版本逻辑。
 
 ## 自动静态检查
