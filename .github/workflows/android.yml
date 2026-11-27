@@ -1,6 +1,8 @@
 name: Android APK Build
 
 on:
+  push:
+    branches: ['ui/**']
   workflow_dispatch:
 
 permissions:
