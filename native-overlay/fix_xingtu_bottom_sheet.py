@@ -153,7 +153,7 @@ elif new_scroll not in s:
 # The overlay must occupy only the actual sheet bounds and be anchored to
 # the bottom of the BoxWithConstraints canvas. A full-screen transparent
 # layer blocks canvas hit testing; a top-start wrapped box misplaces the sheet.
-overlay_old = "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
+overlay_old = "Box(Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.BottomCenter).zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
 overlay_new = "Box(Modifier.fillMaxSize().zIndex(100f), contentAlignment = Alignment.BottomCenter) {"
 if overlay_old in s:
     s = s.replace(overlay_old, overlay_new, 1)
