@@ -52,6 +52,38 @@ if s.count(old_padding) != 1:
     fail(f"Stage C panel padding anchor mismatch: expected 1, found {s.count(old_padding)}")
 s = s.replace(old_padding, new_padding, 1)
 
+# Split the dense text tool cloud into named, independently spaced groups.
+# Every existing EditorTool and callback is retained verbatim.
+replace_once(
+    '                        FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\\n                            listOf("14" to "小", "16" to "标准", "18" to "大", "22" to "特大", "26" to "标题").forEach',
+    '                        Text("字号与文字效果", color = Color(0xFFB0B0B0), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 2.dp, top = 7.dp, bottom = 2.dp))\\n                        FlowRow(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\\n                            listOf("14" to "小", "16" to "标准", "18" to "大", "22" to "特大", "26" to "标题").forEach',
+    "text panel typography group"
+)
+
+replace_once(
+    '                            EditorTool("格式刷·应用") { runJs("restoreSelection();pasteTextFormat();saveSelection();") }\\n                            EditorTool("无序列表")',
+    '                            EditorTool("格式刷·应用") { runJs("restoreSelection();pasteTextFormat();saveSelection();") }\\n                        }\\n                        Text("段落结构", color = Color(0xFFB0B0B0), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 2.dp, top = 7.dp, bottom = 2.dp))\\n                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\\n                            EditorTool("无序列表")',
+    "text panel paragraph group"
+)
+
+replace_once(
+    '                            EditorTool("任务清单") { insert("<ul style=\'list-style:none;padding-left:0\'><li>□ 第一项任务</li><li>□ 第二项任务</li><li>□ 第三项任务</li></ul>") }\\n                            EditorTool("日期")',
+    '                            EditorTool("任务清单") { insert("<ul style=\'list-style:none;padding-left:0\'><li>□ 第一项任务</li><li>□ 第二项任务</li><li>□ 第三项任务</li></ul>") }\\n                        }\\n                        Text("辅助插入", color = Color(0xFFB0B0B0), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 2.dp, top = 7.dp, bottom = 2.dp))\\n                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\\n                            EditorTool("日期")',
+    "text panel insert utilities group"
+)
+
+replace_once(
+    '                            EditorTool("特殊符号") { insert("「」『』· — … ★ ✓ → ※") }\\n                            EditorTool("行距1.6")',
+    '                            EditorTool("特殊符号") { insert("「」『』· — … ★ ✓ → ※") }\\n                        }\\n                        Text("段落间距", color = Color(0xFFB0B0B0), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 2.dp, top = 7.dp, bottom = 2.dp))\\n                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\\n                            EditorTool("行距1.6")',
+    "text panel spacing group"
+)
+
+replace_once(
+    '                            EditorTool("查找替换") { showFindReplace = true }\\n                            EditorTool("宋体")',
+    '                            EditorTool("查找替换") { showFindReplace = true }\\n                        }\\n                        Text("常用字体", color = Color(0xFFB0B0B0), fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 2.dp, top = 7.dp, bottom = 2.dp))\\n                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {\\n                            EditorTool("宋体")',
+    "text panel font group"
+)
+
 # Standardize the spacing between wrapped action tiles. Only FlowRows that do
 # not already define vertical spacing are changed; all tool callbacks stay intact.
 old_flow = 'horizontalArrangement = Arrangement.spacedBy(6.dp)) {'
