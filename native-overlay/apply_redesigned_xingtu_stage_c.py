@@ -130,8 +130,8 @@ required = {
     "direct panel routes": all(f'"{label}" -> {{ activePanel = EditorPanel.{panel};' in s for label, panel in (("文字", "TEXT"), ("图片", "IMAGE"), ("布局", "LAYOUT"), ("卡片", "CARD"), ("组件", "COMPONENT"), ("SVG", "SVG"))),
     "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2EditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2EditorPanel') + 1)],
     "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
-    "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
-    "direct primary entries exposed": 'EditorPanel.values().filterNot { it == EditorPanel.TEXT2 || it == EditorPanel.TITLE }' in s,
+    "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","IMAGE_CROP","IMAGE_COLOR","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
+    "direct primary entries exposed": 'else -> listOf("加图", "加字", "文字", "图片", "布局", "卡片", "组件", "SVG", "图文模板", "图文收藏", "文档", "画布", "图层")' in s,
     "text tools grouped": all(f'Text("{label}"' in s for label in ["字号与文字效果","段落结构","辅助插入","段落间距","常用字体"]),
 }
 failed = [name for name, ok in required.items() if not ok]
