@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repair object-to-dock reporting and make local image import reliable."""
+"""Repair malformed canvas event wiring, object dock routing and local image import."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,37 +18,52 @@ def replace_once(old: str, new: str, label: str):
     s = s.replace(old, new, 1)
     print("Selection v6 applied:", label)
 
-# V5 creates an explicit activeTextBlock and removes the browser Range on first tap.
-# reportSelection must therefore report that active object directly, not rely only on Range/selected-block.
+# V5's click-listener splice retained the previous listener's closing token.
+# That extra }); makes the entire inline editor JavaScript fail to parse, so no
+# selection handlers, editor commands, or import-image insertion helpers execute.
 replace_once(
-    "if(activeImage){kind='IMAGE';target=activeImage;}\n                                else if(blocks.length>1)",
-    "if(activeImage){kind='IMAGE';target=activeImage;}\n                                else if(activeTextBlock&&root.contains(activeTextBlock)){kind=activeTextBlock.dataset.editorLocked==='1'?'COMPONENT':'TEXT_BLOCK';target=activeTextBlock;}\n                                else if(blocks.length>1)",
-    "report active text block even when editor Range is intentionally cleared"
+    "                       });                             function clearDragTarget(){",
+    "                       function clearDragTarget(){",
+    "remove stray click-listener terminator left by v5 splice"
 )
 
-# Bridge callbacks also update the dock immediately. This is a resilient fallback
-# if WebView selection geometry/range reporting is delayed on a device.
+# Keep explicit activeTextBlock selection in reportSelection. It is essential because
+# the first tap intentionally clears the browser Range to prevent opening the keyboard.
+report_start = s.find("function reportSelection(){")
+if report_start < 0:
+    raise SystemExit("Selection v6 cannot find reportSelection")
+report_end = s.find("\n                             }", report_start)
+report = s[report_start:report_end if report_end >= 0 else report_start + 4000]
+if "else if(activeTextBlock&&root.contains(activeTextBlock))" not in report:
+    replace_once(
+        "else if(blocks.length>1){kind='MULTI_BLOCK';target=blocks[blocks.length-1];}",
+        "else if(activeTextBlock&&root.contains(activeTextBlock)){kind=activeTextBlock.dataset.editorLocked==='1'?'COMPONENT':'TEXT_BLOCK';target=activeTextBlock;}\n                               else if(blocks.length>1){kind='MULTI_BLOCK';target=blocks[blocks.length-1];}",
+        "report active text block without relying on browser Range"
+    )
+
+# Update native callbacks immediately as a second path to the same dock state.
 replace_once(
-    """                            { value -> selectedBlockHtml = value },
-                            { value -> selectedImageHtml = value; floatingToolbarRequest = "" },
-                            { value -> selectedTextActive = value; floatingToolbarRequest = ""; if (value) floatingMenu = "" },""",
-    """                            { value ->
+    "{ value -> selectedBlockHtml = value },",
+    """{ value ->
                                 selectedBlockHtml = value
                                 if (value.isNotBlank() && selectedImageHtml.isBlank() && !selectedTextActive) {
                                     selectedDockMode = "COMPONENT"; showToolPopup = false; showCanvasPopup = false
                                 } else if (value.isBlank() && selectedImageHtml.isBlank() && !selectedTextActive) {
                                     selectedDockMode = "DEFAULT"; showToolPopup = false; showCanvasPopup = false
                                 }
-                            },
-                            { value ->
-                                selectedImageHtml = value; floatingToolbarRequest = ""
+                            },""",
+    "component callback routes the dock immediately"
+)
+replace_once(
+    "                                floatingToolbarRequest = \"\"\n                                if (value.isNotBlank()) {",
+    """                                floatingToolbarRequest = ""
                                 if (value.isNotBlank()) {
-                                    selectedDockMode = "IMAGE"; showToolPopup = false; showCanvasPopup = false
-                                } else if (!selectedTextActive && selectedBlockHtml.isBlank()) {
-                                    selectedDockMode = "DEFAULT"; showToolPopup = false; showCanvasPopup = false
-                                }
-                            },
-                            { value ->
+                                    selectedDockMode = "IMAGE"; showToolPopup = false; showCanvasPopup = false""",
+    "image callback routes the dock immediately"
+)
+replace_once(
+    "{ value -> selectedTextActive = value; floatingToolbarRequest = \"\"; if (value) floatingMenu = \"\" },",
+    """{ value ->
                                 selectedTextActive = value; floatingToolbarRequest = ""
                                 if (value) {
                                     selectedDockMode = "TEXT"; floatingMenu = ""; showToolPopup = false; showCanvasPopup = false
@@ -56,11 +71,12 @@ replace_once(
                                     selectedDockMode = "DEFAULT"; showToolPopup = false; showCanvasPopup = false
                                 }
                             },""",
-    "synchronize all three native object callbacks with visible dock"
+    "text callback routes the dock immediately"
 )
 
-# Insert imported images through one JS transaction, selecting the new image and
-# reporting its selection so the image dock appears immediately after import.
+# Importing a local image should be one WebView transaction and immediately select
+# the inserted image. The previous generic insert() depended on a still-valid
+# browser selection after returning from the Android document picker.
 replace_once(
     "function insertHtml(v){restoreSelection();const s=window.getSelection();",
     """function insertImportedImage(src,alt){
@@ -68,11 +84,12 @@ replace_once(
                                img.src=src;img.alt=alt||'';img.style.cssText='max-width:100%;height:auto;display:block;margin:14px auto';
                                p.appendChild(img);
                                const anchor=activeImage&&activeImage.parentElement?activeImage.parentElement:(activeTextBlock&&activeTextBlock.parentElement?activeTextBlock.parentElement:null);
+                               let inserted=false;
                                if(savedRange&&root.contains(savedRange.commonAncestorContainer)){
-                                 try{const r=savedRange.cloneRange();r.deleteContents();r.insertNode(p);}
-                                 catch(e){if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('afterend',p);else root.appendChild(p);}
-                               }else if(anchor&&anchor.parentElement){anchor.insertAdjacentElement('afterend',p);}
-                               else{root.appendChild(p);}
+                                 try{const r=savedRange.cloneRange();r.deleteContents();r.insertNode(p);inserted=true;}
+                                 catch(e){}
+                               }
+                               if(!inserted){if(anchor&&anchor.parentElement)anchor.insertAdjacentElement('afterend',p);else root.appendChild(p);}
                                clearSelectedImage();clearSelectedText();clearSelectedBlocks();
                                activeImage=img;ensureEditorId(img);img.classList.add('selected-image');
                                root.contentEditable='false';savedRange=null;
@@ -81,20 +98,21 @@ replace_once(
                                commitHistory();NativeEditor.changed(root.innerHTML);reportSelection();
                              }
                              function insertHtml(v){restoreSelection();const s=window.getSelection();""",
-    "atomic image insertion and immediate image selection"
+    "insert image as a selected object and update native dock"
 )
 
-# ACTION_GET_CONTENT-backed multi-select is more widely supported by photo/gallery providers
-# than ACTION_OPEN_DOCUMENT on some OEM file-picker implementations.
-replace_once(
-    "val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->\n        uris.forEach { uri ->\n            runCatching {\n                val mime = context.contentResolver.getType(uri) ?: \"image/jpeg\"\n                val ext = when (mime.lowercase(Locale.ROOT)) { \"image/png\" -> \"png\"; \"image/webp\" -> \"webp\"; \"image/gif\" -> \"gif\"; \"image/heic\" -> \"heic\"; else -> \"jpg\" }\n                val id = vm.newId() + (0..999).random().toString()\n                val dir = File(context.filesDir, \"article_media\").apply { mkdirs() }\n                val target = File(dir, \"$id.$ext\")\n                context.contentResolver.openInputStream(uri)?.use { input -> input.copyTo(target.outputStream()) }\n                    ?: error(\"无法读取图片\")\n                val relative = \"article_media/${target.name}\"\n                vm.saveMediaAsset(MediaAsset(id, target.name, mime, relative, target.length(), System.currentTimeMillis().toString()))\n                insert(\"<p><img src='https://editor.local/assets/$id' alt='${target.name}' style='max-width:100%;height:auto;display:block;margin:14px auto'></p>\")\n            }.onFailure { vm.toast(\"图片导入失败：${it.message ?: \"未知错误\"}\") }\n        }\n    }",
-    """val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        if (uris.isEmpty()) {
-            // User cancelled or the provider returned no readable image.
-        } else {
+# Use the Android content picker action accepted by both gallery apps and document providers.
+# Keep multi-select support while normalizing the MIME type from the provider or file name.
+picker_start = s.find("    val imagePicker = rememberLauncherForActivityResult(")
+picker_end = s.find("    val layoutImagePicker =", picker_start)
+if picker_start < 0 or picker_end < 0:
+    raise SystemExit("Selection v6 cannot delimit the local image picker block")
+new_picker = r'''    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
             var imported = 0
             uris.forEach { uri ->
                 var target: File? = null
+                var assetSaved = false
                 runCatching {
                     val resolver = context.contentResolver
                     val displayName = resolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
@@ -125,42 +143,36 @@ replace_once(
                     if (target!!.length() <= 0L) error("图片文件为空")
                     val asset = MediaAsset(id, target!!.name, mime, "article_media/${target!!.name}", target!!.length(), System.currentTimeMillis().toString())
                     if (!vm.saveMediaAsset(asset)) error("图片素材保存失败")
+                    assetSaved = true
                     runJs("insertImportedImage('https://editor.local/assets/$id',${JSONObject.quote(displayName)})")
                     imported++
                 }.onFailure {
-                    target?.delete()
+                    if (!assetSaved) target?.delete()
                     vm.toast("图片导入失败：${it.message ?: "未知错误"}")
                 }
             }
             if (imported > 0) vm.toast("已导入 $imported 张图片")
         }
-    }""",
-    "use gallery-compatible picker and validate/persist imported image assets"
-)
-
-# Ensure replacement and image insertion paths both use the gallery-compatible MIME contract.
-replace_once(
-    'imagePicker.launch(arrayOf("image/*"))',
-    'imagePicker.launch("image/*")',
-    "default dock image picker contract"
-)
-replace_once(
-    'imagePicker.launch(arrayOf("image/*"))',
-    'imagePicker.launch("image/*")',
-    "image panel picker contract"
-)
+    }
+'''
+s = s[:picker_start] + new_picker + s[picker_end:]
+count = s.count('imagePicker.launch(arrayOf("image/*"))')
+if count != 2:
+    raise SystemExit(f"Selection v6 expected two imagePicker launches, found {count}")
+s = s.replace('imagePicker.launch(arrayOf("image/*"))', 'imagePicker.launch("image/*")')
 
 required = [
-    "else if(activeTextBlock&&root.contains(activeTextBlock))",
-    'selectedDockMode = "TEXT"',
-    'selectedDockMode = "IMAGE"',
     "function insertImportedImage(src,alt)",
     "ActivityResultContracts.GetMultipleContents()",
-    'imagePicker.launch("image/*")'
+    'imagePicker.launch("image/*")',
+    'selectedDockMode = "TEXT"',
+    'selectedDockMode = "IMAGE"',
+    'selectedDockMode = "COMPONENT"',
+    "function reportSelection()"
 ]
 missing = [token for token in required if token not in s]
 if missing:
     ERROR.write_text("Missing final v6 tokens: " + ", ".join(missing) + "\n", encoding="utf-8")
     raise SystemExit("Selection v6 validation failed: " + ", ".join(missing))
 EDITOR.write_text(s, encoding="utf-8")
-print("Selection v6 applied: active text reporting, immediate object-dock routing and robust local image import.")
+print("Selection v6 applied: valid editor JavaScript, reliable object docks and gallery-compatible local image import.")
