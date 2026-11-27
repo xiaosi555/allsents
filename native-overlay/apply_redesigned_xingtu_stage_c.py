@@ -46,7 +46,11 @@ s = s.replace(old_padding, new_padding, 1)
 # not already define vertical spacing are changed; all tool callbacks stay intact.
 old_flow = 'horizontalArrangement = Arrangement.spacedBy(6.dp)) {'
 new_flow = 'horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {'
-s = s.replace(old_flow, new_flow)
+flow_lines = s.splitlines()
+for index, line in enumerate(flow_lines):
+    if "FlowRow(" in line and old_flow in line:
+        flow_lines[index] = line.replace(old_flow, new_flow)
+s = "\\n".join(flow_lines) + "\\n"
 
 # Normalize the small section captions in the secondary panel while preserving
 # their text and location. Dynamic labels and explanatory copy are untouched.
