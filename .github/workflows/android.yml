@@ -194,6 +194,19 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_selection_v5.py
 
+      - name: Repair object dock routing and image import v6
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_editor_selection_v6.py
+
+      - name: Upload editor selection and image import diagnostics v6
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-selection-v6-diagnostic
+          path: editor_selection_v6_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload canvas selection patch diagnostic
         if: always()
         uses: actions/upload-artifact@v4
