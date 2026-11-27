@@ -231,6 +231,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_image_crop_color_panels.py
 
+      - name: Route image appearance tools through full secondary panel
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/unify_image_selection_panels.py
+
       - name: Repair image crop/color runtime actions and live canvas sync
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/repair_image_crop_color_crash_sync.py
