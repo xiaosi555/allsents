@@ -41,7 +41,7 @@ replacement = r"""
                               if(Number(sepia)>0||Number(temp)!==0)f.push('sepia('+Math.max(0,Math.min(100,Number(sepia)+Math.abs(Number(temp))*.22))+'%)');
                               if(Number(blur)>0)f.push('blur('+Math.max(0,Math.min(12,Number(blur)))+'px)');
                               el.style.filter=f.join(' ');
-                              const rot=Number(el.dataset.editorRotation||0)+(Number(rotation)||0);
+                              const rot=Number(rotation)||0;
                               el.dataset.editorRotation=String(rot);selectedImageTransform(el);
                               syncSelectedImageLive();
                             }
