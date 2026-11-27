@@ -166,7 +166,6 @@ back_old = """    BackHandler {
     }"""
 back_new = """    fun handleEditorBack() {
         when {
-            showTextColorPicker -> showTextColorPicker = false
             showDeleteConfirm != null -> showDeleteConfirm = null
             revisionPreview != null -> revisionPreview = null
             templatePreview != null -> templatePreview = null
