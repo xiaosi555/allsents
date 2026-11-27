@@ -119,7 +119,7 @@ if not text_action or "activeObjectDialog = action" not in text_action.group(1):
     fail("Selected text tools are not routed to their own bottom popup")
 if "activePanel = RedesignedEditorPanel.TEXT2" in text_action.group(1) or "showToolPopup = true" in text_action.group(1):
     fail("Selected text tools still open the combined Text2 panel")
-if not re.search(r"else -> \\{\\s*activeObjectDialog = action", new):
+if "else -> {\n                                        activeObjectDialog = action" not in new:
     fail("Selected image tools are not routed to individual popups")
 for marker in ("RedesignedEditorPanel.IMAGE_CROP -> ImageCropColorPanel", "RedesignedEditorPanel.IMAGE_COLOR -> ImageCropColorPanel"):
     if marker not in new:
