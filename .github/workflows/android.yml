@@ -195,6 +195,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_selection_v6.py
 
+      - name: Add dedicated text and image selection docks v7
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_editor_selection_dock_v7.py
+
       - name: Fix Xingtu expandable bottom sheet interaction
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_xingtu_bottom_sheet.py
