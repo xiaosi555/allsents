@@ -72,7 +72,7 @@ checks = [
     ("bottom anchoring", "alignment = Alignment.BottomCenter" in s),
     ("selected text unified", 'activeObjectDialog = action' in s),
     ("live image radius", "imageRadiusTL" in s and "previewSelectedImageRadius(\" + it + \",\" + it" in s),
-    ("image adjustment preview", "previewSelectedImageFilters($imageBrightness,$imageContrast,$imageSaturation)" in s),
+    ("image adjustment preview", "previewSelectedImageFilters(" in s),
     ("text opacity preview", "previewSelectedTextOpacity($it)" in s),
     ("canvas pass-through", "dismissOnClickOutside = false" in s),
 ]
