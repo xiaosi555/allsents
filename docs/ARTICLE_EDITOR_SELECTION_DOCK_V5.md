@@ -64,7 +64,7 @@
 - 再次点击同一文字块进入编辑，并优先通过触点定位光标；无法定位时回退到段尾。
 - 图片点击只选择图片，不把图片所在段落误判成文字。
 - 组件自由拖动模式下，选择事件不抢占拖动逻辑。
-- 二级工具面板仍由原有 Compose 面板承载；面板打开时遵守既有规则，隐藏一级底部导航，但画布对象命中和选择状态仍可更新。
+- 二级工具面板仍由原有 Compose 面板承载；同一对象继续编辑时保留当前面板，切换到不同对象时关闭旧面板并显示新对象的底部导航；点击空白则关闭面板并恢复默认导航。
 
 ## 五、回归验收清单
 
@@ -76,11 +76,17 @@
 - [ ] 文字→图片→空白→组件连续切换时，导航不残留旧类型。
 - [ ] 二级面板打开时仍可切换画布选中对象，实时编辑与面板手势不受影响。
 - [ ] 多选、锁定/解锁、组件拖动、图片裁剪和历史记录不回归。
-- [ ] Kotlin 编译与 APK 构建成功；最后在真机验证触摸命中和输入法行为。
+- [x] 最新主分支 Kotlin Compile Check #568 成功（run 45914050130）。
+- [x] 最新主分支 APK Build #836 成功（run 45914050321）；APK 和最终注入源码包均已上传。
+- [ ] 最后在真机验证触摸命中和输入法行为。
 
 ## 六、技术参考
 
 - DOM click 事件在指针按下/抬起目标变化时可能落到两者共同祖先，不能假设 `event.target` 始终等于用户实际点中的叶子节点：  
   https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
+- Pointer Events 统一鼠标、触控和触控笔输入，并定义浏览器命中测试：
+  https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events
+- `elementFromPoint()` 返回指定视口坐标处最上层元素，用于复核真实触点：
+  https://developer.mozilla.org/en-US/docs/Web/API/Document/elementFromPoint
 - Android WebView 的 `evaluateJavascript` 在 UI 线程异步执行；JavaScript bridge 回调需将状态安全投递到主线程：  
   https://developer.android.com/reference/android/webkit/WebView
