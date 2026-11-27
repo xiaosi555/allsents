@@ -66,15 +66,12 @@ new_column = '''                Column(
                     )'''
 once(old_column, new_column, "scrollable bottom panel content")
 
-old_radius = "Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs(\"previewSelectedImageRadius('" + "$" + "{it}px')\") }, onValueChangeFinished = { runJs(\"commitSelectedImageStyle()\") }, valueRange = 0f..40f)"
-new_radius = 'Slider(value = imageRadius, onValueChange = { imageRadius = it; runJs("previewSelectedImageRadius($it,$it,$it,$it)") }, onValueChangeFinished = { runJs("commitSelectedImageStyle()") }, valueRange = 0f..120f)'
-once(old_radius, new_radius, "live radius preview signature")
 
 checks = [
     ("non-modal popup", "PopupProperties(" in s and "focusable = false" in s),
     ("bottom anchoring", "alignment = Alignment.BottomCenter" in s),
     ("selected text unified", 'activeObjectDialog = action' in s),
-    ("live image radius", "previewSelectedImageRadius($it,$it,$it,$it)" in s),
+    ("live image radius", "imageRadiusTL" in s and "previewSelectedImageRadius(\" + it + \",\" + it" in s),
     ("image adjustment preview", "previewSelectedImageFilters($imageBrightness,$imageContrast,$imageSaturation)" in s),
     ("text opacity preview", "previewSelectedTextOpacity($it)" in s),
     ("canvas pass-through", "dismissOnClickOutside = false" in s),
