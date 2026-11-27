@@ -70,6 +70,7 @@ once(
                                              imageRadiusTR = controls.optDouble("radiusTR", 0.0).toFloat().coerceIn(0f, 120f)
                                              imageRadiusBR = controls.optDouble("radiusBR", 0.0).toFloat().coerceIn(0f, 120f)
                                              imageRadiusBL = controls.optDouble("radiusBL", 0.0).toFloat().coerceIn(0f, 120f)
+                                             imageRadiusLinked = imageRadiusTL == imageRadiusTR && imageRadiusTR == imageRadiusBR && imageRadiusBR == imageRadiusBL
                                              imageBorderWidth = controls.optDouble("borderWidth", 0.0).toFloat().coerceIn(0f, 12f)
                                              imageBorderStyle = controls.optString("borderStyle", "solid").takeIf { it in listOf("solid", "dashed", "dotted") } ?: "solid"
                                              imageBorderColor = controls.optString("borderColor", "#DDE3EA")
