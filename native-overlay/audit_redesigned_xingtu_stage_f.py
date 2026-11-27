@@ -26,16 +26,17 @@ def tool_inventory(source: str):
     return Counter(re.findall(r'EditorTool\(\s*"((?:\\.|[^"\\])*)"', source))
 
 def panel_cases(source: str):
-    # Capture grouped when branches such as
-    # EditorPanel.CARD, EditorPanel.COMPONENT -> { ... } as well as singles.
+    # Legacy and redesigned files use separate top-level enum type names.
+    # Capture grouped branches in either file, including enum names with digits.
+    enum_name = "RedesignedEditorPanel" if "RedesignedEditorPanel." in source else "EditorPanel"
     case_groups = re.findall(
-        r"((?:EditorPanel\.[A-Z0-9_]+\s*,\s*)*EditorPanel\.[A-Z0-9_]+)\s*->",
+        rf"((?:{enum_name}\.[A-Z0-9_]+\s*,\s*)*{enum_name}\.[A-Z0-9_]+)\s*->",
         source
     )
     return {
         panel
         for group in case_groups
-        for panel in re.findall(r"EditorPanel\.([A-Z0-9_]+)", group)
+        for panel in re.findall(rf"{enum_name}\.([A-Z0-9_]+)", group)
     }
 
 def remembered_states(source: str):
