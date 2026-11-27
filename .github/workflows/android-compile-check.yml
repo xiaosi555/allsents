@@ -172,6 +172,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/ensure_article_editor_route.py
 
+      - name: Add redesigned Xingtu entry to app Home
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/add_redesigned_xingtu_home_entry.py
+
       - name: Apply object-aware editor bottom navigation v2
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_editor_bottom_nav_v2.py
@@ -228,6 +232,14 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_image_crop_color_panels.py
 
+      - name: Route image appearance tools through full secondary panel
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/unify_image_selection_panels.py
+
+      - name: Repair image crop/color runtime actions and live canvas sync
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/repair_image_crop_color_crash_sync.py
+
 
       - name: Upload canvas selection patch diagnostic
         if: always()
@@ -245,6 +257,40 @@ jobs:
       - name: Apply and verify status bar icon contrast
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_status_bar.py
+
+      - name: Generate redesigned Xingtu editor while preserving legacy screen
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/create_redesigned_xingtu_editor.py
+
+      - name: Apply redesigned Xingtu Stage C panel UI consistency
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_redesigned_xingtu_stage_c.py
+
+      - name: Apply redesigned Xingtu Stage D dialog consistency
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_redesigned_xingtu_stage_d.py
+
+      - name: Apply redesigned Xingtu Stage E back and selection coordinator
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_redesigned_xingtu_stage_e.py
+
+      - name: Audit redesigned Xingtu Stage F feature parity
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/audit_redesigned_xingtu_stage_f.py
+
+      - name: Upload Xingtu source patch diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xingtu-stage-c-f-diagnostics
+          path: |
+            xingtu_redesign_patch_error.txt
+            xingtu_stage_c_patch_error.txt
+            xingtu_stage_d_patch_error.txt
+            xingtu_stage_e_patch_error.txt
+            xingtu_stage_f_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
 
       - name: Finalize Android resources and version
