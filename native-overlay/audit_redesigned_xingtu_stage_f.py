@@ -26,7 +26,17 @@ def tool_inventory(source: str):
     return Counter(re.findall(r'EditorTool\(\s*"((?:\\.|[^"\\])*)"', source))
 
 def panel_cases(source: str):
-    return set(re.findall(r"EditorPanel\.([A-Z_]+)\s*->", source))
+    # Capture grouped when branches such as
+    # EditorPanel.CARD, EditorPanel.COMPONENT -> { ... } as well as singles.
+    case_groups = re.findall(
+        r"((?:EditorPanel\.[A-Z_]+\s*,\s*)*EditorPanel\.[A-Z_]+)\s*->",
+        source
+    )
+    return {
+        panel
+        for group in case_groups
+        for panel in re.findall(r"EditorPanel\.([A-Z_]+)", group)
+    }
 
 def remembered_states(source: str):
     return set(re.findall(r"(?m)^\s*var\s+(\w+)\s+by\s+remember\s*\{", source))
