@@ -24,10 +24,10 @@ def replace_once(old: str, new: str, label: str):
 
 # The left action is always close/back; the right action is confirm/finish.
 # Both preserve the original live-preview behavior and close only this panel.
-confirm_left = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }'
-close_right = 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }'
-replace_once(confirm_left, 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能面板", tint = Color.White) }', "left close action")
-replace_once(close_right, 'IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "完成并关闭", tint = AppColors.Theme) }', "right confirm action")
+confirm_left = 'IconButton(onClick = { if (activePanel == RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }'
+close_right = 'IconButton(onClick = { if (activePanel == RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }'
+replace_once(confirm_left, 'IconButton(onClick = { if (activePanel == RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能面板", tint = Color.White) }', "left close action")
+replace_once(close_right, 'IconButton(onClick = { if (activePanel == RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "完成并关闭", tint = AppColors.Theme) }', "right confirm action")
 
 # Keep the established dark work-surface (#181818) and accent color. Add only
 # a subtle separator to distinguish panel navigation from its working content.
@@ -39,7 +39,7 @@ separator = '                    Box(Modifier.fillMaxWidth().height(1.dp).backgr
 s = s.replace(anchor, separator + anchor)
 print(f"Stage C panel separators inserted: {anchor_count}")
 
-# The object-aware navigation v2 replaced the old EditorPanel.values() dock.
+# The object-aware navigation v2 replaced the old RedesignedEditorPanel.values() dock.
 # Extend its DEFAULT dock instead of patching an obsolete filter expression.
 replace_once(
     'else -> listOf("加图", "加字", "图文模板", "图文收藏", "文档", "画布", "图层")',
@@ -49,12 +49,12 @@ replace_once(
 replace_once(
     '                                            "加字" -> { runJs("enableSelectedTextEditing()"); insert("<p><br></p>") }',
     '''                                            "加字" -> { runJs("enableSelectedTextEditing()"); insert("<p><br></p>") }
-                                            "文字" -> { activePanel = EditorPanel.TEXT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
-                                            "图片" -> { activePanel = EditorPanel.IMAGE; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
-                                            "布局" -> { activePanel = EditorPanel.LAYOUT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
-                                            "卡片" -> { activePanel = EditorPanel.CARD; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
-                                            "组件" -> { activePanel = EditorPanel.COMPONENT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
-                                            "SVG" -> { activePanel = EditorPanel.SVG; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }''',
+                                            "文字" -> { activePanel = RedesignedEditorPanel.TEXT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "图片" -> { activePanel = RedesignedEditorPanel.IMAGE; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "布局" -> { activePanel = RedesignedEditorPanel.LAYOUT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "卡片" -> { activePanel = RedesignedEditorPanel.CARD; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "组件" -> { activePanel = RedesignedEditorPanel.COMPONENT; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }
+                                            "SVG" -> { activePanel = RedesignedEditorPanel.SVG; showTemplateSubnav = false; showCanvasPopup = false; toolPanelHeightDp = 200f; showToolPopup = true }''',
     "direct functional panel routes"
 )
 
@@ -127,10 +127,10 @@ required = {
     "panel content inset": '.padding(horizontal = 14.dp, vertical = 8.dp)' in s,
     "independent panel scroll": '.verticalScroll(toolPanelScrollState)' in s,
     "direct default dock entries": all(f'"{label}"' in s for label in ("文字", "图片", "布局", "卡片", "组件", "SVG")),
-    "direct panel routes": all(f'"{label}" -> {{ activePanel = EditorPanel.{panel};' in s for label, panel in (("文字", "TEXT"), ("图片", "IMAGE"), ("布局", "LAYOUT"), ("卡片", "CARD"), ("组件", "COMPONENT"), ("SVG", "SVG"))),
-    "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2EditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2EditorPanel') + 1)],
+    "direct panel routes": all(f'"{label}" -> {{ activePanel = RedesignedEditorPanel.{panel};' in s for label, panel in (("文字", "TEXT"), ("图片", "IMAGE"), ("布局", "LAYOUT"), ("卡片", "CARD"), ("组件", "COMPONENT"), ("SVG", "SVG"))),
+    "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2RedesignedEditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2RedesignedEditorPanel') + 1)],
     "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
-    "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","IMAGE_CROP","IMAGE_COLOR","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
+    "all feature cases retained": all(f'RedesignedEditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","IMAGE_CROP","IMAGE_COLOR","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
     "direct primary entries exposed": 'else -> listOf("加图", "加字", "文字", "图片", "布局", "卡片", "组件", "SVG", "图文模板", "图文收藏", "文档", "画布", "图层")' in s,
     "text tools grouped": all(f'Text("{label}"' in s for label in ["字号与文字效果","段落结构","辅助插入","段落间距","常用字体"]),
 }
