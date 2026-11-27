@@ -34,4 +34,4 @@ if failed:
     raise SystemExit("Image panel validation failed: " + ", ".join(failed))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Selected-image appearance tools now use the complete non-modal image tool sheet.")
+print("Each image function now opens its own bottom non-modal popup; crop and color retain dedicated panels.")
