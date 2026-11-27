@@ -20,7 +20,7 @@ helper = """                             function isEmptyCanvasCaretLine(node){
                              }
                              function reportSelection(){"""
 if s.count(helper_anchor) != 1:
-    ERROR.write_text(f"reportSelection anchor count: {s.count(helper_anchor)}\\n", encoding="utf-8")
+    ERROR.write_text(f"reportSelection anchor count: {s.count(helper_anchor)}\n", encoding="utf-8")
     raise SystemExit("Empty-line dock patch: reportSelection anchor mismatch")
 s = s.replace(helper_anchor, helper, 1)
 old = "                                 else if(target&&/^(P|H1|H2|H3|H4|BLOCKQUOTE|PRE|UL|OL)$/.test(target.tagName))kind='CARET';"
