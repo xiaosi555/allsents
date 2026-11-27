@@ -141,7 +141,8 @@ if not text_action or "activeObjectDialog = action" not in text_action.group(1):
     fail("Selected text actions are still routed into a combined panel")
 if "activePanel = RedesignedEditorPanel.TEXT2" in text_action.group(1) or "showToolPopup = true" in text_action.group(1):
     fail("Selected text action still opens the combined Text2 panel")
-if not re.search(r'"text-align"\s*->\s*activeObjectDialog\s*=\s*action', s):
+text_align_action = re.search(r'"text-align" -> \\{(.*?)\\n\\s*\\}', s, re.S)
+if not text_align_action or "activeObjectDialog = action" not in text_align_action.group(1):
     fail("Text alignment does not open its own popup")
 if "else -> {\n                                        activeObjectDialog = action" not in s:
     fail("Selected image actions do not open their individual popup")
