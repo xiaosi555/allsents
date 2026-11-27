@@ -217,7 +217,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: editor-selection-v6-diagnostic
-          path: editor_selection_v6_patch_error.txt
+          path: |
+            editor_selection_v6_patch_error.txt
+            editor_selection_dock_v7_patch_error.txt
           if-no-files-found: ignore
           retention-days: 7
 
