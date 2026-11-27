@@ -34,6 +34,16 @@ replace_once(close_right, 'IconButton(onClick = { if (activePanel == EditorPanel
 anchor = '                    CompositionLocalProvider(LocalEditorToolDark provides true) {'
 replace_once(anchor, '                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF303030)))\n' + anchor, "panel header separator")
 
+# The old dock filtered every template sub-panel from the primary navigation,
+# which also hid direct access to Image/Layout/Card/Component/SVG tools. Keep
+# TITLE as a template-only category and TEXT2 as the text-properties workspace,
+# but expose the functional panels as direct primary entries as well.
+replace_once(
+    'EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }.forEach { panel ->',
+    'EditorPanel.values().filterNot { it == EditorPanel.TEXT2 || it == EditorPanel.TITLE }.forEach { panel ->',
+    "complete primary panel navigation"
+)
+
 # Normalize panel content inset. This does not alter the canvas, page background,
 # article styles, theme palette, or any feature content.
 old_padding = '.padding(horizontal = 13.dp, vertical = 4.dp)'
@@ -73,6 +83,7 @@ required = {
     "TEXT2 own scroll": 'verticalScroll(rememberScrollState())' in s[s.index('private fun Text2EditorPanel'):s.index('@OptIn(ExperimentalLayoutApi::class)', s.index('private fun Text2EditorPanel') + 1)],
     "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
     "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
+    "direct primary entries exposed": 'EditorPanel.values().filterNot { it == EditorPanel.TEXT2 || it == EditorPanel.TITLE }' in s,
 }
 failed = [name for name, ok in required.items() if not ok]
 if failed:
