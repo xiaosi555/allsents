@@ -50,7 +50,7 @@ flow_lines = s.splitlines()
 for index, line in enumerate(flow_lines):
     if "FlowRow(" in line and old_flow in line:
         flow_lines[index] = line.replace(old_flow, new_flow)
-s = "\\n".join(flow_lines) + "\\n"
+s = "\n".join(flow_lines) + "\n"
 
 # Normalize the small section captions in the secondary panel while preserving
 # their text and location. Dynamic labels and explanatory copy are untouched.
