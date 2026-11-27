@@ -35,7 +35,12 @@ rep('''                    EditorPanel.TEXT2 -> {
                     EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, { runJs(it) })
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(''')
-rep('EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 }.forEach { panel ->','EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 || it == EditorPanel.IMAGE_CROP || it == EditorPanel.IMAGE_COLOR }.forEach { panel ->')
+import re
+nav_pattern = r'EditorPanel\\.values\\(\\)\\.filterNot\\s*\\{[^}]*\\}\\.forEach\\s*\\{\\s*panel\\s*->'
+nav_replacement = 'EditorPanel.values().filterNot { it in templateSubPanels || it == EditorPanel.TEXT2 || it == EditorPanel.IMAGE_CROP || it == EditorPanel.IMAGE_COLOR }.forEach { panel ->'
+s, nav_count = re.subn(nav_pattern, nav_replacement, s, count=1)
+if nav_count != 1:
+    raise SystemExit("primary navigation filter not found exactly once: " + str(nav_count))
 anchor="function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}"
 addition=anchor+"""
                             function previewSelectedImageAdvanced(b,c,s,temp,tint,hue,gray,sepia,blur,rotation){
@@ -54,6 +59,7 @@ addition=anchor+"""
 """
 rep(anchor,addition)
 panel=r'''
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ImageCropColorPanel(kind: String, tab: String, onJs: (String) -> Unit) {
  var a by remember { mutableFloatStateOf(100f) }; var b by remember { mutableFloatStateOf(100f) }; var c by remember { mutableFloatStateOf(100f) }
