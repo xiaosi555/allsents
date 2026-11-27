@@ -59,79 +59,28 @@ once(
     "paper canvas clipping"
 )
 
-# Replace the text-only primary dock with an icon-first dock. All original
-# navigation targets, callbacks, and panel contents are preserved.
-old_nav = '''                        RedesignedEditorPanel.values().filterNot { it in templateSubPanels || it == RedesignedEditorPanel.TEXT2 }.forEach { panel ->
-                            TextButton(
-                                onClick = {
-                                    showTemplateSubnav = panel == RedesignedEditorPanel.TEMPLATE
-                                    if (activePanel == RedesignedEditorPanel.TEXT2 && panel != RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(false);")
-                                    activePanel = if (panel == RedesignedEditorPanel.TEMPLATE) templateSubPanel else panel
-                                    floatingMenu = ""
-                                    if (panel == RedesignedEditorPanel.CANVAS) {
-                                        showToolPopup = false
-                                        showCanvasPopup = true
-                                        toolPopupOffset = Offset.Zero
-                                    } else {
-                                        showCanvasPopup = false
-                                        showToolPopup = true
-                                         if (panel == RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(true);")
-                                        toolPanelHeightDp = if (panel == RedesignedEditorPanel.TEXT2) 330f else 180f
-                                    }
-                                    if (panel == RedesignedEditorPanel.LAYER) refreshLayerItems()
-                                },
-                                contentPadding = PaddingValues(horizontal = 9.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    panel.label,
-                                    color = if ((activePanel == panel || (panel == RedesignedEditorPanel.TEMPLATE && showTemplateSubnav)) && (showToolPopup || showCanvasPopup)) Color.White else Color(0xFF777777),
-                                    fontSize = if (activePanel == panel) 15.sp else 13.sp,
-                                    fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
-                                    maxLines = 1
-                                )
-                            }
-                        }'''
-new_nav = '''                        RedesignedEditorPanel.values().filterNot { it in templateSubPanels || it == RedesignedEditorPanel.TEXT2 }.forEach { panel ->
-                            val isSelected = (activePanel == panel || (panel == RedesignedEditorPanel.TEMPLATE && showTemplateSubnav)) && (showToolPopup || showCanvasPopup)
-                            Column(
-                                Modifier.width(58.dp).fillMaxHeight().clip(RoundedCornerShape(11.dp))
-                                    .background(if (isSelected) AppColors.Theme.copy(alpha = 0.14f) else Color.Transparent)
-                                    .clickable {
-                                        showTemplateSubnav = panel == RedesignedEditorPanel.TEMPLATE
-                                        if (activePanel == RedesignedEditorPanel.TEXT2 && panel != RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(false);")
-                                        activePanel = if (panel == RedesignedEditorPanel.TEMPLATE) templateSubPanel else panel
-                                        floatingMenu = ""
-                                        if (panel == RedesignedEditorPanel.CANVAS) {
-                                            showToolPopup = false
-                                            showCanvasPopup = true
-                                            toolPopupOffset = Offset.Zero
-                                        } else {
-                                            showCanvasPopup = false
-                                            showToolPopup = true
-                                            if (panel == RedesignedEditorPanel.TEXT2) runJs("setText2SelectionPreview(true);")
-                                            toolPanelHeightDp = if (panel == RedesignedEditorPanel.TEXT2) 330f else 180f
-                                        }
-                                        if (panel == RedesignedEditorPanel.LAYER) refreshLayerItems()
-                                    }
-                                    .padding(vertical = 4.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                EditorVectorIcon(panel.label, if (isSelected) AppColors.Theme else Color(0xFF858D88), Modifier.size(20.dp))
-                                Text(
-                                    panel.label,
-                                    color = if (isSelected) AppColors.Theme else AppColors.TextDim,
-                                    fontSize = 9.sp,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    maxLines = 1
-                                )
-                            }
-                        }'''
-once(old_nav, new_nav, "icon-first primary navigation")
+# The existing dock already carries vector icons and all original callbacks.
+# Give it a redesigned raised-height surface and clearer item spacing rather than
+# replacing the selection-aware navigation state machine.
 once(
-    '                    Modifier.fillMaxWidth().height(50.dp)\n                        .background(Color(0xFF181818)),',
-    '                    Modifier.fillMaxWidth().height(68.dp)\n                        .background(AppColors.Panel)\n                        .border(androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)),',
+    '                    Modifier.fillMaxWidth().height(50.dp).background(Color(0xFF181818)),',
+    '                    Modifier.fillMaxWidth().height(68.dp).background(AppColors.Panel).border(androidx.compose.foundation.BorderStroke(1.dp, AppColors.Line)),',
     "primary dock surface"
+)
+once(
+    'Modifier.width(62.dp).height(52.dp).clip(RoundedCornerShape(8.dp))',
+    'Modifier.width(60.dp).height(60.dp).clip(RoundedCornerShape(11.dp))',
+    "selected-object dock item geometry"
+)
+once(
+    'contentPadding = PaddingValues(horizontal = 7.dp, vertical = 3.dp)',
+    'contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)',
+    "primary dock item spacing"
+)
+once(
+    'Text(item, color = if (item in listOf("编辑", "字体", "样式", "排版", "透明度", "加图", "加字")) AppColors.Theme else Color(0xFFDDDDDD), fontSize = 9.sp, maxLines = 1)',
+    'Text(item, color = if (item in listOf("编辑", "字体", "样式", "排版", "透明度", "加图", "加字")) AppColors.Theme else AppColors.TextDim, fontSize = 9.sp, maxLines = 1)',
+    "primary dock label contrast"
 )
 
 # Do not allow a selected-object action to fall back into the combined Text2 or
@@ -210,7 +159,7 @@ checks = {
     "redesigned header": "height(64.dp).background(pageBg)" in s,
     "canvas work surface": "background(Color(0xFFEDEFEF)).padding(horizontal = 10.dp, vertical = 8.dp)" in s,
     "paper canvas clipping": "Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(Color.White)" in s,
-    "icon primary dock": "EditorVectorIcon(panel.label" in s and "height(68.dp)" in s,
+    "icon primary dock": "EditorVectorIcon(item" in s and "EditorVectorIcon(label, AppColors.TextMain" in s and "height(68.dp)" in s,
     "selected text opens one popup": "activeObjectDialog = action" in text_action.group(1) and "showToolPopup = false" in text_action.group(1),
     "selected image opens one popup": "else -> {\n                                        activeObjectDialog = action" in s,
     "dedicated crop panel": "RedesignedEditorPanel.IMAGE_CROP -> ImageCropColorPanel" in s,
