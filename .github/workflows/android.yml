@@ -278,6 +278,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_redesigned_xingtu_stage_c.py
 
+      - name: Apply redesigned Xingtu Stage D dialog consistency
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_redesigned_xingtu_stage_d.py
+
       - name: Upload redesigned Xingtu generation and Stage C diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -286,6 +290,15 @@ jobs:
           path: |
             xingtu_redesign_patch_error.txt
             xingtu_stage_c_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload redesigned Xingtu Stage D diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redesigned-xingtu-stage-d-diagnostic
+          path: xingtu_stage_d_patch_error.txt
           if-no-files-found: ignore
           retention-days: 7
 
