@@ -29,10 +29,10 @@ def panel_cases(source: str):
     return set(re.findall(r"EditorPanel\.([A-Z_]+)\s*->", source))
 
 def remembered_states(source: str):
-    return set(re.findall(r"(?m)^\s*var\s+(\w+)\s+by\s+remember\s*\\{", source))
+    return set(re.findall(r"(?m)^\s*var\s+(\w+)\s+by\s+remember\s*\{", source))
 
 def call_count(source: str, name: str):
-    return len(re.findall(r"\\b" + re.escape(name) + r"\\s*\\(", source))
+    return len(re.findall(r"\b" + re.escape(name) + r"\s*\(", source))
 
 # The redesigned screen is generated from the fully patched legacy screen.
 # Presentation-only changes may add state, but must not remove business state.
