@@ -155,7 +155,7 @@ new_shadow = '''                        "shadow" -> {
                                 }
                             }
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                listOf("无" to 0f, "轻" to 12f, "中" to 24f, "强" to 40f).forEach { (label, alpha) -> TextButton(onClick = { imageShadowOpacity = alpha; runJs("previewSelectedImageShadow(0,4,12,0,'#000000'," + alpha + ");commitSelectedImageStyle()") }) { Text(label, color = Color.White, fontSize = 11.sp) } }
+                                listOf("无" to 0f, "轻" to 12f, "中" to 24f, "强" to 40f).forEach { (label, alpha) -> TextButton(onClick = { imageShadowX = 0f; imageShadowY = 4f; imageShadowBlur = 12f; imageShadowSpread = 0f; imageShadowColor = "#000000"; imageShadowOpacity = alpha; runJs("previewSelectedImageShadow(0,4,12,0,'#000000'," + alpha + ");commitSelectedImageStyle()") }) { Text(label, color = Color.White, fontSize = 11.sp) } }
                             }
                         }'''
 once(old_shadow, new_shadow, "custom image shadow controls")
