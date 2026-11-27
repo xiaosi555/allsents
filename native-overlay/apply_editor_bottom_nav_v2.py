@@ -137,8 +137,8 @@ else:
     raise SystemExit("Could not locate floating toolbar title for component shortcut")
 
 # Replace the generic primary dock with the seven requested default entries and the three object-specific docks.
-dock_comment = "// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog."
-comment_pos = s.find(dock_comment)
+dock_comments = ("// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.", "// Persistent primary navigation is hidden while the secondary tool sheet is open.")
+comment_pos = next((s.find(marker) for marker in dock_comments if s.find(marker) >= 0), -1)
 if comment_pos < 0:
     raise SystemExit("Could not locate persistent primary dock")
 dock_if = next((candidate for candidate in ("            if (!previewMode && !showToolPopup) {", "            if (!previewMode) {") if s.find(candidate, comment_pos) >= 0), None)
