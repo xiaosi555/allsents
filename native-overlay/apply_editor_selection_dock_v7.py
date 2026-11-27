@@ -8,6 +8,8 @@ ERROR = ROOT / "editor_selection_dock_v7_patch_error.txt"
 s = EDITOR.read_text(encoding="utf-8")
 def once(old, new, label):
     global s
+    if new in s:
+        return
     n = s.count(old)
     if n != 1:
         ERROR.write_text(f"{label}: expected 1, found {n}\n", encoding="utf-8")
@@ -29,6 +31,30 @@ once(
 "text opacity preview")
 
 # Existing v2/v3 image action functions are retained and receive lock guards below.
+def guard_image_function(name):
+    global s
+    pattern = re.compile(r"(function " + re.escape(name) + r"\\([^)]*\\)\\{)")
+    match = pattern.search(s)
+    if not match:
+        raise SystemExit("Could not locate image handler " + name)
+    body = s[match.end():match.end()+420]
+    if "activeImage.dataset.editorLocked==='1'" in body:
+        return
+    if body.startswith("if(!activeImage)return;"):
+        old_guard = "if(!activeImage)return;"
+        s = s[:match.end()] + "if(!activeImage||activeImage.dataset.editorLocked==='1')return;" + s[match.end()+len(old_guard):]
+    else:
+        s = s[:match.end()] + "if(!activeImage||activeImage.dataset.editorLocked==='1')return;" + s[match.end():]
+
+for name in [
+    "setSelectedImageBorder", "setSelectedImageOpacity", "setSelectedImageShadow",
+    "flipSelectedImage", "alignSelectedImage", "setSelectedImageAsBackground",
+    "setSelectedImageWidth", "setSelectedImageObjectPosition", "rotateSelectedImage",
+    "setSelectedImageRadius", "cropSelectedImage", "resetSelectedImageCrop",
+    "replaceSelectedImage", "deleteSelectedImage", "setSelectedImageAlt",
+    "commitSelectedImageStyle"
+]:
+    guard_image_function(name)
 
 constAnchor = "@Composable\nprivate fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {"
 helper = """@Composable
