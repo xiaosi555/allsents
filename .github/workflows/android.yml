@@ -1,10 +1,6 @@
 name: Android APK Build
 
 on:
-  push:
-    branches:
-      - main
-      - 'ui/**'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +8,6 @@ permissions:
 
 jobs:
   build:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
