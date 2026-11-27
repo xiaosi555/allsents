@@ -350,6 +350,12 @@ private fun Text2EditorPanel(
     }
     if (showTextColorPicker) {
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { showTextColorPicker = false },
             title = { Text("自定义取色") },
             text = {
@@ -401,7 +407,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showToolPopup by remember { mutableStateOf(false) }
     var toolPanelHeightDp by remember { mutableFloatStateOf(100f) }
     val toolPanelDensity = LocalDensity.current
-    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp
+    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp
     var showCanvasPopup by remember { mutableStateOf(false) }
     var toolPopupOffset by remember { mutableStateOf(Offset.Zero) }
     var activeCategory by remember { mutableStateOf("") }
@@ -1746,7 +1752,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         toolPopupOffset = Offset.Zero
                                     } else {
                                         showCanvasPopup = false
-                                        toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f
+                                        toolPanelHeightDp = 200f
                                         showToolPopup = true
                                          if (panel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(true);")
                                     }
@@ -1754,13 +1760,28 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 },
                                 contentPadding = PaddingValues(horizontal = 9.dp, vertical = 3.dp)
                             ) {
-                                Text(
-                                    panel.label,
-                                    color = if (activePanel == panel || (panel == EditorPanel.TEMPLATE && showTemplateSubnav)) Color.White else Color(0xFF777777),
-                                    fontSize = if (activePanel == panel) 15.sp else 13.sp,
-                                    fontWeight = if (activePanel == panel) FontWeight.Bold else FontWeight.Normal,
-                                    maxLines = 1
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.height(48.dp).padding(horizontal = 2.dp)
+                                ) {
+                                    val selected = activePanel == panel || (panel == EditorPanel.TEMPLATE && showTemplateSubnav)
+                                    Text(
+                                        editorToolGlyph(panel.label),
+                                        color = if (selected) Color.White else Color(0xFF777777),
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        lineHeight = 19.sp,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        panel.label,
+                                        color = if (selected) Color.White else Color(0xFF999999),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }
@@ -1785,7 +1806,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                         .navigationBarsPadding()
                 ) {
                     Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
+                        IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
                         if (activePanel == EditorPanel.TEXT2) {
                             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                                 listOf("字体", "样式", "排版").forEach { tab ->
@@ -1814,7 +1835,7 @@ fun ArticleEditorScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 Text(activePanel.label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
-                        IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Close, contentDescription = "关闭功能窗口", tint = Color.White) }
+                        IconButton(onClick = { if (activePanel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(false);"); showToolPopup = false }) { Icon(Icons.Outlined.Check, contentDescription = "确定", tint = AppColors.Theme) }
                     }
                     CompositionLocalProvider(LocalEditorToolDark provides true) {
                         Column((if (activePanel == EditorPanel.TEXT2) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())).padding(horizontal = 13.dp, vertical = 6.dp)) {
@@ -2333,7 +2354,7 @@ when (activePanel) {
                                         showCanvasPopup = false
                                         showToolPopup = true
                                          if (panel == EditorPanel.TEXT2) runJs("setText2SelectionPreview(true);")
-                                        toolPanelHeightDp = if (panel == EditorPanel.TEXT2) 330f else 180f
+                                        toolPanelHeightDp = 200f
                                     }
                                     if (panel == EditorPanel.LAYER) refreshLayerItems()
                                 },
@@ -2418,7 +2439,7 @@ when (activePanel) {
     }
     if (showHtmlImportPreview) {
         Dialog(onDismissRequest = { showHtmlImportPreview = false }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("HTML 导入预览", color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text("已清理脚本、事件属性和危险链接。请选择新建文章或替换当前正文。", color = Color.Gray, fontSize = 11.sp)
@@ -2461,7 +2482,7 @@ when (activePanel) {
     if (templatePreview != null) {
         val template = templatePreview!!
         Dialog(onDismissRequest = { templatePreview = null }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(template.name, color = ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     AndroidView(
@@ -2528,7 +2549,7 @@ when (activePanel) {
     if (editingTemplateContent != null) {
         val target = editingTemplateContent!!
         Dialog(onDismissRequest = { editingTemplateContent = null }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("编辑模板内容", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text(target.name, color = Color.Gray, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -2567,6 +2588,12 @@ when (activePanel) {
     if (deletingTemplate != null) {
         val target = deletingTemplate!!
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { deletingTemplate = null },
             title = { Text("删除模板？") },
             text = { Text("确定删除「${target.name}」吗？删除后无法恢复。") },
@@ -2582,7 +2609,7 @@ when (activePanel) {
     }
     if (previewAsset != null) {
         Dialog(onDismissRequest = { previewAsset = null }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(previewAsset!!.fileName, color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     if (previewBitmap != null) {
@@ -2627,6 +2654,12 @@ when (activePanel) {
     if (showDeleteConfirm != null) {
         val target = showDeleteConfirm!!
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { showDeleteConfirm = null },
             title = { Text("删除文章？") },
             text = { Text("将删除「${target.title}」及其版本快照。此操作不可撤销。") },
@@ -2647,6 +2680,12 @@ when (activePanel) {
     if (showRevisionList) {
         val revisions = vm.data.articleRevisions.filter { it.articleId == articleId }.sortedByDescending { it.createdAt }
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { showRevisionList = false },
             title = { Text("历史版本（最近 30 个）") },
             text = {
@@ -2683,7 +2722,7 @@ when (activePanel) {
         val revision = revisionPreview!!
         val previewHtml = "<!doctype html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><style>body{font:16px/1.9 sans-serif;padding:20px;color:#333}img{max-width:100%;height:auto}</style></head><body><h1>${escapeMarkdownText(revision.title)}</h1><p>${escapeMarkdownText(revision.subtitle)}</p><p style='color:#999;font-size:12px'>${escapeMarkdownText(revision.author)} · ${escapeMarkdownText(revision.category)}</p>${revision.html}</body></html>"
         Dialog(onDismissRequest = { revisionPreview = null }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("历史版本预览 · ${formatArticleTimestamp(revision.createdAt)}", color = ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     AndroidView(
@@ -2717,6 +2756,12 @@ when (activePanel) {
     if (fullTemplateConfirm != null) {
         val template = fullTemplateConfirm!!
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { fullTemplateConfirm = null },
             title = { Text("应用整篇模板？") },
             text = { Text("将用「${template.name}」替换当前文章正文。建议先保存当前文章。") },
@@ -2732,6 +2777,12 @@ when (activePanel) {
     }
     if (showFindReplace) {
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { showFindReplace = false },
             title = { Text("查找与替换") },
             text = {
@@ -2754,7 +2805,7 @@ when (activePanel) {
     }
     if (showCustomImageCrop && customCropAsset != null) {
         Dialog(onDismissRequest = { showCustomImageCrop = false; customCropAsset = null }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     Text("自定义像素裁切", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text(customCropAsset!!.fileName, color = Color.Gray, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -2889,7 +2940,7 @@ when (activePanel) {
 
     if (showLayoutBuilder) {
         Dialog(onDismissRequest = { showLayoutBuilder = false }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(
                     Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -2991,7 +3042,7 @@ when (activePanel) {
 
     if (showBlockProperties) {
         Dialog(onDismissRequest = { showBlockProperties = false }) {
-            Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+            Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("模块属性", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text("可设置尺寸、间距、背景、边框、圆角、阴影、对齐和透明度。", color = Color.Gray, fontSize = 11.sp)
@@ -3043,7 +3094,7 @@ when (activePanel) {
             val packageAssets = packagePreview.optJSONArray("assets") ?: org.json.JSONArray()
             val packageWordCount = packageHtml.replace(Regex("<[^>]*>"), "").length
             Dialog(onDismissRequest = { showArticlePackagePreview = false; pendingArticlePackageRaw = "" }) {
-                Surface(shape = RoundedCornerShape(14.dp), color = Color.White, modifier = Modifier.fillMaxWidth()) {
+                Surface(shape = RoundedCornerShape(16.dp), color = Color(0xFFFDFDFD), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("文章包导入预览", color = ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         Text(packagePreview.optString("title").ifBlank { "未命名文章" }, color = ink, fontSize = 18.sp, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -3151,6 +3202,12 @@ when (activePanel) {
     }
     if (showCompatibilityReport) {
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = { showCompatibilityReport = false },
             title = { Text("公众号兼容性检查") },
             text = {
@@ -3167,6 +3224,12 @@ when (activePanel) {
     }
     if (showArticleInfo) {
         AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
             onDismissRequest = {
                 if (articleInfoSnapshot.size == 7) {
                     subtitle = articleInfoSnapshot[0]; author = articleInfoSnapshot[1]; category = articleInfoSnapshot[2]
@@ -3282,6 +3345,12 @@ private fun EditorTool(label: String, selected: Boolean = false, onClick: () -> 
 @Composable
 private fun EditorInputDialog(title: String, hint: String, value: String, onChange: (String) -> Unit, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
+            shape = RoundedCornerShape(16.dp),
+            containerColor = Color(0xFFFDFDFD),
+            iconContentColor = Color(0xFF333333),
+            titleContentColor = Color(0xFF222222),
+            textContentColor = Color(0xFF555555),
+            tonalElevation = 2.dp,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { OutlinedTextField(value, onChange, modifier = Modifier.fillMaxWidth(), placeholder = { Text(hint) }, singleLine = true) },
