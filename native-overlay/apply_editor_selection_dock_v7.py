@@ -80,8 +80,8 @@ if floating_old in s:
 elif floating_new not in s:
     raise SystemExit("floating toolbar selection anchor missing")
 
-rowAnchor = "Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),"
-rs = s.find(rowAnchor)
+rowMatch = re.search(r"Row\\(\\s*Modifier\\.fillMaxWidth\\(\\)\\.horizontalScroll\\(rememberScrollState\\(\\)\\)\\.padding\\(horizontal = 4\\.dp\\),", s)
+rs = rowMatch.start() if rowMatch else -1
 if rs < 0: raise SystemExit("v7 cannot find primary horizontal dock")
 ob = s.find("{", rs)
 depth = 0
