@@ -54,6 +54,19 @@ ime_effect = ime_effect_anchor + """    LaunchedEffect(editorImeVisible, selecte
 if "LaunchedEffect(editorImeVisible, selectedTextActive, selectionState.kind)" not in s:
     replace_once(ime_effect_anchor, ime_effect, "IME-to-text-edit state synchronization")
 
+# Explicitly let the Android IME consume system Back first. The visible
+# top-bar Back still routes through the coordinator and hides the IME itself.
+replace_once(
+    "    fun handleEditorBack() {\n        when {",
+    "    fun handleEditorBack() {\n        if (editorImeVisible) {\n            keyboardController?.hide()\n            return\n        }\n        when {",
+    "IME is the first Back layer"
+)
+replace_once(
+    "    BackHandler { handleEditorBack() }",
+    "    BackHandler(enabled = !editorImeVisible) { handleEditorBack() }",
+    "system Back yields to visible IME"
+)
+
 # Nested menus/popovers must close before their parent panel. Some Compose
 # DropdownMenus handle Back internally; this explicit branch covers custom
 # floating menus and keeps the parent editor panel open.
@@ -103,8 +116,9 @@ checks = {
     "image picker has its own dismissal": "showImage -> showImage = false" in s,
     "text editing restores selection": 'restoreSelection();setText2SelectionPreview(true);' in s,
     "selected text retained after edit": "selectedTextActive = true\n                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)" in s,
-    "system Back uses coordinator": "BackHandler { handleEditorBack() }" in s,
+    "system Back uses coordinator": "BackHandler(enabled = !editorImeVisible) { handleEditorBack() }" in s,
     "top Back uses coordinator": "IconButton(onClick = { handleEditorBack() })" in s,
+    "IME explicitly gets first Back": "if (editorImeVisible) {\\n            keyboardController?.hide()\\n            return\\n        }" in s,
     "single terminal save/leave": "else -> saveDocument(onComplete = onBack)" in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
