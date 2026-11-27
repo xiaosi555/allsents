@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Object-specific text/image docks with one-purpose dialogs."""
 from pathlib import Path
+import re
 ROOT = Path(__file__).resolve().parents[1]
 EDITOR = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorScreen.kt"
 ERROR = ROOT / "editor_selection_dock_v7_patch_error.txt"
@@ -29,12 +30,28 @@ once(
 
 once(
 "function setSelectedImageBorder(v){if(!activeImage)return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}",
-"""function setSelectedImageBorder(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}
-                            function setSelectedImageShadow(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.boxShadow=v;commitHistory();NativeEditor.changed(root.innerHTML);}
-                            function flipSelectedImage(axis){if(!activeImage||activeImage.dataset.editorLocked==='1')return;const key=axis==='vertical'?'flipY':'flipX';activeImage.dataset[key]=activeImage.dataset[key]==='1'?'0':'1';const r=activeImage.dataset.rotation||'0';activeImage.style.transform='rotate('+r+'deg) scaleX('+(activeImage.dataset.flipX==='1'?-1:1)+') scaleY('+(activeImage.dataset.flipY==='1'?-1:1)+')';commitHistory();NativeEditor.changed(root.innerHTML);}
-                            function alignSelectedImage(where){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.display='block';activeImage.style.marginLeft=where==='left'?'0':'auto';activeImage.style.marginRight=where==='right'?'0':'auto';if(where==='center'){activeImage.style.marginLeft='auto';activeImage.style.marginRight='auto';}commitHistory();NativeEditor.changed(root.innerHTML);}
-                            function setSelectedImageAsBackground(){if(!activeImage||activeImage.dataset.editorLocked==='1')return;const img=activeImage,parent=img.parentElement;if(!parent||parent===root)return;const src=img.currentSrc||img.src;if(!src)return;parent.style.backgroundImage='url('+JSON.stringify(src)+')';parent.style.backgroundSize='cover';parent.style.backgroundPosition='center';parent.style.backgroundRepeat='no-repeat';parent.style.minHeight=Math.max(120,img.getBoundingClientRect().height)+'px';img.remove();activeImage=null;NativeEditor.imageSelected('');commitHistory();NativeEditor.changed(root.innerHTML);}""",
-"image object actions")
+"function setSelectedImageBorder(v){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.border=v;commitHistory();NativeEditor.changed(root.innerHTML);}",
+"image border lock guard")
+
+def guard_image_function(name):
+    global s
+    pattern = re.compile(r"(function " + re.escape(name) + r"\([^)]*\)\{)if\(!activeImage\)return;")
+    updated, count = pattern.subn(r"\1if(!activeImage||activeImage.dataset.editorLocked==='1')return;", s, count=1)
+    if count:
+        s = updated
+        return
+    existing = re.search(r"function " + re.escape(name) + r"\([^)]*\)\{[^}]{0,260}editorLocked", s)
+    if not existing:
+        raise SystemExit("Could not verify image lock protection for " + name)
+
+for name in [
+    "setSelectedImageOpacity", "setSelectedImageShadow", "flipSelectedImage",
+    "alignSelectedImage", "setSelectedImageAsBackground", "setSelectedImageWidth",
+    "setSelectedImageObjectPosition", "rotateSelectedImage", "setSelectedImageRadius",
+    "cropSelectedImage", "resetSelectedImageCrop", "replaceSelectedImage",
+    "deleteSelectedImage", "setSelectedImageAlt", "commitSelectedImageStyle"
+]:
+    guard_image_function(name)
 
 constAnchor = "@Composable\nprivate fun EditorTool(label: String, selected: Boolean = false, onClick: () -> Unit) {"
 helper = """@Composable
@@ -68,6 +85,13 @@ for i in range(ob, len(s)):
             break
 if cb < 0: raise SystemExit("v7 cannot balance primary dock row")
 defaultBody = s[ob+1:cb]
+defaultBody = defaultBody.replace(
+    'Text(item, color = if (item in listOf("编辑", "字体", "样式", "排版", "透明度", "加图", "加字")) AppColors.Theme else Color(0xFFDDDDDD), fontSize = 11.sp, maxLines = 1)',
+    '''Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                                    Text(editorToolGlyph(item), color = Color(0xFFDDDDDD), fontSize = 18.sp, lineHeight = 20.sp)
+                                    Text(item, color = if (item in listOf("编辑", "字体", "样式", "排版", "透明度", "加图", "加字")) AppColors.Theme else Color(0xFFDDDDDD), fontSize = 9.sp, maxLines = 1)
+                                }'''
+)
 body = r"""
                     if (selectedTextActive) {
                         listOf(
