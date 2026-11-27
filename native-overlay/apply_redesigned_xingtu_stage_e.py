@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Stage E: coordinate IME, editor selection and transient UI Back handling."""
 from pathlib import Path
+import re
 
 ROOT = Path(".")
 EDITOR = ROOT / "source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/ArticleEditorRedesignedScreen.kt"
@@ -22,9 +23,13 @@ def replace_once(old: str, new: str, label: str):
         fail(f"Stage E anchor mismatch [{label}]: expected 1, found {count}")
     s = s.replace(old, new, 1)
 
-# Observe IME visibility at the redesigned editor root. Compose/Android still
-# gets first chance to hide the keyboard; this observer records that a text
-# editing session began so the next Back can restore the saved WebView range.
+# WindowInsets.ime is an extension property in Compose Foundation Layout.
+if not re.search(r"import androidx\\.compose\\.foundation\\.layout\\.ime(?:\\s|$)", s) and not re.search(r"import androidx\\.compose\\.foundation\\.layout\\.\\*", s):
+    package = re.search(r"(?m)^package [^\\n]+\\n", s)
+    if not package:
+        fail("Kotlin package declaration missing; cannot add IME import safely")
+    s = s[:package.end()] + "import androidx.compose.foundation.layout.ime\n" + s[package.end():]
+
 keyboard_anchor = "    val keyboardController = LocalSoftwareKeyboardController.current\n"
 if "val editorImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0" not in s:
     replace_once(
@@ -54,8 +59,8 @@ ime_effect = ime_effect_anchor + """    LaunchedEffect(editorImeVisible, selecte
 if "LaunchedEffect(editorImeVisible, selectedTextActive, selectionState.kind)" not in s:
     replace_once(ime_effect_anchor, ime_effect, "IME-to-text-edit state synchronization")
 
-# Explicitly let the Android IME consume system Back first. The visible
-# top-bar Back still routes through the coordinator and hides the IME itself.
+# Android's IME receives system Back while visible. The top-bar Back remains
+# routed through this same coordinator and explicitly hides the keyboard.
 replace_once(
     "    fun handleEditorBack() {\n        when {",
     "    fun handleEditorBack() {\n        if (editorImeVisible) {\n            keyboardController?.hide()\n            return\n        }\n        when {",
@@ -67,31 +72,18 @@ replace_once(
     "system Back yields to visible IME"
 )
 
-# Nested menus/popovers must close before their parent panel. Some Compose
-# DropdownMenus handle Back internally; this explicit branch covers custom
-# floating menus and keeps the parent editor panel open.
-floating_anchor = """            showDeleteConfirm != null -> showDeleteConfirm = null
-"""
+# A child floating menu must be dismissed before any parent dialog or panel.
 replace_once(
-    floating_anchor,
-    floating_anchor + """            floatingMenu.isNotBlank() -> floatingMenu = ""
-""",
-    "floating menu gets first local dismissal"
+    "        when {\n            showDeleteConfirm != null -> showDeleteConfirm = null",
+    "        when {\n            floatingMenu.isNotBlank() -> floatingMenu = \"\"\n            showDeleteConfirm != null -> showDeleteConfirm = null",
+    "floating menu is the topmost Back layer"
 )
 
-# The image library picker is a separate transient layer from the image panel.
-# Closing it must not clear the selected canvas object.
-image_anchor = """            showImageAlt -> showImageAlt = false
-"""
-replace_once(
-    image_anchor,
-    image_anchor + """            showImage -> showImage = false
-""",
-    "image picker dismissal"
-)
+# The generator already includes the image-picker dismissal branch. Do not
+# inject a duplicate branch; fail if the inherited coordinator lacks it.
+if s.count("showImage -> showImage = false") != 1:
+    fail("Expected exactly one inherited image-picker dismissal branch")
 
-# After keyboard dismissal, the next Back restores the original WebView
-# selection, rather than clearing it or leaving a stale caret state.
 old_text_edit = """            textEditingActive -> {
                 textEditingActive = false
                 keyboardController?.hide()
@@ -107,13 +99,12 @@ new_text_edit = """            textEditingActive -> {
             }"""
 replace_once(old_text_edit, new_text_edit, "editing returns to a stable selected-text state")
 
-# Prevent a Back event from navigating away while a non-modal editor layer is
-# still active. The final save/leave branch remains the sole exit path.
 checks = {
+    "IME extension import": "import androidx.compose.foundation.layout.ime" in s or "import androidx.compose.foundation.layout.*" in s,
     "IME visibility observer": "val editorImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0" in s,
     "IME text editing synchronization": "LaunchedEffect(editorImeVisible, selectedTextActive, selectionState.kind)" in s,
     "floating menu closes before parent": "floatingMenu.isNotBlank() -> floatingMenu = \"\"" in s,
-    "image picker has its own dismissal": "showImage -> showImage = false" in s,
+    "exactly one image picker dismissal": s.count("showImage -> showImage = false") == 1,
     "text editing restores selection": 'restoreSelection();setText2SelectionPreview(true);' in s,
     "selected text retained after edit": "selectedTextActive = true\n                selectionState = selectionState.copy(kind = EditorSelectionKind.TEXT_BLOCK, collapsed = true)" in s,
     "system Back uses coordinator": "BackHandler(enabled = !editorImeVisible) { handleEditorBack() }" in s,
@@ -125,21 +116,49 @@ failed = [name for name, ok in checks.items() if not ok]
 if failed:
     fail("Stage E validation failed: " + ", ".join(failed))
 
-# Check the close order is stable and that the terminal leave branch remains
-# after every transient UI and selection branch.
+# Enforce the complete coordinator order, not just a few selected anchors.
+start = s.find("    fun handleEditorBack()")
+end = s.find("\n    BackHandler", start)
+if start < 0 or end < 0:
+    fail("Unable to isolate handleEditorBack() for ordering validation")
+handler = s[start:end]
 order = [
-    "showDeleteConfirm != null ->",
     "floatingMenu.isNotBlank() ->",
+    "showDeleteConfirm != null ->",
+    "revisionPreview != null ->",
+    "templatePreview != null ->",
+    "previewAsset != null ->",
+    "editingTemplateContent != null ->",
+    "editingTemplate != null ->",
+    "deletingTemplate != null ->",
+    "fullTemplateConfirm != null ->",
+    "showCustomImageCrop ->",
+    "showImageAlt ->",
+    "showArticlePackagePreview ->",
+    "showHtmlImportPreview ->",
+    "showFindReplace ->",
+    "showCompatibilityReport ->",
+    "showArticleInfo ->",
+    "showRevisionList ->",
+    "showLink ->",
+    "showBlockProperties ->",
+    "showLayoutBuilder ->",
     "showImage -> showImage = false",
-    "showToolPopup -> {",
-    "textEditingActive -> {",
+    "showArticleList ->",
+    "showInsertLauncherMenu ->",
+    "showMoreTools ->",
+    "showTemplateSubnav ->",
+    "showCanvasPopup ->",
+    "showToolPopup ->",
+    "previewMode ->",
+    "textEditingActive ->",
     "selectedTextActive || selectionState.kind",
     "selectedImageHtml.isNotBlank()",
     "else -> saveDocument(onComplete = onBack)",
 ]
-positions = [s.find(item, s.find("fun handleEditorBack()")) for item in order]
+positions = [handler.find(item) for item in order]
 if any(pos < 0 for pos in positions) or positions != sorted(positions):
     fail("Back coordinator order is invalid: " + repr(dict(zip(order, positions))))
 
 EDITOR.write_text(s, encoding="utf-8")
-print("Stage E coordinator updated: IME-aware text edit state, nested menu/picker dismissal, ordered selection restoration; no build performed.")
+print("Stage E coordinator validated: IME first, child menu before parent layers, single image picker dismissal, selection restoration and one terminal save/leave path.")
