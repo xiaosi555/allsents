@@ -96,3 +96,4 @@ print("Image crop/color runtime actions repaired; preview updates now notify the
 
 import runpy
 runpy.run_path(str(Path(__file__).with_name("upgrade_image_crop_color_controls.py")))
+runpy.run_path(str(Path(__file__).with_name("synchronize_editor_state_history.py")))
