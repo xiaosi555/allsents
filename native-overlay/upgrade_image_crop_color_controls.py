@@ -107,5 +107,10 @@ rep('''   "HSL" -> {Text("基础 CSS 渲染目前支持全局色彩调整；逐�
 s=s.replace('80_000_000L','48_000_000L').replace('> 20_000_000L) sample *= 2','> 12_000_000L) sample *= 2')
 if 'previewSelectedImageFull' not in s or 'onPixelCrop' not in s:
     raise SystemExit('image crop/color validation failed')
+# The parent tool sheet already owns vertical scrolling. Avoid a nested verticalScroll
+# in this child: Compose measures the parent scroll content with unbounded height,
+# and a second vertical scroll can throw IllegalStateException when the panel opens.
+rep(''' Column(Modifier.fillMaxWidth().fillMaxHeight().verticalScroll(rememberScrollState()).padding(5.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {''',''' Column(Modifier.fillMaxWidth().padding(5.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {''','avoid nested vertical scroll crash')
+
 P.write_text(s,encoding='utf-8')
 print('Image crop/color controls upgraded.')
