@@ -35,7 +35,7 @@ rep('''                    EditorPanel.TEXT2 -> {
                     EditorPanel.IMAGE_COLOR -> ImageCropColorPanel("color", imageColorMainTab, { runJs(it) })
                     EditorPanel.TEXT2 -> {
                         Text2EditorPanel(''')
-rep('private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)','private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.IMAGE_CROP, EditorPanel.IMAGE_COLOR, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)')
+rep('private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)','private val templateSubPanels = setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT)')
 anchor="function previewSelectedImageFilters(b,c,s){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+s+'%)';}"
 addition=anchor+"""
                             function previewSelectedImageAdvanced(b,c,s,temp,tint,hue,gray,sepia,blur,rotation){
@@ -48,7 +48,7 @@ addition=anchor+"""
                               activeImage.style.transform='rotate('+(Number(activeImage.dataset.rotation||0)+Number(rotation||0))+'deg)';
                             }
                             function previewSelectedImageTransform(deg){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.transform='rotate('+(Number(activeImage.dataset.rotation||0)+Number(deg||0))+'deg)';}
-                            function cropSelectedImageCustom(w,h){if(!activeImage||activeImage.dataset.editorLocked==='1')return;w=Math.max(1,Number(w)||1);h=Math.max(1,Number(h)||1);const box=activeImage.parentElement.clientWidth||320;activeImage.style.width='100%';activeImage.style.height=Math.max(1,Math.round(box*h/w))+'px';activeImage.style.maxWidth='100%';activeImage.style.objectFit='cover';activeImage.style.objectPosition='50% 50%';commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
+                            function cropSelectedImageCustom(w,h){if(!activeImage||activeImage.dataset.editorLocked==='1')return;w=Math.max(1,Number(w)||1);h=Math.max(1,Number(h)||1);const box=activeImage.parentElement.clientWidth||320;activeImage.style.width='100%';activeImage.style.height=Math.max(1,Math.round(box*h/w))+'px';activeImage.style.maxWidth='100%';activeImage.style.objectFit='cover';activeImage.style.objectPosition='50% 50%';commitHistory();if(typeof NativeEditor!=='undefined'&&typeof NativeEditor.changed==='function')NativeEditor.changed(root.innerHTML);}
                             function previewSelectedImagePosition(x,y){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.objectPosition=Math.max(0,Math.min(100,x))+'% '+Math.max(0,Math.min(100,y))+'%';}
                             function resetSelectedImageColor(){if(!activeImage||activeImage.dataset.editorLocked==='1')return;activeImage.style.filter='';commitHistory();NativeEditor.changed(root.innerHTML);}
 """
