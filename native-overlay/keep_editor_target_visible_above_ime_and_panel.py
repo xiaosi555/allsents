@@ -44,7 +44,7 @@ once(
 )
 
 once(
-    "    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp",
+    "    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(200f, 400f).dp",
     """    val animatedToolPanelHeight = toolPanelHeightDp.coerceIn(100f, 400f).dp
     val editorWindowDensity = LocalDensity.current
     val editorImeBottomPx = WindowInsets.ime.getBottom(editorWindowDensity)
