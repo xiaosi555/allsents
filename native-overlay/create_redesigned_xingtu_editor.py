@@ -92,7 +92,7 @@ handle_old = """                    Box(
                                 detectDragGestures { change, dragAmount ->
                                     change.consume()
                                     val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp() }
-                                    toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(100f, 400f)
+                                    toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(200f, 400f)
                                 }
                             },
                         contentAlignment = Alignment.Center
