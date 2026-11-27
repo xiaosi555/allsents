@@ -27,8 +27,16 @@ old_text_action = '''                                    "font", "style", "layou
                                         toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
-new_text_action = '''                                    "font", "style", "layout", "text-opacity" -> {
-                                        activeObjectDialog = action
+new_text_action = '''                                    "font", "style", "layout", "text-opacity", "text-align" -> {
+                                        text2MainTab = when (action) {
+                                            "font" -> "字体"
+                                            "style", "text-opacity" -> "样式"
+                                            else -> "排版"
+                                        }
+                                        activePanel = EditorPanel.TEXT2
+                                        showToolPopup = true
+                                        showCanvasPopup = false
+                                        toolPanelHeightDp = 200f
                                         runJs("setText2SelectionPreview(true);")
                                     }'''
 once(old_text_action, new_text_action, "unify selected text secondary panel")
