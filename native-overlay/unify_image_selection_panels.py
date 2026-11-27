@@ -23,7 +23,7 @@ if new not in s:
     s = s.replace(old, new, 1)
 
 checks = {
-    "each image function opens its own popup": "else -> activeObjectDialog = action" in s and "else -> {\n                                        activePanel = EditorPanel.IMAGE" not in s,
+    "each image function opens its own popup": "else -> {\n                                        activeObjectDialog = action" in s and "else -> {\n                                        activePanel = EditorPanel.IMAGE" not in s,
     "dedicated crop panel remains available": "EditorPanel.IMAGE_CROP -> ImageCropColorPanel" in s,
     "dedicated color panel remains available": "EditorPanel.IMAGE_COLOR -> ImageCropColorPanel" in s,
     "image function popup closes combined sheet": "showToolPopup = false" in s and "showCanvasPopup = false" in s,
