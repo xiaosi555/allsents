@@ -103,8 +103,9 @@ handle_new = """                    Box(
                         Modifier.fillMaxWidth().height(if (showPanelDragHandle) 20.dp else 8.dp)
                             .pointerInput(Unit) {
                                 detectDragGestures(
-                                    onDragStart = { showPanelDragHandle = true },
+                                    onDragStart = { },
                                     onDrag = { change, dragAmount ->
+                                        if (dragAmount.y < 0f) showPanelDragHandle = true
                                         change.consume()
                                         val deltaDp = with(toolPanelDensity) { dragAmount.y.toDp() }
                                         toolPanelHeightDp = (toolPanelHeightDp - deltaDp.value).coerceIn(200f, 400f)
