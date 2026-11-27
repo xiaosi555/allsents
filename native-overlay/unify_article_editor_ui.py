@@ -85,7 +85,7 @@ required = [
     'contentDescription = "关闭功能窗口"',
     'contentDescription = "确定"',
     'containerColor = Color(0xFFFDFDFD)',
-    'EditorVectorIcon(item, tint = itemTint',
+    'EditorVectorIcon(item',
     'alignment = Alignment.BottomCenter',
     'focusable = false',
 ]
