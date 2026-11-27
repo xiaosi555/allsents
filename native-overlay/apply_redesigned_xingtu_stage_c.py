@@ -116,6 +116,7 @@ required = {
     "200dp minimum and 400dp maximum": 'toolPanelHeightDp.coerceIn(200f, 400f)' in s,
     "all feature cases retained": all(f'EditorPanel.{name} ->' in s for name in ["TEXT","IMAGE","TEXT2","TITLE","LAYOUT","CARD","COMPONENT","SVG","STYLE","LAYER","CANVAS","DOCUMENT","TEMPLATE"]),
     "direct primary entries exposed": 'EditorPanel.values().filterNot { it == EditorPanel.TEXT2 || it == EditorPanel.TITLE }' in s,
+    "text tools grouped": all(f'Text("{label}"' in s for label in ["字号与文字效果","段落结构","辅助插入","段落间距","常用字体"]),
 }
 failed = [name for name, ok in required.items() if not ok]
 if failed:
