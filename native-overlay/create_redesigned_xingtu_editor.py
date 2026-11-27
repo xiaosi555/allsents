@@ -45,7 +45,7 @@ for original, redesigned_name in (
     ("EditorPanel", "RedesignedEditorPanel"),
     ("EditorLayerItem", "RedesignedEditorLayerItem"),
 ):
-    redesigned = re.sub(r"\\b" + original + r"\\b", redesigned_name, redesigned)
+    redesigned = re.sub(r"\b" + original + r"\b", redesigned_name, redesigned)
 
 # Keep the established visual language. Only normalize the new screen's panel
 # geometry and interaction; do not replace its page/background/theme surfaces.
