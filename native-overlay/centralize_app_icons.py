@@ -69,7 +69,7 @@ for path in files:
     if path == LIBRARY:
         registry_start = text.find("internal object AppIconVectors {")
         registry_end = text.find("}\n\n", registry_start) + 1
-        if registry_start < 0 or registry_end < 0:
+        if registry_start < 0 or registry_end <= 0:
             raise SystemExit("Generated icon vector registry is malformed.")
 
         text = text[:registry_start] + text[registry_start:registry_end] + pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text[registry_end:])
@@ -91,6 +91,11 @@ for path in files:
 remaining = []
 for path in files:
     text = path.read_text(encoding="utf-8")
+    if path == LIBRARY:
+        start = text.find("internal object AppIconVectors {")
+        end = text.find("}\\n\\n", start) + 1
+        if start >= 0 and end > 0:
+            text = text[:start] + text[end:]
     if pattern.search(text):
         remaining.append(str(path))
 if remaining:
