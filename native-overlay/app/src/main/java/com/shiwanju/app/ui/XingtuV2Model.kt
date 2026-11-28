@@ -77,7 +77,7 @@ object XingtuV2Reducer {
         val next = when (action) {
             is XingtuV2Action.Select -> {
                 val valid = action.ids.intersect(document.objects.map { it.id }.toSet())
-                document.copy(selectedIds = if (action.additive) document.selectedIds xor valid else valid)
+                document.copy(selectedIds = if (action.additive) (document.selectedIds - valid) + (valid - document.selectedIds) else valid)
             }
             is XingtuV2Action.TransformObject ->
                 document.copy(objects = document.objects.map {
