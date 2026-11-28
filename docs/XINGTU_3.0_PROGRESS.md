@@ -16,11 +16,11 @@
 | 阶段 | 内容 | 状态 | 备注 |
 |---|---|---|---|
 | 0 | 规范与现状盘点 | 进行中 | 规范已建立；新增功能迁移映射表。已盘点原导航枚举、主要面板、文章生命周期线索、WebView Bridge、图片/图层/模板/文档入口、图标实现和面板高度。仍需核对补丁执行后的最终源码、WebView JS 函数全集、数据模型和所有工具项，暂不标记检查通过 |
-| A | 独立编辑会话与文章上下文 | 代码完成待检查 | V3 使用独立 SharedPreferences 记住最后打开文章；进入时恢复文章标题、HTML、摘要、作者、分类、标签、状态和封面；新建/打开更新 V3 会话指针；支持可选 initialArticleId。已修正 3.0 路由 onBack 参数传递，等待重新编译与文章切换验收 |
-| B | 一级导航重组为 8 类 | 代码完成待检查 | 已建立 文字、图片、组件、排版、图层、样式、模板、文档 8 类一级导航；保留旧 EditorPanel 功能分支，增加文字/组件/排版子导航；收藏并入模板，画布设置并入排版。修正排版入口 TextButton 全限定引用，等待重新编译与逐项点击验收 |
-| C | 统一矢量图标库 | 代码完成待检查 | 已在 3.0 独立补丁中加入 EditorIconId 稳定语义注册表，一级分类及常用编辑操作统一映射到现有矢量路径绘制器；未知标签回退为文档类矢量图标，不再使用字符占位。待编译及主题/小尺寸验收 |
-| D | 二级面板 200–400dp 与事务交互 | 代码完成待检查 | 已将 3.0 面板限定为 200–400dp；打开时保存正文 HTML 快照，确定提交并触发保存，关闭改为取消并将快照恢复到 Compose/WebView。仍需验证滑块、图片裁剪/调色、面板切换与键盘场景的完整事务行为 |
-| E | 统一对象选择与双向实时同步 | 代码完成待检查 | 3.0 继承结构化 EditorSelectionState、selectionChanged Bridge、DOM 稳定 ID 与 reportSelection，覆盖文字选区/段落、图片、组件、表格和多选 ID；Compose 接收统一状态。双向属性同步和 SVG/表格/多选的运行时覆盖仍待验收 |
+| A | 独立编辑会话与文章上下文 | 代码完成待检查 | V3 使用独立 SharedPreferences 记住最后打开文章；进入时恢复文章标题、HTML、摘要、作者、分类、标签、状态和封面；新建/打开更新 V3 会话指针；支持可选 initialArticleId。已修正 3.0 路由 onBack 参数传递，Kotlin compile-only 已通过（run 46175787244）；仍待文章切换与运行验收 |
+| B | 一级导航重组为 8 类 | 代码完成待检查 | 已建立 文字、图片、组件、排版、图层、样式、模板、文档 8 类一级导航；保留旧 EditorPanel 功能分支，增加文字/组件/排版子导航；收藏并入模板，画布设置并入排版。修正排版入口 TextButton 全限定引用，Kotlin compile-only 已通过（run 46175787244）；仍待逐项点击验收 |
+| C | 统一矢量图标库 | 代码完成待检查 | 已在 3.0 独立补丁中加入 EditorIconId 稳定语义注册表，一级分类及常用编辑操作统一映射到现有矢量路径绘制器；未知标签回退为文档类矢量图标，不再使用字符占位。Kotlin compile-only 已通过（run 46175787244）；待主题/小尺寸视觉验收 |
+| D | 二级面板 200–400dp 与事务交互 | 代码完成待检查 | 已将 3.0 面板限定为 200–400dp；打开时保存正文 HTML 快照，确定提交并触发保存，关闭改为取消并将快照恢复到 Compose/WebView。Kotlin compile-only 已通过（run 46175787244）；仍需验证滑块、图片裁剪/调色、面板切换与键盘场景的完整事务行为 |
+| E | 统一对象选择与双向实时同步 | 代码完成待检查 | 3.0 继承结构化 EditorSelectionState、selectionChanged Bridge、DOM 稳定 ID 与 reportSelection，覆盖文字选区/段落、图片、组件、表格和多选 ID；Compose 接收统一状态。Kotlin compile-only 已通过（run 46175787244）；双向属性同步和 SVG/表格/多选的运行时覆盖仍待验收 |
 | F | 图片、图层与排版完善 | 未开始 | 保留现有图片导入/裁剪/调色/图层能力并回归 |
 | G | 保存、撤销重做、模板和文档 | 未开始 | 核对 Compose 与 WebView 历史、保存状态和素材引用 |
 | H | 视觉精修与完整回归 | 未开始 | 深浅主题、尺寸、触控、原页面隔离 |
@@ -108,3 +108,13 @@
 - 排版页 3.0 入口使用 `androidx.compose.material3.TextButton` 全限定引用，避免缺少导入导致编译失败。
 - 已把 C/D/E 补丁接入 Kotlin compile-check 与手动 APK 工作流；下一步先跑 Kotlin compile-only，不构建 APK。
 - 之前 run `46174208842` 的失败原因已从日志确认：路由参数调用错误、LayoutScreen 未解析 TextButton。该 run 不作为当前代码编译结果；修复后的新 run 尚待产生。
+
+
+### CI 编译检查结果（2026-11-29）
+- Workflow run：`46175787244`（[#909](https://github.com/xiaosi555/allsents/actions/runs/46175787244)）。
+- Stage A/B 生成补丁：success。
+- Stage C/D/E 生成与自检补丁：success。
+- `:app:compileDebugKotlin`：success。
+- Workflow 正在完成 GitHub Actions 的清理步骤；Kotlin 编译步骤已明确成功。
+- 本轮没有运行 `:app:assembleDebug`，没有构建 APK。
+- 以上只代表补丁生成和 Kotlin 编译通过，不代表 Android 页面运行、手势、回滚、对象同步或真机验收通过。
