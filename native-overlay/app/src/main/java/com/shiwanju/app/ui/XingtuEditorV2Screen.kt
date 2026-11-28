@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
@@ -70,6 +71,9 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var showLayers by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf<String?>(null) }
     var panelHeight by remember { mutableFloatStateOf(220f) }
+    var viewportScale by remember { mutableFloatStateOf(1f) }
+    var viewportPanX by remember { mutableFloatStateOf(0f) }
+    var viewportPanY by remember { mutableFloatStateOf(0f) }
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -116,13 +120,30 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 .background(colors.surfaceVariant.copy(alpha = .35f)),
             contentAlignment = Alignment.Center
         ) {
-            BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            BoxWithConstraints(
+                Modifier.fillMaxSize().pointerInput(viewportScale) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        if (zoom != 1f || pan != androidx.compose.ui.geometry.Offset.Zero) {
+                            viewportScale = (viewportScale * zoom).coerceIn(0.5f, 3f)
+                            viewportPanX += pan.x
+                            viewportPanY += pan.y
+                        }
+                    }
+                },
+                contentAlignment = Alignment.Center
+            ) {
                 val canvasWidth = minOf(maxWidth - 28.dp, maxHeight * .75f)
                 val canvasHeight = canvasWidth * (history.document.canvas.height / history.document.canvas.width)
                 val scaleX = canvasWidth.value / history.document.canvas.width
                 val scaleY = canvasHeight.value / history.document.canvas.height
                 Box(
                     Modifier.width(canvasWidth).height(canvasHeight)
+                        .graphicsLayer {
+                            scaleX = viewportScale
+                            scaleY = viewportScale
+                            translationX = viewportPanX
+                            translationY = viewportPanY
+                        }
                         .clip(RoundedCornerShape(2.dp))
                         .background(Color(history.document.canvas.backgroundColor))
                         .border(1.dp, colors.outlineVariant)
@@ -170,8 +191,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             history = history.updateTransform(
                                                 item.id,
                                                 old.copy(
-                                                    x = old.x + (drag.x / density) / scaleX,
-                                                    y = old.y + (drag.y / density) / scaleY
+                                                    x = old.x + (drag.x / density) / (scaleX * viewportScale),
+                                                    y = old.y + (drag.y / density) / (scaleY * viewportScale)
                                                 )
                                             )
                                         }
@@ -247,8 +268,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                 change.consume()
                                                 val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                                 val old = current.transform
-                                                val dx = (drag.x / density) / scaleX
-                                                val dy = (drag.y / density) / scaleY
+                                                val dx = (drag.x / density) / (scaleX * viewportScale)
+                                                val dy = (drag.y / density) / (scaleY * viewportScale)
                                                 var x = old.x
                                                 var y = old.y
                                                 var width = old.width
