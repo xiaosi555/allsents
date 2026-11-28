@@ -91,6 +91,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var groupScale by remember { mutableFloatStateOf(1f) }
     var groupRotation by remember { mutableFloatStateOf(0f) }
     var showLayers by remember { mutableStateOf(false) }
+    var editingLayerId by remember { mutableStateOf<String?>(null) }
+    var layerNameDraft by remember { mutableStateOf("") }
     var showVersions by remember { mutableStateOf(false) }
     var showComponentPicker by remember { mutableStateOf(false) }
     var savedVersions by remember { mutableStateOf(emptyList<XingtuV2VersionInfo>()) }
@@ -759,11 +761,37 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         }
                                     }
                                 }.padding(horizontal = 5.dp))
-                            Text(when (item) {
-                                is XingtuV2Object.Text -> item.content
-                                is XingtuV2Object.Image -> "图片"
-                                is XingtuV2Object.Component -> "组件 · ${item.componentType}"
-                            }, color = colors.onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                            if (editingLayerId == item.id) {
+                                OutlinedTextField(
+                                    value = layerNameDraft,
+                                    onValueChange = { layerNameDraft = it },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    singleLine = true,
+                                    placeholder = { Text("图层名称", fontSize = 11.sp) }
+                                )
+                                Text("✓", color = colors.primary, modifier = Modifier.clickable {
+                                    val renamed = when (item) {
+                                        is XingtuV2Object.Text -> item.copy(layerName = layerNameDraft.trim())
+                                        is XingtuV2Object.Image -> item.copy(layerName = layerNameDraft.trim())
+                                        is XingtuV2Object.Component -> item.copy(layerName = layerNameDraft.trim())
+                                    }
+                                    history = history.dispatch(XingtuV2Action.ReplaceObject(renamed))
+                                    editingLayerId = null
+                                }.padding(horizontal = 6.dp))
+                            } else {
+                                val fallbackName = when (item) {
+                                    is XingtuV2Object.Text -> item.content.lineSequence().firstOrNull()?.take(18).orEmpty().ifBlank { "文字" }
+                                    is XingtuV2Object.Image -> "图片"
+                                    is XingtuV2Object.Component -> "组件 · ${item.componentType}"
+                                }
+                                Text(item.layerName.ifBlank { fallbackName }, color = colors.onSurface,
+                                    fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                                Text("✎", color = colors.onSurfaceVariant, fontSize = 13.sp,
+                                    modifier = Modifier.clickable {
+                                        editingLayerId = item.id
+                                        layerNameDraft = item.layerName.ifBlank { fallbackName }
+                                    }.padding(horizontal = 5.dp))
+                            }
                             val layerIndex = history.document.objects.indexOfFirst { it.id == item.id }
                             Text("↑", color = colors.onSurfaceVariant,
                                 modifier = Modifier.clickable(enabled = layerIndex < history.document.objects.lastIndex) {

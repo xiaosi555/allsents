@@ -18,7 +18,7 @@ sealed class XingtuV2Object {
     abstract val kind: XingtuV2ObjectKind
 
     data class Text(
-        override val id: String, val content: String,
+        override val id: String, val content: String, val layerName: String = "",
         val fontFamily: String = "default", val fontSizeSp: Float = 24f,
         val fontWeight: Int = 400, val italic: Boolean = false,
         val color: Long = 0xFF222222, val backgroundColor: Long = 0x00000000,
@@ -32,7 +32,7 @@ sealed class XingtuV2Object {
     ) : XingtuV2Object() { override val kind = XingtuV2ObjectKind.TEXT }
 
     data class Image(
-        override val id: String, val assetUri: String,
+        override val id: String, val assetUri: String, val layerName: String = "",
         val cropLeft: Float = 0f, val cropTop: Float = 0f,
         val cropRight: Float = 1f, val cropBottom: Float = 1f,
         val colorTemperature: Float = 0f, val saturation: Float = 1f,
@@ -45,7 +45,7 @@ sealed class XingtuV2Object {
     ) : XingtuV2Object() { override val kind = XingtuV2ObjectKind.IMAGE }
 
     data class Component(
-        override val id: String, val componentType: String,
+        override val id: String, val componentType: String, val layerName: String = "",
         val fillColor: Long = 0xFFF1F1F1, val cornerRadius: Float = 0f,
         val strokeColor: Long = 0x00000000, val strokeWidth: Float = 0f,
         val shadowRadius: Float = 0f, val shadowColor: Long = 0x66000000,

@@ -45,7 +45,7 @@ object XingtuV2Persistence {
                 val locked = item.optBoolean("locked", false)
                 when (item.optString("kind")) {
                     "TEXT" -> add(XingtuV2Object.Text(
-                        id = id, content = item.optString("content", ""),
+                        id = id, content = item.optString("content", ""), layerName = item.optString("layerName", ""),
                         fontFamily = item.optString("fontFamily", "default"),
                         fontSizeSp = item.optDouble("fontSizeSp", 24.0).toFloat(),
                         fontWeight = item.optInt("fontWeight", 400),
@@ -64,7 +64,7 @@ object XingtuV2Persistence {
                         transform = transform, visible = visible, locked = locked
                     ))
                     "IMAGE" -> add(XingtuV2Object.Image(
-                        id = id, assetUri = item.optString("assetUri", ""),
+                        id = id, assetUri = item.optString("assetUri", ""), layerName = item.optString("layerName", ""),
                         cropLeft = item.optDouble("cropLeft", 0.0).toFloat(),
                         cropTop = item.optDouble("cropTop", 0.0).toFloat(),
                         cropRight = item.optDouble("cropRight", 1.0).toFloat(),
@@ -82,7 +82,7 @@ object XingtuV2Persistence {
                         transform = transform, visible = visible, locked = locked
                     ))
                     "COMPONENT" -> add(XingtuV2Object.Component(
-                        id = id, componentType = item.optString("componentType", "rectangle"),
+                        id = id, componentType = item.optString("componentType", "rectangle"), layerName = item.optString("layerName", ""),
                         fillColor = item.optLong("fillColor", 0xFFF1F1F1),
                         cornerRadius = item.optDouble("cornerRadius", 0.0).toFloat(),
                         strokeColor = item.optLong("strokeColor", 0x00000000),
@@ -182,7 +182,7 @@ object XingtuV2Persistence {
                         .put("scaleY", t.scaleY).put("alpha", t.alpha))
                 when (item) {
                     is XingtuV2Object.Text -> json
-                        .put("content", item.content).put("fontFamily", item.fontFamily)
+                        .put("content", item.content).put("layerName", item.layerName).put("fontFamily", item.fontFamily)
                         .put("fontSizeSp", item.fontSizeSp).put("fontWeight", item.fontWeight)
                         .put("italic", item.italic).put("color", item.color).put("backgroundColor", item.backgroundColor)
                         .put("strokeColor", item.strokeColor).put("strokeWidth", item.strokeWidth)
@@ -191,7 +191,7 @@ object XingtuV2Persistence {
                         .put("textAlign", item.textAlign).put("boxWidth", item.boxWidth)
                         .put("boxHeight", item.boxHeight)
                     is XingtuV2Object.Image -> json
-                        .put("assetUri", item.assetUri).put("cropLeft", item.cropLeft)
+                        .put("assetUri", item.assetUri).put("layerName", item.layerName).put("cropLeft", item.cropLeft)
                         .put("cropTop", item.cropTop).put("cropRight", item.cropRight)
                         .put("cropBottom", item.cropBottom).put("colorTemperature", item.colorTemperature)
                         .put("saturation", item.saturation).put("brightness", item.brightness)
@@ -200,7 +200,7 @@ object XingtuV2Persistence {
                         .put("borderColor", item.borderColor).put("shadowRadius", item.shadowRadius)
                         .put("flipHorizontal", item.flipHorizontal).put("flipVertical", item.flipVertical)
                     is XingtuV2Object.Component -> json
-                        .put("componentType", item.componentType).put("fillColor", item.fillColor)
+                        .put("componentType", item.componentType).put("layerName", item.layerName).put("fillColor", item.fillColor)
                         .put("cornerRadius", item.cornerRadius).put("strokeColor", item.strokeColor)
                         .put("strokeWidth", item.strokeWidth)
                 }
