@@ -51,7 +51,7 @@ private fun editorIconId(label: String): EditorIconId {
         key.contains("裁剪") || key.contains("裁切") -> EditorIconId.CROP
         key.contains("旋转") -> EditorIconId.ROTATE
         key.contains("翻转") -> EditorIconId.FLIP
-        key.contains("颜色") || key.contains("调色") || key.contains("渐变") -> EditorIconId.COLOR
+        key.contains("颜色") || key.contains("调色") || key.contains("渐变") || key.contains("亮度") || key.contains("对比度") || key.contains("饱和度") || key.contains("滤镜") -> EditorIconId.COLOR
         key.contains("边框") -> EditorIconId.BORDER
         key.contains("圆角") -> EditorIconId.RADIUS
         key.contains("阴影") -> EditorIconId.SHADOW
