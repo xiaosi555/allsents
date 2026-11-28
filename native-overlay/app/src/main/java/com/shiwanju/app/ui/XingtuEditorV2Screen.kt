@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.OutlinedTextField
@@ -85,12 +86,14 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var groupRotation by remember { mutableFloatStateOf(0f) }
     var showLayers by remember { mutableStateOf(false) }
     var showVersions by remember { mutableStateOf(false) }
+    var showComponentPicker by remember { mutableStateOf(false) }
     var savedVersions by remember { mutableStateOf(emptyList<XingtuV2VersionInfo>()) }
     var replaceTargetId by remember { mutableStateOf<String?>(null) }
     var activePanel by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(history.document.selectedIds) {
         if (activePanel != null || activeMultiTransform || activeCanvasPanel) history = history.endTransform()
         activePanel = null
+        showComponentPicker = false
         activeCanvasPanel = false
         groupScale = 1f
         groupRotation = 0f
@@ -117,6 +120,24 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 activeMultiTransform = false
             }
         }
+    }
+
+    val addComponent: (String) -> Unit = { type ->
+        val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.COMPONENT } + 1
+        val isLine = type == "line"
+        history = history.dispatch(XingtuV2Action.InsertObject(
+            XingtuV2Object.Component(
+                id = "component-${System.nanoTime()}", componentType = type,
+                fillColor = if (isLine) 0xFF333333 else 0xFFEDEFF2,
+                cornerRadius = if (type == "rounded-rectangle") 18f else 0f,
+                strokeColor = 0xFF555555, strokeWidth = if (type == "ellipse") 1f else 0f,
+                transform = XingtuV2Transform(
+                    x = 130f, y = 260f + count * 80f,
+                    width = 460f, height = if (isLine) 8f else 180f
+                )
+            )
+        ))
+        showComponentPicker = false
     }
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -341,11 +362,20 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
-                                is XingtuV2Object.Component -> Box(
-                                    objectModifier.clip(RoundedCornerShape(item.cornerRadius.dp))
-                                        .background(Color(item.fillColor))
-                                        .border(item.strokeWidth.dp, Color(item.strokeColor), RoundedCornerShape(item.cornerRadius.dp))
-                                )
+                                is XingtuV2Object.Component -> {
+                                    val shape = when (item.componentType) {
+                                        "ellipse" -> CircleShape
+                                        "rounded-rectangle" -> RoundedCornerShape(item.cornerRadius.dp)
+                                        else -> RectangleShape
+                                    }
+                                    if (item.componentType == "line") {
+                                        Box(objectModifier.height(4.dp).background(Color(item.fillColor)))
+                                    } else {
+                                        Box(objectModifier.clip(shape)
+                                            .background(Color(item.fillColor))
+                                            .border(item.strokeWidth.dp, Color(item.strokeColor), shape))
+                                    }
+                                }
                                 is XingtuV2Object.Image -> {
                                     val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.assetUri, item.cropLeft, item.cropTop, item.cropRight, item.cropBottom) {
                                         value = withContext(Dispatchers.IO) {
@@ -615,6 +645,17 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             }
         }
 
+        if (showComponentPicker) {
+            Row(Modifier.fillMaxWidth().background(colors.surface).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ObjectToolChip("矩形") { addComponent("rectangle") }
+                ObjectToolChip("圆角矩形") { addComponent("rounded-rectangle") }
+                ObjectToolChip("圆形") { addComponent("ellipse") }
+                ObjectToolChip("线条") { addComponent("line") }
+                ObjectToolChip("关闭") { showComponentPicker = false }
+            }
+        }
+
         val selectedObject = history.document.selectedObjects().singleOrNull()
         if (activeCanvasPanel) {
             XingtuV2CanvasPanel(
@@ -759,14 +800,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 BottomTool("图片", "▧", colors.primary) { imagePicker.launch(arrayOf("image/*")) }
                 BottomTool("图层", "▤", colors.primary) { showLayers = !showLayers }
                 BottomTool("组件", "◇", colors.primary) {
-                    val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.COMPONENT } + 1
-                    history = history.dispatch(XingtuV2Action.InsertObject(
-                        XingtuV2Object.Component(
-                            id = "component-${System.nanoTime()}", componentType = "rectangle",
-                            fillColor = 0xFFEDEFF2, cornerRadius = 14f,
-                            transform = XingtuV2Transform(x = 130f, y = 260f + count * 80f, width = 460f, height = 180f)
-                        )
-                    ))
+                    showComponentPicker = !showComponentPicker
                     showLayers = false
                 }
                 BottomTool("画布", "▣", colors.primary) {
