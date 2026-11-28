@@ -93,7 +93,7 @@ for path in files:
     text = path.read_text(encoding="utf-8")
     if path == LIBRARY:
         start = text.find("internal object AppIconVectors {")
-        end = text.find("}\\n\\n", start) + 1
+        end = text.find("}" + chr(10) + chr(10), start) + 1
         if start >= 0 and end > 0:
             text = text[:start] + text[end:]
     if pattern.search(text):
