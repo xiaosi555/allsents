@@ -1715,6 +1715,7 @@ private fun v2ImageColorMatrix(item: XingtuV2Object.Image): ColorMatrix {
     val green = inverse * 0.715f
     val blue = inverse * 0.072f
     val brightness = item.brightness.coerceIn(-1f, 1f) * 0.25f
+    val contrast = item.contrast.coerceIn(0f, 2f)
     val highlightFactor = 1f + item.highlights.coerceIn(-100f, 100f) / 100f * 0.22f
     val shadowFactor = 1f - item.shadows.coerceIn(-100f, 100f) / 100f * 0.22f
     val tonalContrast = (contrast * highlightFactor * shadowFactor).coerceIn(0f, 2.5f)
