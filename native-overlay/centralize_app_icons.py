@@ -43,13 +43,13 @@ for style, name in items:
     package = style_package[style]
     imports.append(f"import androidx.compose.material.icons.{package}.{name}")
     properties.append(f"    val {prop} = Icons.{style}.{name}")
-    key = "material-" + package + "-" + re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", name).lower()
+    key = "material-" + style.lower() + "-" + re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", name).lower()
     title = humanize(name)
     extra_entries.append(f'    AppIconItem("{key}", "{title}", "{category(name)}", AppIconVectors.{prop})')
 
 source = LIBRARY.read_text(encoding="utf-8")
 # The registry uses explicit imports; keep existing Icons import for the single source mapping.
-source = re.sub(r"import androidx\\.compose\\.material\\.icons\\.(outlined|filled|rounded|twotone)\\.\\*\\n", "", source)
+source = re.sub(r"import androidx\.compose\.material\.icons\.(outlined|filled|rounded|twotone)\.\*\n", "", source)
 source = source.replace("import androidx.compose.material.icons.Icons\n", "import androidx.compose.material.icons.Icons\n")
 for line in imports:
     if line not in source:
@@ -57,7 +57,7 @@ for line in imports:
 registry = "private object AppIconVectors {\n" + "\n".join(properties) + "\n}\n\n"
 marker = "private data class AppIconItem"
 if "private object AppIconVectors {" in source:
-    source = re.sub(r"private object AppIconVectors \\{.*?\\n\\}\\n\\n", registry, source, count=1, flags=re.S)
+    source = re.sub(r"private object AppIconVectors \{.*?\n\}\n\n", registry, source, count=1, flags=re.S)
 else:
     if marker not in source:
         raise SystemExit("Cannot locate icon library registry insertion point.")
