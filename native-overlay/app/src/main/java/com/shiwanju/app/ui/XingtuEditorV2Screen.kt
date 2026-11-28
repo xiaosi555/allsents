@@ -1018,7 +1018,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     imagePicker.launch(arrayOf("image/*"))
                 }
             )
-        } else if (history.document.selectedIds.size > 1) {
+        } else if (activePanel == null && !activeCanvasPanel && !activeMultiTransform && history.document.selectedIds.size > 1) {
             Row(
                 Modifier.fillMaxWidth().height(48.dp).background(colors.surface)
                     .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
@@ -1027,8 +1027,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             ) {
                 Text("${history.document.selectedIds.size} 个对象", color = colors.primary, fontSize = 12.sp)
                 ObjectToolChip("组合") {
-                    if (activePanel == null && !activeCanvasPanel && !activeMultiTransform) {
-        if (history.document.selectedIds.size > 1) {
+                    if (history.document.selectedIds.size > 1) {
                         history = history.dispatch(XingtuV2Action.GroupObjects(
                             history.document.selectedIds, "group-${System.nanoTime()}"
                         ))
@@ -1135,7 +1134,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     showLayers = false
                 }
             }
-        }        }
+        }
 
     }
 }
@@ -1209,7 +1208,6 @@ private fun XingtuV2DarkPanel(content: @Composable () -> Unit) {
     ), content = content)
 }
 
-@Composable
 @Composable
 private fun XingtuV2PanelDragArea(
     panelHeight: Float,
