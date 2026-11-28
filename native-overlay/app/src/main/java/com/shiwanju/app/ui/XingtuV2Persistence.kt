@@ -11,9 +11,12 @@ object XingtuV2Persistence {
     private const val PREFS = "xingtu_editor_v2"
     private const val KEY_DOCUMENT = "active_document"
 
-    fun load(context: Context): XingtuV2Document? = runCatching {
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DOCUMENT, null)
-            ?: return null
+    fun load(context: Context): XingtuV2Document? {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DOCUMENT, null) ?: return null
+        return decodeDocument(raw)
+    }
+
+    private fun decodeDocument(raw: String): XingtuV2Document? = runCatching {
         val root = JSONObject(raw)
         val canvasJson = root.optJSONObject("canvas") ?: JSONObject()
         val canvas = XingtuV2Canvas(
@@ -81,6 +84,23 @@ object XingtuV2Persistence {
             canvas = canvas, objects = objects,
             revision = root.optLong("revision", 0L)
         )
+    }.getOrNull()
+
+    fun exportToUri(context: Context, uri: android.net.Uri, document: XingtuV2Document) {
+        save(context, document)
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DOCUMENT, null) ?: return
+        context.contentResolver.openOutputStream(uri, "wt")?.use { output ->
+            output.write(raw.toByteArray(Charsets.UTF_8))
+        }
+    }
+
+    fun importFromUri(context: Context, uri: android.net.Uri): XingtuV2Document? = runCatching {
+        val raw = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+            ?: return null
+        val imported = decodeDocument(raw) ?: return null
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_DOCUMENT, raw).apply()
+        imported
     }.getOrNull()
 
     fun listVersions(context: Context): List<XingtuV2VersionInfo> = runCatching {

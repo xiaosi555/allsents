@@ -105,6 +105,20 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
 
+    val exportDocumentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) XingtuV2Persistence.exportToUri(context, uri, history.document)
+    }
+    val importDocumentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            XingtuV2Persistence.importFromUri(context, uri)?.let { imported ->
+                history = XingtuV2History(imported)
+                activePanel = null
+                activeCanvasPanel = false
+                activeMultiTransform = false
+            }
+        }
+    }
+
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching {
@@ -164,6 +178,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 Text("↷", fontSize = 22.sp,
                     color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface,
                     modifier = Modifier.clickable(enabled = history.redoStack.isNotEmpty()) { history = history.redo() }.padding(horizontal = 7.dp))
+                Text("导入", fontSize = 11.sp, color = colors.onSurfaceVariant,
+                    modifier = Modifier.clickable { importDocumentLauncher.launch(arrayOf("application/json", "text/plain")) }.padding(horizontal = 5.dp))
+                Text("导出", fontSize = 11.sp, color = colors.onSurfaceVariant,
+                    modifier = Modifier.clickable { exportDocumentLauncher.launch("xingtu-v2-document.json") }.padding(horizontal = 5.dp))
                 Text("版本", fontSize = 11.sp, color = colors.onSurfaceVariant,
                     modifier = Modifier.clickable {
                         savedVersions = XingtuV2Persistence.listVersions(context)
