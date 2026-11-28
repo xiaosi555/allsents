@@ -397,27 +397,43 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     }
                                 }
                                 is XingtuV2Object.Image -> {
-                                    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.assetUri, item.cropLeft, item.cropTop, item.cropRight, item.cropBottom) {
+                                    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+                                        null, item.assetUri, item.cropLeft, item.cropTop, item.cropRight, item.cropBottom,
+                                        t.width, t.height, t.scaleX, t.scaleY, scaleX, scaleY, density
+                                    ) {
                                         value = withContext(Dispatchers.IO) {
                                             runCatching {
-                                                context.contentResolver.openInputStream(Uri.parse(item.assetUri))?.use { stream ->
-                                                    val source = BitmapFactory.decodeStream(stream) ?: return@use null
-                                                    // Normalize imported crop bounds before converting to pixels.
-                                                    // Keep at least one pixel in each dimension, even for malformed JSON.
-                                                    val cropLeft = item.cropLeft.coerceIn(0f, 0.95f)
-                                                    val cropTop = item.cropTop.coerceIn(0f, 0.95f)
-                                                    val cropRight = item.cropRight.coerceIn(cropLeft + 0.05f, 1f)
-                                                    val cropBottom = item.cropBottom.coerceIn(cropTop + 0.05f, 1f)
-                                                    val left = (source.width * cropLeft).toInt().coerceIn(0, source.width - 1)
-                                                    val top = (source.height * cropTop).toInt().coerceIn(0, source.height - 1)
-                                                    val right = (source.width * cropRight).toInt().coerceIn(left + 1, source.width)
-                                                    val bottom = (source.height * cropBottom).toInt().coerceIn(top + 1, source.height)
-                                                    val cropped = Bitmap.createBitmap(
-                                                        source, left, top, right - left, bottom - top
-                                                    )
-                                                    if (cropped !== source) source.recycle()
-                                                    cropped.asImageBitmap()
+                                                val imageUri = Uri.parse(item.assetUri)
+                                                // Read dimensions first, then decode near the on-canvas pixel size.
+                                                // This avoids loading full-resolution camera photos into memory
+                                                // when the editor only displays a small thumbnail-sized object.
+                                                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                                                context.contentResolver.openInputStream(imageUri)?.use { stream ->
+                                                    BitmapFactory.decodeStream(stream, null, bounds)
                                                 }
+                                                val targetWidth = (t.width * t.scaleX * scaleX * density).roundToInt().coerceAtLeast(1)
+                                                val targetHeight = (t.height * t.scaleY * scaleY * density).roundToInt().coerceAtLeast(1)
+                                                var sampleSize = 1
+                                                while (
+                                                    bounds.outWidth / (sampleSize * 2) >= targetWidth * 2 &&
+                                                    bounds.outHeight / (sampleSize * 2) >= targetHeight * 2
+                                                ) sampleSize *= 2
+                                                val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                                                val source = context.contentResolver.openInputStream(imageUri)?.use { stream ->
+                                                    BitmapFactory.decodeStream(stream, null, options)
+                                                } ?: return@runCatching null
+                                                // Normalize imported crop bounds before converting to sampled pixels.
+                                                val cropLeft = item.cropLeft.coerceIn(0f, 0.95f)
+                                                val cropTop = item.cropTop.coerceIn(0f, 0.95f)
+                                                val cropRight = item.cropRight.coerceIn(cropLeft + 0.05f, 1f)
+                                                val cropBottom = item.cropBottom.coerceIn(cropTop + 0.05f, 1f)
+                                                val left = (source.width * cropLeft).toInt().coerceIn(0, source.width - 1)
+                                                val top = (source.height * cropTop).toInt().coerceIn(0, source.height - 1)
+                                                val right = (source.width * cropRight).toInt().coerceIn(left + 1, source.width)
+                                                val bottom = (source.height * cropBottom).toInt().coerceIn(top + 1, source.height)
+                                                val cropped = Bitmap.createBitmap(source, left, top, right - left, bottom - top)
+                                                if (cropped !== source) source.recycle()
+                                                cropped.asImageBitmap()
                                             }.getOrNull()
                                         }
                                     }
