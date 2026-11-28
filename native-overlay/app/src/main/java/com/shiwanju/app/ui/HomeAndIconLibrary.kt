@@ -50,9 +50,12 @@ private val appIconItems = listOf(
  AppIconItem("favorite","收藏","通用",Icons.Outlined.Favorite)
 )
 
+/** The single vector source used by every application screen and icon-library preview. */
+fun AppIconVector(key:String):ImageVector = appIconItems.firstOrNull{it.key==key}?.vector ?: Icons.Outlined.Circle
+
 @Composable fun AppIcon(key:String,modifier:Modifier=Modifier,tint:Color=LocalContentColor.current) {
  val item=appIconItems.firstOrNull{it.key==key}
- Icon(item?.vector?:Icons.Outlined.Circle,contentDescription=item?.title?:key,modifier=modifier,tint=tint)
+ Icon(AppIconVector(key),contentDescription=item?.title?:key,modifier=modifier,tint=tint)
 }
 private data class HomePageItem(val title:String,val subtitle:String,val route:String,val icon:ImageVector,val colors:List<Color>)
 
