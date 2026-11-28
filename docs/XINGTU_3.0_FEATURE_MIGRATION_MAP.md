@@ -146,3 +146,10 @@
 - 新增 `native-overlay/apply_xingtu_v3_stage_cde.py`，由 `.github/workflows/android-compile-check.yml` 和 `.github/workflows/android.yml` 在 Stage A/B 后执行。
 - 修复 `add_xingtu_v3.py` 的具名 `onBack` 调用和排版入口 `TextButton` 全限定引用；Stage A/B 补丁的路由校验同步调整。
 - 当前状态为代码完成待检查；Kotlin 编译、运行和真机行为尚未确认。
+
+
+### C/D/E Kotlin 编译确认（2026-11-29）
+- GitHub Actions run `46175787244`：Stage A/B、Stage C/D/E 生成步骤均成功。
+- `:app:compileDebugKotlin` 成功，说明当前生成后的 V3 Kotlin 源码可通过 Kotlin 编译。
+- 此结果不代表 UI 运行、面板事务、手势和对象双向同步已通过功能验收；上述项目继续保留为待检查。
+- 本次只执行 Kotlin compile-only，没有构建 APK。
