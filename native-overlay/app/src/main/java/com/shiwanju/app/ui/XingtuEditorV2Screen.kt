@@ -11,7 +11,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -154,25 +153,29 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 }
                                 .pointerInput(item.id, scaleX, scaleY, density) {
                                     var gestureStarted = false
-                                    detectTransformGestures { _, pan, zoom, rotation ->
-                                        if (!item.locked) {
-                                            if (!gestureStarted) {
+                                    detectDragGestures(
+                                        onDragStart = {
+                                            if (!item.locked) {
                                                 history = history.beginTransform()
                                                 gestureStarted = true
                                             }
-                                            val current = history.document.objects.firstOrNull { it.id == item.id } ?: item
+                                        },
+                                        onDragEnd = { if (gestureStarted) history = history.endTransform() },
+                                        onDragCancel = { if (gestureStarted) history = history.endTransform() }
+                                    ) { change, drag ->
+                                        if (gestureStarted) {
+                                            change.consume()
+                                            val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                             val old = current.transform
-                                            val next = old.copy(
-                                                x = old.x + (pan.x / density) / scaleX,
-                                                y = old.y + (pan.y / density) / scaleY,
-                                                width = (old.width * zoom).coerceIn(24f, 1080f),
-                                                height = (old.height * zoom).coerceIn(24f, 1440f),
-                                                rotation = old.rotation + rotation
+                                            history = history.updateTransform(
+                                                item.id,
+                                                old.copy(
+                                                    x = old.x + (drag.x / density) / scaleX,
+                                                    y = old.y + (drag.y / density) / scaleY
+                                                )
                                             )
-                                            history = history.updateTransform(item.id, next)
                                         }
                                     }
-                                    if (gestureStarted) history = history.endTransform()
                                 }
 
                             when (item) {
@@ -181,8 +184,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         text = item.content,
                                         color = Color(item.color),
                                         fontSize = (item.fontSizeSp * scaleX).coerceIn(8f, 48f).sp,
-                                        lineHeight = (item.fontSizeSp * item.lineHeight).sp,
-                                        letterSpacing = item.letterSpacing.sp,
+                                        lineHeight = (item.fontSizeSp * item.lineHeight * scaleX).sp,
+                                        letterSpacing = (item.letterSpacing * scaleX).sp,
                                         textAlign = when (item.textAlign) {
                                             "center" -> TextAlign.Center
                                             "end" -> TextAlign.End
@@ -219,15 +222,67 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 }
                             }
                             if (selected && !item.locked) {
+                                val handlePoints = listOf(
+                                    Triple(0f, 0f, -1 to -1), Triple(.5f, 0f, 0 to -1), Triple(1f, 0f, 1 to -1),
+                                    Triple(0f, .5f, -1 to 0), Triple(1f, .5f, 1 to 0),
+                                    Triple(0f, 1f, -1 to 1), Triple(.5f, 1f, 0 to 1), Triple(1f, 1f, 1 to 1)
+                                )
+                                handlePoints.forEach { (hx, hy, edge) ->
+                                    Box(
+                                        Modifier.offset {
+                                            IntOffset(
+                                                (((t.x + t.width * hx) * scaleX - 7f) * density).roundToInt(),
+                                                (((t.y + t.height * hy) * scaleY - 7f) * density).roundToInt()
+                                            )
+                                        }
+                                        .size(14.dp).clip(CircleShape)
+                                        .background(colors.surface)
+                                        .border(1.5.dp, colors.primary, CircleShape)
+                                        .pointerInput(item.id, scaleX, scaleY, edge) {
+                                            detectDragGestures(
+                                                onDragStart = { history = history.beginTransform() },
+                                                onDragEnd = { history = history.endTransform() },
+                                                onDragCancel = { history = history.endTransform() }
+                                            ) { change, drag ->
+                                                change.consume()
+                                                val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
+                                                val old = current.transform
+                                                val dx = (drag.x / density) / scaleX
+                                                val dy = (drag.y / density) / scaleY
+                                                var x = old.x
+                                                var y = old.y
+                                                var width = old.width
+                                                var height = old.height
+                                                if (edge.first < 0) {
+                                                    val nextWidth = (width - dx).coerceAtLeast(24f)
+                                                    x += width - nextWidth
+                                                    width = nextWidth
+                                                } else if (edge.first > 0) {
+                                                    width = (width + dx).coerceAtLeast(24f)
+                                                }
+                                                if (edge.second < 0) {
+                                                    val nextHeight = (height - dy).coerceAtLeast(24f)
+                                                    y += height - nextHeight
+                                                    height = nextHeight
+                                                } else if (edge.second > 0) {
+                                                    height = (height + dy).coerceAtLeast(24f)
+                                                }
+                                                history = history.updateTransform(
+                                                    item.id, old.copy(x = x, y = y, width = width, height = height)
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
                                 Box(
                                     Modifier.offset {
                                         IntOffset(
-                                            (((t.x + t.width) * scaleX - 7f) * density).roundToInt(),
-                                            (((t.y + t.height) * scaleY - 7f) * density).roundToInt()
+                                            (((t.x + t.width * .5f) * scaleX - 6f) * density).roundToInt(),
+                                            ((t.y * scaleY - 30f) * density).roundToInt()
                                         )
                                     }
-                                    .size(14.dp).clip(CircleShape).background(colors.primary)
-                                    .pointerInput(item.id, scaleX, scaleY) {
+                                    .size(12.dp).clip(CircleShape).background(colors.primary)
+                                    .pointerInput(item.id) {
                                         detectDragGestures(
                                             onDragStart = { history = history.beginTransform() },
                                             onDragEnd = { history = history.endTransform() },
@@ -235,11 +290,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         ) { change, drag ->
                                             change.consume()
                                             val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
-                                            val next = current.transform.copy(
-                                                width = (current.transform.width + (drag.x / density) / scaleX).coerceIn(24f, 1080f),
-                                                height = (current.transform.height + (drag.y / density) / scaleY).coerceIn(24f, 1440f)
+                                            history = history.updateTransform(
+                                                item.id,
+                                                current.transform.copy(rotation = current.transform.rotation + drag.x * .8f)
                                             )
-                                            history = history.updateTransform(item.id, next)
                                         }
                                     }
                                 )
