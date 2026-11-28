@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -390,6 +391,7 @@ private fun XingtuV2PropertyPanel(
     onReplaceImage: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val density = LocalDensity.current.density
     Column(
         Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface)
             .border(1.dp, colors.outlineVariant)
