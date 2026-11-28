@@ -88,8 +88,13 @@ for path in files:
  src=path.read_text(encoding="utf-8")
  for label in re.findall(r'ShiWanJuLineIcon\("([^"]+)"',src):
   items[label]=(label,category(label))
- for label in re.findall(r'EditorTool\("([^"]+)"',src):
-  items[label]=(label,category(label))
+ for call in re.finditer(r"\\bEditorTool\\s*\\(",src):
+  end=end_call(src,call.end()-1)
+  if end>=0:
+   args=split_args(src[call.end():end])
+   if args:
+    for label in re.findall(r'"([^"]+)"',args[0]):
+     items[label]=(label,category(label))
  # Route all shared-renderer call sites through AppIcon so user overrides apply globally.
  updated=re.sub(r"(?<!fun )ShiWanJuLineIcon\(", "AppIcon(", src)
  if updated!=src: path.write_text(updated,encoding="utf-8")
