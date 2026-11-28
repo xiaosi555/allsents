@@ -91,6 +91,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var groupScale by remember { mutableFloatStateOf(1f) }
     var groupRotation by remember { mutableFloatStateOf(0f) }
     var showLayers by remember { mutableStateOf(false) }
+    var layerQuery by remember { mutableStateOf("") }
     var editingLayerId by remember { mutableStateOf<String?>(null) }
     var layerNameDraft by remember { mutableStateOf("") }
     var showVersions by remember { mutableStateOf(false) }
@@ -742,14 +743,39 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             val visibleIds = history.document.objects.filter { it.visible }.map { it.id }.toSet()
                             history = history.dispatch(XingtuV2Action.Select(visibleIds - history.document.selectedIds))
                         }.padding(5.dp))
+                    Text("复制", color = colors.onSurfaceVariant, fontSize = 11.sp,
+                        modifier = Modifier.clickable(enabled = history.document.selectedIds.isNotEmpty()) {
+                            history = history.duplicateSelected("layer-copy-${System.nanoTime()}")
+                        }.padding(5.dp))
+                    Text("删除所选", color = colors.error, fontSize = 11.sp,
+                        modifier = Modifier.clickable(enabled = history.document.selectedIds.isNotEmpty()) {
+                            history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))
+                        }.padding(5.dp))
                     Text("取消", color = colors.onSurfaceVariant, fontSize = 11.sp,
                         modifier = Modifier.clickable {
                             history = history.dispatch(XingtuV2Action.Select(emptySet()))
                             multiSelect = false
                         }.padding(5.dp))
                 }
+                OutlinedTextField(
+                    value = layerQuery,
+                    onValueChange = { layerQuery = it },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    singleLine = true,
+                    placeholder = { Text("搜索图层名称或内容", fontSize = 11.sp) }
+                )
                 LazyColumn {
-                    items(history.document.objects.asReversed(), key = { it.id }) { item ->
+                    items(history.document.objects.asReversed().filter { item ->
+                        if (layerQuery.isBlank()) true else {
+                            val fallback = when (item) {
+                                is XingtuV2Object.Text -> item.content
+                                is XingtuV2Object.Image -> "图片"
+                                is XingtuV2Object.Component -> "组件 ${item.componentType}"
+                            }
+                            item.layerName.contains(layerQuery, ignoreCase = true) ||
+                                fallback.contains(layerQuery, ignoreCase = true)
+                        }
+                    }, key = { it.id }) { item ->
                         Row(Modifier.fillMaxWidth().height(52.dp).clickable {
                             history = history.dispatch(XingtuV2Action.Select(setOf(item.id), additive = multiSelect))
                         }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
