@@ -54,7 +54,7 @@ source = source.replace("import androidx.compose.material.icons.Icons\n", "impor
 for line in imports:
     if line not in source:
         source = source.replace("import androidx.compose.material.icons.Icons\n", "import androidx.compose.material.icons.Icons\n" + line + "\n", 1)
-registry = "private object AppIconVectors {\n" + "\n".join(properties) + "\n}\n\n"
+registry = "internal object AppIconVectors {\n" + "\n".join(properties) + "\n}\n\n"
 marker = "private data class AppIconItem"
 if "private object AppIconVectors {" in source:
     source = re.sub(r"private object AppIconVectors \{.*?\n\}\n\n", registry, source, count=1, flags=re.S)
@@ -66,7 +66,16 @@ else:
 # All screens now reference the shared vector registry rather than importing icons ad hoc.
 for path in files:
     text = path.read_text(encoding="utf-8")
-    updated = pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text)
+    if path == LIBRARY:
+        registry_start = text.find("internal object AppIconVectors {")
+        registry_end = text.find("\\n}\\n\\n", registry_start)
+        if registry_start < 0 or registry_end < 0:
+            raise SystemExit("Generated icon vector registry is malformed.")
+        registry_end += len("\\n}\\n\\n")
+        text = text[:registry_start] + text[registry_start:registry_end] + pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text[registry_end:])
+        updated = text
+    else:
+        updated = pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text)
     if path == LIBRARY:
         # The library list also contains its own icons; append every icon used elsewhere.
         start = updated.find("private val appIconItems = listOf(")
