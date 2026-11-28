@@ -130,6 +130,21 @@ data class XingtuV2History(
     val undoStack: List<XingtuV2Document> = emptyList(),
     val redoStack: List<XingtuV2Document> = emptyList()
 ) {
+    private var transformSnapshot: XingtuV2Document? = null
+
+    fun beginTransform(): XingtuV2History = copy().also { it.transformSnapshot = document }
+
+    fun updateTransform(id: String, transform: XingtuV2Transform): XingtuV2History {
+        val updated = XingtuV2Reducer.reduce(document, XingtuV2Action.TransformObject(id, transform))
+        return if (updated == document) this else copy(document = updated)
+    }
+
+    fun endTransform(): XingtuV2History {
+        val snapshot = transformSnapshot ?: return this
+        return if (snapshot == document) copy().also { it.transformSnapshot = null }
+        else copy(undoStack = undoStack + snapshot, redoStack = emptyList()).also { it.transformSnapshot = null }
+    }
+
     fun dispatch(action: XingtuV2Action): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, action)
         return if (updated == document) this else copy(document = updated, undoStack = undoStack + document, redoStack = emptyList())
