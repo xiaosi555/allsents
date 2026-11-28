@@ -57,7 +57,7 @@ for line in imports:
 registry = "internal object AppIconVectors {\n" + "\n".join(properties) + "\n}\n\n"
 marker = "private data class AppIconItem"
 if "internal object AppIconVectors {" in source:
-    source = re.sub(r"private object AppIconVectors \{.*?\n\}\n\n", registry, source, count=1, flags=re.S)
+    source = re.sub(r"internal object AppIconVectors \{.*?\n\}\n\n", registry, source, count=1, flags=re.S)
 else:
     if marker not in source:
         raise SystemExit("Cannot locate icon library registry insertion point.")
@@ -68,10 +68,10 @@ for path in files:
     text = path.read_text(encoding="utf-8")
     if path == LIBRARY:
         registry_start = text.find("internal object AppIconVectors {")
-        registry_end = text.find("\\n}\\n\\n", registry_start)
+        registry_end = text.find("}\n\n", registry_start) + 1
         if registry_start < 0 or registry_end < 0:
             raise SystemExit("Generated icon vector registry is malformed.")
-        registry_end += len("\\n}\\n\\n")
+
         text = text[:registry_start] + text[registry_start:registry_end] + pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text[registry_end:])
         updated = text
     else:
@@ -84,7 +84,7 @@ for path in files:
         end = updated.find("\n)", start)
         if end < 0:
             raise SystemExit("Cannot locate end of appIconItems declaration.")
-        updated = updated[:end] + "\n) + listOf(\n" + ",\n".join(extra_entries) + "\n" + updated[end+2:]
+        updated = updated[:end] + "\n) + listOf(\n" + ",\n".join(extra_entries) + "\n)" + updated[end+2:]
     path.write_text(updated, encoding="utf-8")
 
 # Verify there are no remaining direct vector references and that every icon is represented.
