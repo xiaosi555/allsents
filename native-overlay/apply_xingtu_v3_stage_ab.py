@@ -114,6 +114,24 @@ s = replace_once(
     "open article session pointer"
 )
 
+# A route may change from the generic V3 entry to an explicit article ID while
+# the same Compose host remains alive. Save the old session before switching.
+s = replace_once(
+    s,
+    '''    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->''',
+    '''    LaunchedEffect(initialArticleId) {
+        val routeId = initialArticleId?.takeIf { it.isNotBlank() }
+            ?: v3SessionPrefs.getString("active_article_id", null)
+        val target = routeId?.let { id -> vm.data.articles.firstOrNull { it.id == id } }
+        if (target != null && target.id != articleId) {
+            saveDocument(onComplete = { openArticle(target) })
+        }
+    }
+
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->''',
+    "route article ID changes"
+)
+
 # Keep the V3 last-open pointer current without touching the classic editor.
 s = replace_once(
     s,
