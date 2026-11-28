@@ -64,7 +64,7 @@ object XingtuV2Persistence {
                         transform = transform, visible = visible, locked = locked
                     ))
                     "IMAGE" -> add(XingtuV2Object.Image(
-                        id = id, assetUri = item.optString("assetUri", ""), layerName = item.optString("layerName", ""),
+                        id = id, assetUri = item.optString("assetUri", ""), layerName = item.optString("layerName", ""), groupId = item.optString("groupId").takeIf { it.isNotBlank() },
                         cropLeft = item.optDouble("cropLeft", 0.0).toFloat(),
                         cropTop = item.optDouble("cropTop", 0.0).toFloat(),
                         cropRight = item.optDouble("cropRight", 1.0).toFloat(),
@@ -82,7 +82,7 @@ object XingtuV2Persistence {
                         transform = transform, visible = visible, locked = locked
                     ))
                     "COMPONENT" -> add(XingtuV2Object.Component(
-                        id = id, componentType = item.optString("componentType", "rectangle"), layerName = item.optString("layerName", ""),
+                        id = id, componentType = item.optString("componentType", "rectangle"), layerName = item.optString("layerName", ""), groupId = item.optString("groupId").takeIf { it.isNotBlank() },
                         fillColor = item.optLong("fillColor", 0xFFF1F1F1),
                         cornerRadius = item.optDouble("cornerRadius", 0.0).toFloat(),
                         strokeColor = item.optLong("strokeColor", 0x00000000),
@@ -191,7 +191,7 @@ object XingtuV2Persistence {
                         .put("textAlign", item.textAlign).put("boxWidth", item.boxWidth)
                         .put("boxHeight", item.boxHeight)
                     is XingtuV2Object.Image -> json
-                        .put("assetUri", item.assetUri).put("layerName", item.layerName).put("cropLeft", item.cropLeft)
+                        .put("assetUri", item.assetUri).put("layerName", item.layerName).put("groupId", item.groupId ?: "").put("cropLeft", item.cropLeft)
                         .put("cropTop", item.cropTop).put("cropRight", item.cropRight)
                         .put("cropBottom", item.cropBottom).put("colorTemperature", item.colorTemperature)
                         .put("saturation", item.saturation).put("brightness", item.brightness)
@@ -200,7 +200,7 @@ object XingtuV2Persistence {
                         .put("borderColor", item.borderColor).put("shadowRadius", item.shadowRadius)
                         .put("flipHorizontal", item.flipHorizontal).put("flipVertical", item.flipVertical)
                     is XingtuV2Object.Component -> json
-                        .put("componentType", item.componentType).put("layerName", item.layerName).put("fillColor", item.fillColor)
+                        .put("componentType", item.componentType).put("layerName", item.layerName).put("groupId", item.groupId ?: "").put("fillColor", item.fillColor)
                         .put("cornerRadius", item.cornerRadius).put("strokeColor", item.strokeColor)
                         .put("strokeWidth", item.strokeWidth)
                 }
