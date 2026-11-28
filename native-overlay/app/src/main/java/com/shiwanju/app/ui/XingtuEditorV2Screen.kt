@@ -226,8 +226,19 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.assetUri) {
                                         value = withContext(Dispatchers.IO) {
                                             runCatching {
-                                                context.contentResolver.openInputStream(Uri.parse(item.assetUri))?.use {
-                                                    BitmapFactory.decodeStream(it)?.asImageBitmap()
+                                                context.contentResolver.openInputStream(Uri.parse(item.assetUri))?.use { stream ->
+                                                    val source = BitmapFactory.decodeStream(stream) ?: return@use null
+                                                    val left = (source.width * item.cropLeft.coerceIn(0f, 0.95f)).toInt()
+                                                    val top = (source.height * item.cropTop.coerceIn(0f, 0.95f)).toInt()
+                                                    val right = (source.width * item.cropRight.coerceIn(item.cropLeft + 0.05f, 1f)).toInt()
+                                                    val bottom = (source.height * item.cropBottom.coerceIn(item.cropTop + 0.05f, 1f)).toInt()
+                                                    val cropped = BitmapFactory.createBitmap(
+                                                        source, left, top,
+                                                        (right - left).coerceAtLeast(1),
+                                                        (bottom - top).coerceAtLeast(1)
+                                                    )
+                                                    if (cropped !== source) source.recycle()
+                                                    cropped.asImageBitmap()
                                                 }
                                             }.getOrNull()
                                         }
@@ -390,7 +401,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) { activePanel = tab }
                     }
-                    is XingtuV2Object.Image -> listOf("替换", "调色", "透明度", "变换").forEach { tab ->
+                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (tab == "替换") imagePicker.launch("image/*") else activePanel = tab
                         }
@@ -542,7 +553,25 @@ private fun XingtuV2PropertyPanel(
                     }
                 }
                 is XingtuV2Object.Image -> when (tab) {
+                    "裁剪" -> {
+                        Text("裁剪范围（原图比例）", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                        V2ValueSlider("左侧", selectedObject.cropLeft, 0f..(selectedObject.cropRight - 0.05f).coerceAtLeast(0.01f)) {
+                            onUpdate(selectedObject.copy(cropLeft = it))
+                        }
+                        V2ValueSlider("顶部", selectedObject.cropTop, 0f..(selectedObject.cropBottom - 0.05f).coerceAtLeast(0.01f)) {
+                            onUpdate(selectedObject.copy(cropTop = it))
+                        }
+                        V2ValueSlider("右侧", selectedObject.cropRight, (selectedObject.cropLeft + 0.05f).coerceAtMost(0.99f)..1f) {
+                            onUpdate(selectedObject.copy(cropRight = it))
+                        }
+                        V2ValueSlider("底部", selectedObject.cropBottom, (selectedObject.cropTop + 0.05f).coerceAtMost(0.99f)..1f) {
+                            onUpdate(selectedObject.copy(cropBottom = it))
+                        }
+                    }
                     "调色" -> {
+                        V2ValueSlider("色温", selectedObject.colorTemperature, -100f..100f) {
+                            onUpdate(selectedObject.copy(colorTemperature = it))
+                        }
                         V2ValueSlider("亮度", selectedObject.brightness, -1f..1f) {
                             onUpdate(selectedObject.copy(brightness = it))
                         }
@@ -611,10 +640,11 @@ private fun v2ImageColorMatrix(item: XingtuV2Object.Image): ColorMatrix {
     val green = inverse * 0.715f
     val blue = inverse * 0.072f
     val brightness = item.brightness.coerceIn(-1f, 1f) * 0.25f
+    val temperature = item.colorTemperature.coerceIn(-100f, 100f) / 100f * 0.12f
     return ColorMatrix(floatArrayOf(
-        red + saturation, green, blue, 0f, brightness,
+        red + saturation, green, blue, 0f, brightness + temperature,
         red, green + saturation, blue, 0f, brightness,
-        red, green, blue + saturation, 0f, brightness,
+        red, green, blue + saturation, 0f, brightness - temperature,
         0f, 0f, 0f, 1f, 0f
     ))
 }
