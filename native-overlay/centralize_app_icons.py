@@ -9,7 +9,7 @@ LIBRARY = UI / "HomeAndIconLibrary.kt"
 if not LIBRARY.is_file():
     raise SystemExit("HomeAndIconLibrary.kt must be installed before icon centralization.")
 
-files = sorted(UI.rglob("*.kt"))
+files = sorted(ROOT.rglob("*.kt"))
 pattern = re.compile(r"Icons\.(Outlined|Default|Filled|Rounded|TwoTone)\.([A-Za-z][A-Za-z0-9_]*)")
 found = set()
 for path in files:
@@ -20,7 +20,16 @@ if not found:
 
 style_package = {"Outlined": "outlined", "Default": "filled", "Filled": "filled", "Rounded": "rounded", "TwoTone": "twotone"}
 style_order = {"Outlined": 0, "Default": 1, "Filled": 2, "Rounded": 3, "TwoTone": 4}
-items = sorted(found, key=lambda x: (style_order[x[0]], x[1]))
+canonical = {}
+for style, name in found:
+    if ("Outlined", name) in found:
+        target_style = "Outlined"
+    elif style in ("Default", "Filled") and ("Default", name) in found:
+        target_style = "Default"
+    else:
+        target_style = style
+    canonical[(style, name)] = (target_style, name)
+items = sorted(set(canonical.values()), key=lambda x: (style_order[x[0]], x[1]))
 imports = []
 properties = []
 extra_entries = []
@@ -72,10 +81,10 @@ for path in files:
         if registry_start < 0 or registry_end <= 0:
             raise SystemExit("Generated icon vector registry is malformed.")
 
-        text = text[:registry_start] + text[registry_start:registry_end] + pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text[registry_end:])
+        text = text[:registry_start] + text[registry_start:registry_end] + pattern.sub(lambda m: "AppIconVectors." + canonical[(m.group(1), m.group(2))][0] + m.group(2), text[registry_end:])
         updated = text
     else:
-        updated = pattern.sub(lambda m: "AppIconVectors." + m.group(1) + m.group(2), text)
+        updated = pattern.sub(lambda m: "AppIconVectors." + canonical[(m.group(1), m.group(2))][0] + m.group(2), text)
     if path == LIBRARY:
         # The library list also contains its own icons; append every icon used elsewhere.
         start = updated.find("private val appIconItems = listOf(")
