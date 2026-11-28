@@ -83,6 +83,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var groupScale by remember { mutableFloatStateOf(1f) }
     var groupRotation by remember { mutableFloatStateOf(0f) }
     var showLayers by remember { mutableStateOf(false) }
+    var replaceTargetId by remember { mutableStateOf<String?>(null) }
     var activePanel by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(history.document.selectedIds) {
         if (activePanel != null || activeMultiTransform || activeCanvasPanel) history = history.endTransform()
@@ -106,12 +107,24 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            val image = XingtuV2Object.Image(
-                id = "image-${System.nanoTime()}",
-                assetUri = uri.toString(),
-                transform = XingtuV2Transform(x = 120f, y = 180f, width = 520f, height = 420f)
-            )
-            history = history.dispatch(XingtuV2Action.InsertObject(image))
+            val targetId = replaceTargetId
+            if (targetId != null) {
+                val existing = history.document.objects.firstOrNull { it.id == targetId } as? XingtuV2Object.Image
+                if (existing != null) {
+                    history = history.updateObjectLive(existing.copy(
+                        assetUri = uri.toString(),
+                        cropLeft = 0f, cropTop = 0f, cropRight = 1f, cropBottom = 1f
+                    ))
+                }
+                replaceTargetId = null
+            } else {
+                val image = XingtuV2Object.Image(
+                    id = "image-${System.nanoTime()}",
+                    assetUri = uri.toString(),
+                    transform = XingtuV2Transform(x = 120f, y = 180f, width = 520f, height = 420f)
+                )
+                history = history.dispatch(XingtuV2Action.InsertObject(image))
+            }
             showLayers = false
         }
     }
@@ -575,7 +588,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     activePanel = null
                 },
                 onUpdate = { history = history.updateObjectLive(it) },
-                onReplaceImage = { imagePicker.launch(arrayOf("image/*")) }
+                onReplaceImage = {
+                    replaceTargetId = selectedObject.id
+                    imagePicker.launch(arrayOf("image/*"))
+                }
             )
         } else if (history.document.selectedIds.size > 1) {
             Row(
@@ -627,7 +643,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     }
                     is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
-                            if (tab == "替换") imagePicker.launch(arrayOf("image/*")) else {
+                            if (tab == "替换") {
+                                replaceTargetId = selectedObject.id
+                                imagePicker.launch(arrayOf("image/*"))
+                            } else {
                                 if (activePanel == null) history = history.beginTransform()
                                 activePanel = tab
                             }
