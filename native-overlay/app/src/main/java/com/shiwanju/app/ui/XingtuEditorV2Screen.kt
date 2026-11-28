@@ -13,12 +13,16 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,6 +66,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
     var multiSelect by remember { mutableStateOf(false) }
     var showLayers by remember { mutableStateOf(false) }
+    var activePanel by remember { mutableStateOf<String?>(null) }
+    var panelHeight by remember { mutableFloatStateOf(220f) }
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -279,32 +285,71 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             }
         }
 
-        Row(
-            Modifier.fillMaxWidth().height(68.dp).background(colors.surface).padding(horizontal = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
-        ) {
-            BottomTool("文字", "T", colors.primary) {
-                val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.TEXT } + 1
-                history = history.dispatch(XingtuV2Action.InsertObject(
-                    XingtuV2Object.Text(
-                        id = "text-${System.nanoTime()}", content = "双击编辑文字$count",
-                        transform = XingtuV2Transform(x = 110f, y = 180f + count * 100f, width = 520f, height = 90f)
-                    )
-                ))
-                showLayers = false
+        val selectedObject = history.document.selectedObjects().singleOrNull()
+        if (activePanel != null && selectedObject != null) {
+            XingtuV2PropertyPanel(
+                selectedObject = selectedObject,
+                tab = activePanel!!,
+                panelHeight = panelHeight,
+                onPanelHeightChange = { panelHeight = it.coerceIn(200f, 400f) },
+                onClose = { activePanel = null },
+                onUpdate = { history = history.dispatch(XingtuV2Action.ReplaceObject(it)) },
+                onReplaceImage = { imagePicker.launch("image/*") }
+            )
+        } else if (selectedObject != null) {
+            Row(
+                Modifier.fillMaxWidth().height(58.dp).background(colors.surface)
+                    .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                when (selectedObject) {
+                    is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "透明度", "变换").forEach { tab ->
+                        ObjectToolChip(tab) { activePanel = tab }
+                    }
+                    is XingtuV2Object.Image -> listOf("替换", "调色", "透明度", "变换").forEach { tab ->
+                        ObjectToolChip(tab) {
+                            if (tab == "替换") imagePicker.launch("image/*") else activePanel = tab
+                        }
+                    }
+                    is XingtuV2Object.Component -> listOf("填充", "圆角", "边框", "变换").forEach { tab ->
+                        ObjectToolChip(tab) { activePanel = tab }
+                    }
+                }
+                ObjectToolChip("图层") { showLayers = !showLayers }
+                ObjectToolChip("删除") {
+                    history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))
+                    activePanel = null
+                }
             }
-            BottomTool("图片", "▧", colors.primary) { imagePicker.launch("image/*") }
-            BottomTool("图层", "▤", colors.primary) { showLayers = !showLayers }
-            BottomTool("组件", "◇", colors.primary) {
-                val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.COMPONENT } + 1
-                history = history.dispatch(XingtuV2Action.InsertObject(
-                    XingtuV2Object.Component(
-                        id = "component-${System.nanoTime()}", componentType = "rectangle",
-                        fillColor = 0xFFEDEFF2, cornerRadius = 14f,
-                        transform = XingtuV2Transform(x = 130f, y = 260f + count * 80f, width = 460f, height = 180f)
-                    )
-                ))
-                showLayers = false
+        } else {
+            Row(
+                Modifier.fillMaxWidth().height(68.dp).background(colors.surface).padding(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
+            ) {
+                BottomTool("文字", "T", colors.primary) {
+                    val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.TEXT } + 1
+                    history = history.dispatch(XingtuV2Action.InsertObject(
+                        XingtuV2Object.Text(
+                            id = "text-${System.nanoTime()}", content = "双击编辑文字$count",
+                            transform = XingtuV2Transform(x = 110f, y = 180f + count * 100f, width = 520f, height = 90f)
+                        )
+                    ))
+                    showLayers = false
+                }
+                BottomTool("图片", "▧", colors.primary) { imagePicker.launch("image/*") }
+                BottomTool("图层", "▤", colors.primary) { showLayers = !showLayers }
+                BottomTool("组件", "◇", colors.primary) {
+                    val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.COMPONENT } + 1
+                    history = history.dispatch(XingtuV2Action.InsertObject(
+                        XingtuV2Object.Component(
+                            id = "component-${System.nanoTime()}", componentType = "rectangle",
+                            fillColor = 0xFFEDEFF2, cornerRadius = 14f,
+                            transform = XingtuV2Transform(x = 130f, y = 260f + count * 80f, width = 460f, height = 180f)
+                        )
+                    ))
+                    showLayers = false
+                }
             }
         }
     }
@@ -319,4 +364,158 @@ private fun RowScope.BottomTool(label: String, symbol: String, activeColor: Colo
         Text(symbol, color = activeColor, fontSize = 21.sp, fontWeight = FontWeight.Medium)
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
     }
+}
+
+
+@Composable
+private fun ObjectToolChip(label: String, onClick: () -> Unit) {
+    Text(
+        label,
+        color = MaterialTheme.colorScheme.onSurface,
+        fontSize = 12.sp,
+        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 10.dp)
+    )
+}
+
+@Composable
+private fun XingtuV2PropertyPanel(
+    selectedObject: XingtuV2Object,
+    tab: String,
+    panelHeight: Float,
+    onPanelHeightChange: (Float) -> Unit,
+    onClose: () -> Unit,
+    onUpdate: (XingtuV2Object) -> Unit,
+    onReplaceImage: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface)
+            .border(1.dp, colors.outlineVariant)
+    ) {
+        Row(
+            Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("×", color = colors.onSurface, fontSize = 22.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(
+                Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
+                    detectDragGestures { change, drag ->
+                        change.consume()
+                        onPanelHeightChange(panelHeight - drag.y / density)
+                    }
+                },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Box(Modifier.width(36.dp).height(4.dp).clip(CircleShape).background(colors.outlineVariant))
+                    Text(tab, color = colors.onSurfaceVariant, fontSize = 10.sp)
+                }
+            }
+            Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+        }
+        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
+            when (selectedObject) {
+                is XingtuV2Object.Text -> when (tab) {
+                    "编辑" -> OutlinedTextField(
+                        value = selectedObject.content,
+                        onValueChange = { onUpdate(selectedObject.copy(content = it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("文字内容") },
+                        minLines = 2,
+                        maxLines = 4
+                    )
+                    "字体" -> {
+                        V2ValueSlider("字号", selectedObject.fontSizeSp, 8f..120f) {
+                            onUpdate(selectedObject.copy(fontSizeSp = it))
+                        }
+                    }
+                    "样式" -> {
+                        Text("文字颜色", color = colors.onSurface, fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
+                            listOf(0xFF222222, 0xFF666666, 0xFFE64A4A, 0xFF2878D0, 0xFF159765).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
+                                    .border(1.dp, colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(color = value)) })
+                            }
+                        }
+                    }
+                    "排版" -> {
+                        V2ValueSlider("行距", selectedObject.lineHeight, 0.8f..2.5f) {
+                            onUpdate(selectedObject.copy(lineHeight = it))
+                        }
+                        V2ValueSlider("字距", selectedObject.letterSpacing, -2f..12f) {
+                            onUpdate(selectedObject.copy(letterSpacing = it))
+                        }
+                    }
+                    "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
+                        onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
+                    }
+                    "变换" -> V2TransformControls(selectedObject.transform) {
+                        onUpdate(selectedObject.copy(transform = it))
+                    }
+                }
+                is XingtuV2Object.Image -> when (tab) {
+                    "调色" -> {
+                        V2ValueSlider("亮度", selectedObject.brightness, -1f..1f) {
+                            onUpdate(selectedObject.copy(brightness = it))
+                        }
+                        V2ValueSlider("饱和度", selectedObject.saturation, 0f..2f) {
+                            onUpdate(selectedObject.copy(saturation = it))
+                        }
+                    }
+                    "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
+                        onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
+                    }
+                    "变换" -> V2TransformControls(selectedObject.transform) {
+                        onUpdate(selectedObject.copy(transform = it))
+                    }
+                    else -> Text("替换图片", color = colors.primary, modifier = Modifier.clickable { onReplaceImage() }.padding(12.dp))
+                }
+                is XingtuV2Object.Component -> when (tab) {
+                    "填充" -> {
+                        Text("组件填充色", color = colors.onSurface, fontSize = 12.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
+                            listOf(0xFFEDEFF2, 0xFFFFFFFF, 0xFF222222, 0xFF159765, 0xFF2878D0).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
+                                    .border(1.dp, colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(fillColor = value)) })
+                            }
+                        }
+                    }
+                    "圆角" -> V2ValueSlider("圆角", selectedObject.cornerRadius, 0f..80f) {
+                        onUpdate(selectedObject.copy(cornerRadius = it))
+                    }
+                    "边框" -> V2ValueSlider("边框宽度", selectedObject.strokeWidth, 0f..20f) {
+                        onUpdate(selectedObject.copy(strokeWidth = it, strokeColor = 0xFF555555))
+                    }
+                    "变换" -> V2TransformControls(selectedObject.transform) {
+                        onUpdate(selectedObject.copy(transform = it))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
+            Text(String.format("%.1f", value), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+        }
+        Slider(value = value.coerceIn(range.start, range.endInclusive), onValueChange = onChange, valueRange = range)
+    }
+}
+
+@Composable
+private fun V2TransformControls(transform: XingtuV2Transform, onChange: (XingtuV2Transform) -> Unit) {
+    V2ValueSlider("X 坐标", transform.x, 0f..1080f) { onChange(transform.copy(x = it)) }
+    V2ValueSlider("Y 坐标", transform.y, 0f..1440f) { onChange(transform.copy(y = it)) }
+    V2ValueSlider("宽度", transform.width, 24f..1080f) { onChange(transform.copy(width = it)) }
+    V2ValueSlider("高度", transform.height, 24f..1440f) { onChange(transform.copy(height = it)) }
+    V2ValueSlider("旋转角度", transform.rotation, -180f..180f) { onChange(transform.copy(rotation = it)) }
 }
