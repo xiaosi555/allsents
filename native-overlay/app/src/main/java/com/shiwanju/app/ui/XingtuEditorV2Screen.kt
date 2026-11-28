@@ -1144,6 +1144,10 @@ private fun XingtuV2CanvasPanel(
             Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                V2NumberField("画布宽度", canvas.width, { onUpdate(canvas.copy(width = it.coerceIn(320f, 3000f))) }, Modifier.weight(1f))
+                V2NumberField("画布高度", canvas.height, { onUpdate(canvas.copy(height = it.coerceIn(320f, 4000f))) }, Modifier.weight(1f))
+            }
             V2ValueSlider("画布宽度", canvas.width, 320f..3000f) { onUpdate(canvas.copy(width = it)) }
             V2ValueSlider("画布高度", canvas.height, 320f..4000f) { onUpdate(canvas.copy(height = it)) }
             Text("背景颜色", color = colors.onSurface, fontSize = 12.sp)
@@ -1153,6 +1157,9 @@ private fun XingtuV2CanvasPanel(
                         .border(1.dp, colors.outlineVariant, CircleShape)
                         .clickable { onUpdate(canvas.copy(backgroundColor = color)) })
                 }
+            }
+            V2ColorInput("自定义画布背景", canvas.backgroundColor) {
+                onUpdate(canvas.copy(backgroundColor = it))
             }
         }
     }
