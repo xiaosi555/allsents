@@ -55,18 +55,18 @@ fun AppIconVector(key:String):ImageVector = appIconItems.firstOrNull{it.key==key
 
 @Composable fun AppIcon(key:String,modifier:Modifier=Modifier,tint:Color=LocalContentColor.current) {
  val item=appIconItems.firstOrNull{it.key==key}
- Icon(AppIconVector(key),contentDescription=item?.title?:key,modifier=modifier,tint=tint)
+ ShiWanJuLineIcon(item?.title?:key,tint,modifier)
 }
-private data class HomePageItem(val title:String,val subtitle:String,val route:String,val icon:ImageVector,val colors:List<Color>)
+private data class HomePageItem(val title:String,val subtitle:String,val route:String,val icon:String,val colors:List<Color>)
 
 @Composable fun ShiWanJuHomeScreen(onOpenPage:(String)->Unit) {
  val pages=listOf(
-  HomePageItem("排版制作","文案 · 配图 · 版式","layout",Icons.Outlined.ViewQuilt,listOf(Color(0xFF17231E),Color(0xFF344B3D))),
-  HomePageItem("秀米排版","文章编辑与组件排版","xiumi_article_layout",Icons.Outlined.Article,listOf(Color(0xFF6B8F73),Color(0xFFB4CFA9))),
-  HomePageItem("醒图","图片与文字编辑","xingtu_article_editor",Icons.Outlined.PhotoCamera,listOf(Color(0xFF1F2024),Color(0xFF55565C))),
-  HomePageItem("醒图 2.0","独立画布编辑器","xingtu_editor_v2",Icons.Outlined.Edit,listOf(Color(0xFFB7EA42),Color(0xFF6D9C31))),
-  HomePageItem("我的","账号 · 素材 · 设置","my",Icons.Outlined.AccountCircle,listOf(Color(0xFF687B91),Color(0xFFA9B9C8))),
-  HomePageItem("图标库","统一图标 · 分类 · 搜索","icon_library",Icons.Outlined.GridView,listOf(Color(0xFF8E7BB4),Color(0xFFC4B8DD)))
+  HomePageItem("排版制作","文案 · 配图 · 版式","layout","排版",listOf(Color(0xFF17231E),Color(0xFF344B3D))),
+  HomePageItem("秀米排版","文章编辑与组件排版","xiumi_article_layout","秀米",listOf(Color(0xFF6B8F73),Color(0xFFB4CFA9))),
+  HomePageItem("醒图","图片与文字编辑","xingtu_article_editor","醒图",listOf(Color(0xFF1F2024),Color(0xFF55565C))),
+  HomePageItem("醒图 2.0","独立画布编辑器","xingtu_editor_v2","醒图 2.0",listOf(Color(0xFFB7EA42),Color(0xFF6D9C31))),
+  HomePageItem("我的","账号 · 素材 · 设置","my","我的",listOf(Color(0xFF687B91),Color(0xFFA9B9C8))),
+  HomePageItem("图标库","统一图标 · 分类 · 搜索","icon_library","图标库",listOf(Color(0xFF8E7BB4),Color(0xFFC4B8DD)))
  )
  Column(Modifier.fillMaxSize().background(Color(0xFFF8F9F6)).verticalScroll(rememberScrollState())) {
   Box(Modifier.fillMaxWidth().height(224.dp).background(Brush.verticalGradient(listOf(Color(0xFF9AB7C4),Color(0xFFE9B8A8),Color(0xFFF8F9F6))))) {
@@ -75,7 +75,7 @@ private data class HomePageItem(val title:String,val subtitle:String,val route:S
     Text("创作工具 · 一站式工作空间",fontSize=13.sp,color=Color(0xFF526158))
    }
    Surface(Modifier.align(Alignment.TopEnd).padding(top=22.dp,end=18.dp).size(42.dp).clickable{onOpenPage("icon_library")},shape=RoundedCornerShape(50),color=Color.White.copy(alpha=.72f)) {
-    Box(contentAlignment=Alignment.Center){Icon(Icons.Outlined.Search,contentDescription="打开图标库",tint=Color(0xFF26332B))}
+    Box(contentAlignment=Alignment.Center){ShiWanJuLineIcon("搜索",Color(0xFF26332B),Modifier.size(22.dp))}
    }
   }
   Column(Modifier.padding(horizontal=18.dp).offset(y=(-8).dp)) {
@@ -86,7 +86,7 @@ private data class HomePageItem(val title:String,val subtitle:String,val route:S
      row.forEach { page ->
       Column(Modifier.weight(1f).padding(bottom=14.dp).clip(RoundedCornerShape(15.dp)).background(Color.White).clickable{onOpenPage(page.route)}) {
        Box(Modifier.fillMaxWidth().height(116.dp).background(Brush.linearGradient(page.colors))) {
-        Icon(page.icon,contentDescription=null,tint=Color.White.copy(alpha=.94f),modifier=Modifier.align(Alignment.Center).size(48.dp))
+        ShiWanJuLineIcon(page.icon,Color.White.copy(alpha=.94f),Modifier.align(Alignment.Center).size(48.dp))
         Text("打开页面  ›",fontSize=10.sp,color=Color.White.copy(alpha=.82f),modifier=Modifier.align(Alignment.BottomEnd).padding(9.dp))
        }
        Column(Modifier.padding(horizontal=12.dp,vertical=11.dp)) {
@@ -110,18 +110,18 @@ private data class HomePageItem(val title:String,val subtitle:String,val route:S
  val shown=appIconItems.filter{(category=="全部"||it.category==category)&&(query.isBlank()||it.title.contains(query,true)||it.key.contains(query,true))}
  Column(Modifier.fillMaxSize().background(Color(0xFFF8F9F6)).statusBarsPadding()) {
   Row(Modifier.fillMaxWidth().height(54.dp).padding(horizontal=14.dp),verticalAlignment=Alignment.CenterVertically) {
-   IconButton(onClick=onBack){Icon(Icons.Outlined.ArrowBack,contentDescription="返回")}
+   IconButton(onClick=onBack){ShiWanJuLineIcon("返回",Color(0xFF303A33),Modifier.size(22.dp))}
    Text("图标库",fontSize=19.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
    Text("${shown.size} 个",fontSize=12.sp,color=Color(0xFF888E88))
   }
-  OutlinedTextField(query,{query=it},modifier=Modifier.fillMaxWidth().padding(horizontal=16.dp),singleLine=true,placeholder={Text("搜索图标名称或标识")},leadingIcon={Icon(Icons.Outlined.Search,contentDescription=null)})
+  OutlinedTextField(query,{query=it},modifier=Modifier.fillMaxWidth().padding(horizontal=16.dp),singleLine=true,placeholder={Text("搜索图标名称或标识")},leadingIcon={ShiWanJuLineIcon("搜索",Color(0xFF303A33),Modifier.size(20.dp))})
   Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=14.dp,vertical=10.dp),horizontalArrangement=Arrangement.spacedBy(7.dp)) {
    categories.forEach{item->FilterChip(selected=category==item,onClick={category=item},label={Text(item)})}
   }
   LazyVerticalGrid(columns=GridCells.Adaptive(minSize=92.dp),modifier=Modifier.fillMaxSize().padding(horizontal=12.dp),contentPadding=PaddingValues(bottom=20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
    items(shown,key={it.key}){item->
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White).padding(vertical=14.dp,horizontal=5.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-     Icon(item.vector,contentDescription=item.title,tint=Color(0xFF303A33),modifier=Modifier.size(27.dp))
+     ShiWanJuLineIcon(item.title,Color(0xFF303A33),Modifier.size(27.dp))
      Text(item.title,fontSize=12.sp,color=Color(0xFF353B36),modifier=Modifier.padding(top=8.dp))
      Text(item.key,fontSize=9.sp,color=Color(0xFF9A9F9A),maxLines=1)
     }
