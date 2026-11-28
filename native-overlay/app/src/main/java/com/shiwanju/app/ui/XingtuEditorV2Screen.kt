@@ -370,6 +370,25 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     }
                 }
             }
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(10.dp)
+                    .clip(RoundedCornerShape(10.dp)).background(colors.surface.copy(alpha = .94f))
+                    .padding(horizontal = 4.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text("−", color = colors.onSurface, fontSize = 18.sp,
+                    modifier = Modifier.clickable { viewportScale = (viewportScale / 1.15f).coerceIn(.5f, 3f) }.padding(horizontal = 8.dp, vertical = 4.dp))
+                Text("${(viewportScale * 100).roundToInt()}%", color = colors.onSurfaceVariant, fontSize = 10.sp)
+                Text("+", color = colors.onSurface, fontSize = 18.sp,
+                    modifier = Modifier.clickable { viewportScale = (viewportScale * 1.15f).coerceIn(.5f, 3f) }.padding(horizontal = 8.dp, vertical = 4.dp))
+                Text("复位", color = colors.primary, fontSize = 11.sp,
+                    modifier = Modifier.clickable {
+                        viewportScale = 1f
+                        viewportPanX = 0f
+                        viewportPanY = 0f
+                    }.padding(horizontal = 7.dp, vertical = 5.dp))
+            }
             if (history.document.selectedIds.isNotEmpty()) {
                 Text(
                     "${history.document.selectedIds.size} 个对象已选中" + if (multiSelect) " · 多选" else "",
