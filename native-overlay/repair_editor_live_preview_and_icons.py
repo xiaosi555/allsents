@@ -296,9 +296,51 @@ touch_new = """                            root.addEventListener('touchstart',fu
                             }"""
 if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
 s=s.replace(touch_old,touch_new);
+# Add two-finger image transforms, mirroring the canvas pinch/rotation gestures in Xingtu 2.0.
+touch_new_start = """                            root.addEventListener('touchstart',function(ev){
+                              if(!ev.touches||ev.touches.length!==1)return;"""
+touch_new_start_replacement = """                            root.addEventListener('touchstart',function(ev){
+                              if(ev.touches&&ev.touches.length===2){
+                                const img=ev.target&&ev.target.closest?ev.target.closest('img'):null;
+                                if(img&&activeImage===img){
+                                  const p1=ev.touches[0],p2=ev.touches[1],rect=img.getBoundingClientRect();
+                                  imageTransformGesture={img:img,distance:Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY),width:rect.width,
+                                    angle:Math.atan2(p2.clientY-p1.clientY,p2.clientX-p1.clientX)*180/Math.PI,
+                                    rotation:parseFloat(img.dataset.rotation||'0'),maxWidth:img.parentElement.clientWidth||rect.width};
+                                  touchDrag=null;return;
+                                }
+                              }
+                              if(!ev.touches||ev.touches.length!==1)return;"""
+touch_new=touch_new.replace(touch_new_start,touch_new_start_replacement)
+touch_move_start = """                            root.addEventListener('touchmove',function(ev){
+                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;"""
+touch_move_replacement = """                            root.addEventListener('touchmove',function(ev){
+                              if(imageTransformGesture&&ev.touches&&ev.touches.length===2){
+                                const g=imageTransformGesture,p1=ev.touches[0],p2=ev.touches[1];
+                                const distance=Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY);
+                                const angle=Math.atan2(p2.clientY-p1.clientY,p2.clientX-p1.clientX)*180/Math.PI;
+                                const width=Math.max(48,Math.min(g.maxWidth,g.width*distance/Math.max(1,g.distance)));
+                                const rotation=g.rotation+angle-g.angle;
+                                g.img.style.width=width+'px';g.img.style.maxWidth='100%';g.img.style.height='auto';
+                                g.img.dataset.rotation=String(rotation);g.img.style.transform='rotate('+rotation+'deg)';
+                                ev.preventDefault();if(typeof notifyCanvasPreview==='function')notifyCanvasPreview();return;
+                              }
+                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;"""
+touch_new=touch_new.replace(touch_move_start,touch_move_replacement)
+touch_new=touch_new.replace(
+    "                            function finishTouchDrag(){",
+    "                            let imageTransformGesture=null;\\n                            function finishTouchDrag(){"
+)
+s=s.replace(touch_new_start,touch_new_start) if False else s
+# Apply the two-finger additions to the generated listener block before inserting it.
+s=s.replace("s=s.replace(touch_old,touch_new);", "s=s.replace(touch_old,touch_new);\\n"+extra.split("s=s.replace(touch_old,touch_new);",1)[1])
+touch_end_old = "root.addEventListener('touchend',function(ev){if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){"
+touch_end_new = "root.addEventListener('touchend',function(ev){if(imageTransformGesture){commitHistory();NativeEditor.changed(root.innerHTML);if(activeImage)NativeEditor.imageSelected(activeImage.outerHTML);imageTransformGesture=null;}if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){"
+if touch_end_old not in s: raise SystemExit("touchend transform commit anchor missing")
+s=s.replace(touch_end_old,touch_end_new,1)
 const hintOld='''                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))''';
 const hintNew='''                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
-                             Text("长按拖动：单列按行移动，多列按格移动；松手自动吸附", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))''';
+                             Text("长按拖动按行/列吸附；双指缩放与旋转，松手自动保存", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))''';
 if(!s.includes(hintOld)) throw new Error("image panel hint anchor missing");
 s=s.replace(hintOld,hintNew);
 const checkOld='''    "primary dock glyphs replaced": "Text(editorToolGlyph(item)" not in s,
