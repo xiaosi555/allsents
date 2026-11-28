@@ -165,15 +165,24 @@ s = replace_once(
 
 # Replace only the persistent primary dock. The secondary panel content and every
 # old EditorPanel implementation remain intact and are still reachable.
-marker = "// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog."
-if marker not in s:
+markers = (
+    "// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.",
+    "// Persistent primary navigation is hidden while the secondary tool sheet is open.",
+)
+positions = [s.rfind(marker) for marker in markers if marker in s]
+if not positions:
     fail("persistent primary navigation anchor is missing")
-# Upstream editor refinements may retain an earlier hidden dock fragment; the
-# last matching marker is the active dock at the bottom of the editor root.
-start = s.rfind(marker)
-if_start = s.find("            if (!previewMode) {", start)
-if if_start < 0:
+# The bottom-dock refinements use one of these two comments. Pick the last
+# active dock block, regardless of which refinement produced its comment.
+start = max(positions)
+candidates = [
+    s.find("            if (!previewMode && !showToolPopup) {", start),
+    s.find("            if (!previewMode) {", start),
+]
+candidates = [pos for pos in candidates if pos >= 0]
+if not candidates:
     fail("primary navigation if-block not found")
+if_start = min(candidates)
 open_brace = s.find("{", if_start)
 end = matching_brace(s, open_brace)
 new_dock = '''            // 醒图 3.0 primary navigation: exactly eight semantic categories.
