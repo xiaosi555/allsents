@@ -101,6 +101,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
         activeMultiTransform = false
     }
     var panelHeight by remember { mutableFloatStateOf(220f) }
+    var saveStatus by remember { mutableStateOf("已保存") }
     var viewportScale by remember { mutableFloatStateOf(1f) }
     var viewportPanX by remember { mutableFloatStateOf(0f) }
     var viewportPanY by remember { mutableFloatStateOf(0f) }
@@ -173,8 +174,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
 
     LaunchedEffect(history.document.revision) {
+        saveStatus = "保存中"
         delay(350)
-        XingtuV2Persistence.save(context, history.document)
+        val saved = runCatching { XingtuV2Persistence.save(context, history.document) }.isSuccess
+        saveStatus = if (saved) "已保存" else "保存失败"
     }
 
     BackHandler {
@@ -202,30 +205,41 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         Row(
-            Modifier.fillMaxWidth().height(50.dp).padding(horizontal = 12.dp),
+            Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("‹", fontSize = 30.sp, color = colors.onSurface,
-                modifier = Modifier.clickable { XingtuV2Persistence.save(context, history.document); onBack() }.padding(horizontal = 8.dp))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("醒图 2.0", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
-                Text("原生画布 · ${history.document.objects.size} 个对象", fontSize = 10.sp, color = colors.onSurfaceVariant)
+            Box(Modifier.size(40.dp).clickable {
+                XingtuV2Persistence.save(context, history.document)
+                onBack()
+            }, contentAlignment = Alignment.Center) {
+                Text("‹", fontSize = 28.sp, color = colors.onSurface)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("↶", fontSize = 22.sp,
-                    color = if (history.undoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface,
-                    modifier = Modifier.clickable(enabled = history.undoStack.isNotEmpty()) { history = history.undo() }.padding(horizontal = 7.dp))
-                Text("↷", fontSize = 22.sp,
-                    color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface,
-                    modifier = Modifier.clickable(enabled = history.redoStack.isNotEmpty()) { history = history.redo() }.padding(horizontal = 7.dp))
-                Text("版本", fontSize = 11.sp, color = colors.onSurfaceVariant,
-                    modifier = Modifier.clickable {
-                        savedVersions = XingtuV2Persistence.listVersions(context)
-                        showVersions = !showVersions
-                    }.padding(horizontal = 6.dp))
-                Text("完成", fontSize = 13.sp, color = colors.primary,
-                    modifier = Modifier.clickable { XingtuV2Persistence.save(context, history.document); onBack() }.padding(start = 8.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                Text("醒图 2.0", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface, maxLines = 1)
+                Text(saveStatus, fontSize = 11.sp, color = if (saveStatus == "保存失败") colors.error else colors.onSurfaceVariant)
+            }
+            Box(Modifier.size(40.dp).clickable(enabled = history.undoStack.isNotEmpty()) {
+                history = history.undo()
+            }, contentAlignment = Alignment.Center) {
+                Text("↶", fontSize = 21.sp, color = if (history.undoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface)
+            }
+            Box(Modifier.size(40.dp).clickable(enabled = history.redoStack.isNotEmpty()) {
+                history = history.redo()
+            }, contentAlignment = Alignment.Center) {
+                Text("↷", fontSize = 21.sp, color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface)
+            }
+            Box(Modifier.size(40.dp).clickable {
+                savedVersions = XingtuV2Persistence.listVersions(context)
+                showVersions = !showVersions
+            }, contentAlignment = Alignment.Center) {
+                Text("⋯", fontSize = 23.sp, color = colors.onSurface)
+            }
+            Box(Modifier.height(40.dp).clickable {
+                XingtuV2Persistence.save(context, history.document)
+                onBack()
+            }.padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                Text("完成", fontSize = 13.sp, color = colors.primary, fontWeight = FontWeight.Medium)
             }
         }
 
@@ -659,7 +673,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 }
                 LazyColumn {
                     items(history.document.objects.asReversed(), key = { it.id }) { item ->
-                        Row(Modifier.fillMaxWidth().height(38.dp).clickable {
+                        Row(Modifier.fillMaxWidth().height(52.dp).clickable {
                             history = history.dispatch(XingtuV2Action.Select(setOf(item.id), additive = multiSelect))
                         }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(if (item.id in history.document.selectedIds) "●" else "○",
@@ -751,6 +765,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
         } else if (activePanel != null && selectedObject != null) {
             XingtuV2PropertyPanel(
                 selectedObject = selectedObject,
+                onTabChange = { activePanel = it },
                 canvas = history.document.canvas,
                 tab = activePanel!!,
                 panelHeight = panelHeight,
@@ -768,7 +783,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             )
         } else if (history.document.selectedIds.size > 1) {
             Row(
-                Modifier.fillMaxWidth().height(58.dp).background(colors.surface)
+                Modifier.fillMaxWidth().height(48.dp).background(colors.surface)
                     .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -806,7 +821,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             }
         } else if (selectedObject != null) {
             Row(
-                Modifier.fillMaxWidth().height(58.dp).background(colors.surface)
+                Modifier.fillMaxWidth().height(48.dp).background(colors.surface)
                     .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -850,7 +865,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             }
         } else {
             Row(
-                Modifier.fillMaxWidth().height(68.dp).background(colors.surface).padding(horizontal = 6.dp),
+                Modifier.fillMaxWidth().height(64.dp).background(colors.surface).padding(horizontal = 6.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
             ) {
                 BottomTool("文字", "T", colors.primary) {
@@ -867,11 +882,6 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 BottomTool("图层", "▤", colors.primary) { showLayers = !showLayers }
                 BottomTool("组件", "◇", colors.primary) {
                     showComponentPicker = !showComponentPicker
-                    showLayers = false
-                }
-                BottomTool("画布", "▣", colors.primary) {
-                    history = history.beginTransform()
-                    activeCanvasPanel = true
                     showLayers = false
                 }
             }
@@ -897,9 +907,9 @@ private fun ObjectToolChip(label: String, onClick: () -> Unit) {
         label,
         color = MaterialTheme.colorScheme.onSurface,
         fontSize = 12.sp,
-        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+        modifier = Modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 10.dp)
+            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
     )
 }
 
@@ -912,7 +922,8 @@ private fun XingtuV2PropertyPanel(
     onPanelHeightChange: (Float) -> Unit,
     onClose: () -> Unit,
     onUpdate: (XingtuV2Object) -> Unit,
-    onReplaceImage: () -> Unit
+    onReplaceImage: () -> Unit,
+    onTabChange: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
@@ -921,7 +932,7 @@ private fun XingtuV2PropertyPanel(
             .border(1.dp, colors.outlineVariant)
     ) {
         Row(
-            Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp),
+            Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -942,7 +953,32 @@ private fun XingtuV2PropertyPanel(
             }
             Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
         }
-        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
+        val panelTabs = when (selectedObject) {
+            is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换")
+            is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "对齐", "透明度", "变换")
+            is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "对齐", "变换")
+        }
+        Row(
+            Modifier.fillMaxWidth().height(44.dp).horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            panelTabs.forEach { panelTab ->
+                val selectedTab = panelTab == tab
+                Text(
+                    panelTab,
+                    color = if (selectedTab) colors.primary else colors.onSurfaceVariant,
+                    fontSize = 13.sp,
+                    fontWeight = if (selectedTab) FontWeight.Medium else FontWeight.Normal,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                        .background(if (selectedTab) colors.primary.copy(alpha = .10f) else Color.Transparent)
+                        .clickable { onTabChange(panelTab) }
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                )
+            }
+        }
+        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
             when (selectedObject) {
                 is XingtuV2Object.Text -> when (tab) {
                     "编辑" -> OutlinedTextField(
