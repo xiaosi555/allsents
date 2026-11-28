@@ -598,23 +598,27 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 }
             }
             Row(
-                Modifier.align(Alignment.TopEnd).padding(10.dp)
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 34.dp)
                     .clip(RoundedCornerShape(10.dp)).background(colors.surface.copy(alpha = .94f))
-                    .padding(horizontal = 4.dp, vertical = 3.dp),
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text("−", color = colors.onSurface, fontSize = 18.sp,
-                    modifier = Modifier.clickable { viewportScale = (viewportScale / 1.15f).coerceIn(.5f, 3f) }.padding(horizontal = 8.dp, vertical = 4.dp))
-                Text("${(viewportScale * 100).roundToInt()}%", color = colors.onSurfaceVariant, fontSize = 10.sp)
+                    modifier = Modifier.sizeIn(minWidth = 36.dp, minHeight = 32.dp)
+                        .clickable { viewportScale = (viewportScale / 1.15f).coerceIn(.1f, 8f) }
+                        .wrapContentSize(Alignment.Center))
+                Text("${(viewportScale * 100).roundToInt()}%", color = colors.onSurfaceVariant, fontSize = 11.sp)
                 Text("+", color = colors.onSurface, fontSize = 18.sp,
-                    modifier = Modifier.clickable { viewportScale = (viewportScale * 1.15f).coerceIn(.5f, 3f) }.padding(horizontal = 8.dp, vertical = 4.dp))
-                Text("复位", color = colors.primary, fontSize = 11.sp,
+                    modifier = Modifier.sizeIn(minWidth = 36.dp, minHeight = 32.dp)
+                        .clickable { viewportScale = (viewportScale * 1.15f).coerceIn(.1f, 8f) }
+                        .wrapContentSize(Alignment.Center))
+                Text("适应画布", color = colors.primary, fontSize = 11.sp,
                     modifier = Modifier.clickable {
                         viewportScale = 1f
                         viewportPanX = 0f
                         viewportPanY = 0f
-                    }.padding(horizontal = 7.dp, vertical = 5.dp))
+                    }.padding(horizontal = 7.dp, vertical = 6.dp))
             }
             if (history.document.selectedIds.isNotEmpty()) {
                 Text(
