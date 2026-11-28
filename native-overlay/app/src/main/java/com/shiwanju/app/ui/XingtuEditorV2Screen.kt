@@ -115,6 +115,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                         assetUri = uri.toString(),
                         cropLeft = 0f, cropTop = 0f, cropRight = 1f, cropBottom = 1f
                     ))
+                    history = history.endTransform()
                 }
                 replaceTargetId = null
             } else {
@@ -589,6 +590,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 },
                 onUpdate = { history = history.updateObjectLive(it) },
                 onReplaceImage = {
+                    if (activePanel == null) history = history.beginTransform()
                     replaceTargetId = selectedObject.id
                     imagePicker.launch(arrayOf("image/*"))
                 }
@@ -644,6 +646,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (tab == "替换") {
+                                history = history.beginTransform()
                                 replaceTargetId = selectedObject.id
                                 imagePicker.launch(arrayOf("image/*"))
                             } else {
