@@ -124,7 +124,7 @@ s = once(s, old_widths, new_widths, "layout percentage normalization")
 checks = {
     "image crop and color panels retained": "ImageCropColorPanel" in s and "previewSelectedImageAdvanced" in s,
     "unique IDs after duplicate": "function regenerateEditorIds(el)" in s and "regenerateEditorIds(c)" in s,
-    "selected layer metadata": "selected=e.classList.contains('selected-block')" in s and "selected = item.optBoolean(\"selected\", false)" in s,
+    "selected layer metadata": "selected:e.classList.contains('selected-block')" in s and "selected = item.optBoolean(\"selected\", false)" in s,
     "layer list refresh after HTML updates": "LaunchedEffect(activePanel, webReady, html)" in s,
     "layer percentage sum normalization": "widths[widths.lastIndex] = 100f - widths.dropLast(1).sum()" in s,
 }
