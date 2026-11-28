@@ -869,8 +869,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
                                 XingtuV2Glyph(if (item.id in history.document.selectedIds) "selected" else "unselected", panelColors.primary, 15.dp)
                             }
-                            ShiWanJuLineIcon("拖动", panelColors.onSurfaceVariant, Modifier.size(20.dp)); Text(" ", color = panelColors.onSurfaceVariant, fontSize = 1.sp,
-                                modifier = Modifier.pointerInput(item.id) {
+                            ShiWanJuLineIcon("拖动", panelColors.onSurfaceVariant, Modifier.size(20.dp).pointerInput(item.id) {
                                     var dragDistance = 0f
                                     detectDragGestures(
                                         onDragStart = { dragDistance = 0f },
