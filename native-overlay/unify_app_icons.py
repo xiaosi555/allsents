@@ -88,7 +88,7 @@ for path in files:
  src=path.read_text(encoding="utf-8")
  for label in re.findall(r'ShiWanJuLineIcon\("([^"]+)"',src):
   items[label]=(label,category(label))
- for call in re.finditer(r"\\bEditorTool\\s*\\(",src):
+ for call in re.finditer(r"\bEditorTool\s*\(",src):
   end=end_call(src,call.end()-1)
   if end>=0:
    args=split_args(src[call.end():end])
