@@ -40,8 +40,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 
 private enum class XiumiDock(val label:String,val icon:String) {
- THEME("主题","◉"), TITLE("标题","T"), TEXT("文字","文"), IMAGE("图片","▧"), LAYOUT("布局","▦"),
- CARD("卡片","▤"), SVG("SVG","◇"), COMPONENT("组件","⊞"), TEMPLATE("模板","▣"), FAVORITE("收藏","♡")
+ THEME("主题","palette"), TITLE("标题","title"), TEXT("文字","font"), IMAGE("图片","image"), LAYOUT("布局","layout"),
+ CARD("卡片","card"), SVG("SVG","component"), COMPONENT("组件","widgets"), TEMPLATE("模板","template"), FAVORITE("收藏","favorite")
 }
 private data class XiumiMaterial(val name:String,val detail:String,val value:String)
 private data class XiumiBlock(
@@ -271,7 +271,7 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
  }
  Column(Modifier.fillMaxSize().background(Color(0xFFF2F3F4))) {
   Row(Modifier.fillMaxWidth().height(54.dp).background(Color.White).padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically) {
-   IconButton(onClick={if(dirty) save();onBack()}) { Icon(Icons.Outlined.ArrowBack,contentDescription="返回") }
+   IconButton(onClick={if(dirty) save();onBack()}) { ShiWanJuLineIcon("返回",Color(0xFF292D31),Modifier.size(22.dp)) }
    Column(Modifier.width(104.dp)) { Text("秀米式图文排版",fontSize=15.sp,fontWeight=FontWeight.SemiBold,maxLines=1); Text(if(dirty) "未保存" else "编辑器",fontSize=10.sp,color=Color.Gray) }
    Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),verticalAlignment=Alignment.CenterVertically) {
    TextButton(onClick={showArticlePicker=true}) { Text("文章") }
@@ -304,12 +304,12 @@ fun XiumiArticleLayoutScreen(vm: AppViewModel, onBack: () -> Unit) {
      val active=dock==item
      Column(Modifier.fillMaxWidth().padding(horizontal=4.dp,vertical=2.dp).clip(RoundedCornerShape(8.dp)).background(if(active) accent.copy(alpha=.12f) else Color.Transparent)
       .clickable { dock=item;search="" }.padding(vertical=8.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-      Text(item.icon,fontSize=19.sp,color=if(active) accent else Color.DarkGray); Text(item.label,fontSize=10.sp,color=if(active) accent else Color.DarkGray)
+      ShiWanJuLineIcon(item.label,if(active) accent else Color.DarkGray,Modifier.size(22.dp)); Text(item.label,fontSize=10.sp,color=if(active) accent else Color.DarkGray)
      }
     }
    }
    Column(Modifier.width(if(compact) 116.dp else 224.dp).fillMaxHeight().background(Color.White).padding(horizontal=if(compact) 7.dp else 12.dp, vertical=12.dp)) {
-    Row(verticalAlignment=Alignment.CenterVertically) { Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31),modifier=Modifier.weight(1f)); Row { Text("图片＋",fontSize=10.sp,color=accent,modifier=Modifier.clickable { imageImportLauncher.launch(arrayOf("image/*")) }); Spacer(Modifier.width(8.dp)); Text("导入＋",fontSize=10.sp,color=accent,modifier=Modifier.clickable { importLauncher.launch(arrayOf("text/plain","text/markdown","text/html","application/json")) }) } }
+    Row(verticalAlignment=Alignment.CenterVertically) { Text("素材中心",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color(0xFF292D31),modifier=Modifier.weight(1f)); Row { Row(Modifier.clickable { imageImportLauncher.launch(arrayOf("image/*")) },verticalAlignment=Alignment.CenterVertically) { ShiWanJuLineIcon("加图",accent,Modifier.size(15.dp)); Text("图片",fontSize=10.sp,color=accent) }; Spacer(Modifier.width(8.dp)); Row(Modifier.clickable { importLauncher.launch(arrayOf("text/plain","text/markdown","text/html","application/json")) },verticalAlignment=Alignment.CenterVertically) { ShiWanJuLineIcon("导入",accent,Modifier.size(15.dp)); Text("导入",fontSize=10.sp,color=accent) } } }
     Text(dock.label,fontSize=10.sp,color=accent,modifier=Modifier.padding(top=3.dp,bottom=8.dp))
     OutlinedTextField(search,{search=it},Modifier.fillMaxWidth().heightIn(min=42.dp),singleLine=true,placeholder={Text("搜索",fontSize=11.sp)},textStyle=LocalTextStyle.current.copy(fontSize=11.sp),shape=RoundedCornerShape(7.dp))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=8.dp)) {
