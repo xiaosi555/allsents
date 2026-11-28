@@ -295,11 +295,9 @@ touch_new = """                            root.addEventListener('touchstart',fu
                               touchDrag=null;
                             }"""
 if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
-s=s.replace(touch_old,touch_new);
-# Add two-finger image transforms, mirroring the canvas pinch/rotation gestures in Xingtu 2.0.
-touch_new_start = """                            root.addEventListener('touchstart',function(ev){
-                              if(!ev.touches||ev.touches.length!==1)return;"""
-touch_new_start_replacement = """                            root.addEventListener('touchstart',function(ev){
+touch_new = touch_new.replace(
+    "                            root.addEventListener('touchstart',function(ev){\\n                              if(!ev.touches||ev.touches.length!==1)return;",
+    """                            root.addEventListener('touchstart',function(ev){
                               if(ev.touches&&ev.touches.length===2){
                                 const img=ev.target&&ev.target.closest?ev.target.closest('img'):null;
                                 if(img&&activeImage===img){
@@ -311,10 +309,10 @@ touch_new_start_replacement = """                            root.addEventListen
                                 }
                               }
                               if(!ev.touches||ev.touches.length!==1)return;"""
-touch_new=touch_new.replace(touch_new_start,touch_new_start_replacement)
-touch_move_start = """                            root.addEventListener('touchmove',function(ev){
-                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;"""
-touch_move_replacement = """                            root.addEventListener('touchmove',function(ev){
+)
+touch_new = touch_new.replace(
+    "                            root.addEventListener('touchmove',function(ev){\\n                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;",
+    """                            root.addEventListener('touchmove',function(ev){
                               if(imageTransformGesture&&ev.touches&&ev.touches.length===2){
                                 const g=imageTransformGesture,p1=ev.touches[0],p2=ev.touches[1];
                                 const distance=Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY);
@@ -326,18 +324,17 @@ touch_move_replacement = """                            root.addEventListener('t
                                 ev.preventDefault();if(typeof notifyCanvasPreview==='function')notifyCanvasPreview();return;
                               }
                               if(!touchDrag||!ev.touches||ev.touches.length!==1)return;"""
-touch_new=touch_new.replace(touch_move_start,touch_move_replacement)
-touch_new=touch_new.replace(
+)
+touch_new = touch_new.replace(
     "                            function finishTouchDrag(){",
     "                            let imageTransformGesture=null;\\n                            function finishTouchDrag(){"
 )
-s=s.replace(touch_new_start,touch_new_start) if False else s
-# Apply the two-finger additions to the generated listener block before inserting it.
-s=s.replace("s=s.replace(touch_old,touch_new);", "s=s.replace(touch_old,touch_new);\\n"+extra.split("s=s.replace(touch_old,touch_new);",1)[1])
-touch_end_old = "root.addEventListener('touchend',function(ev){if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){"
-touch_end_new = "root.addEventListener('touchend',function(ev){if(imageTransformGesture){commitHistory();NativeEditor.changed(root.innerHTML);if(activeImage)NativeEditor.imageSelected(activeImage.outerHTML);imageTransformGesture=null;}if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){"
-if touch_end_old not in s: raise SystemExit("touchend transform commit anchor missing")
-s=s.replace(touch_end_old,touch_end_new,1)
+if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
+s=s.replace(touch_old,touch_new);
+touch_end_old = "root.addEventListener('touchend',function(ev){if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){";
+touch_end_new = "root.addEventListener('touchend',function(ev){if(imageTransformGesture){commitHistory();NativeEditor.changed(root.innerHTML);if(activeImage)NativeEditor.imageSelected(activeImage.outerHTML);imageTransformGesture=null;}if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){";
+if(!s.includes(touch_end_old)) throw new Error("touchend commit anchor missing");
+s=s.replace(touch_end_old,touch_end_new,1);
 const hintOld='''                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))''';
 const hintNew='''                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
                              Text("长按拖动按行/列吸附；双指缩放与旋转，松手自动保存", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))''';
