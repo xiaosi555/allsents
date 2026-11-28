@@ -139,10 +139,11 @@ legacy_enum = s[enum_start:enum_end]
 for old_label, new_label in [
     ('TEXT2("文字2")', 'TEXT2("文字高级")'),
     ('LAYOUT("布局")', 'LAYOUT("分栏")'),
-    ('STYLE("图文收藏")', 'STYLE("样式")'),
+    ('STYLE("图文收藏")', 'STYLE("收藏")'),
     ('TEMPLATE("图文模板")', 'TEMPLATE("模板库")')
 ]:
     legacy_enum = legacy_enum.replace(old_label, new_label, 1)
+legacy_enum = legacy_enum.replace('LAYER("图层"), STYLE("收藏")', 'LAYER("图层"), APPEARANCE("样式"), STYLE("收藏")', 1)
 category_enum = """
 
 private enum class EditorCategory(val label: String) {
@@ -199,7 +200,7 @@ new_dock = '''            // 醒图 3.0 primary navigation: exactly eight semant
                             EditorCategory.COMPONENT -> activePanel in setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.COMPONENT, EditorPanel.SVG)
                             EditorCategory.LAYOUT -> activePanel == EditorPanel.LAYOUT || activePanel == EditorPanel.CANVAS
                             EditorCategory.LAYER -> activePanel == EditorPanel.LAYER
-                            EditorCategory.STYLE -> activePanel == EditorPanel.STYLE
+                            EditorCategory.STYLE -> activePanel == EditorPanel.APPEARANCE
                             EditorCategory.TEMPLATE -> activePanel == EditorPanel.TEMPLATE
                             EditorCategory.DOCUMENT -> activePanel == EditorPanel.DOCUMENT
                         }
@@ -220,7 +221,7 @@ new_dock = '''            // 醒图 3.0 primary navigation: exactly eight semant
                                     EditorCategory.COMPONENT -> activePanel = EditorPanel.COMPONENT
                                     EditorCategory.LAYOUT -> activePanel = EditorPanel.LAYOUT
                                     EditorCategory.LAYER -> { activePanel = EditorPanel.LAYER; refreshLayerItems() }
-                                    EditorCategory.STYLE -> activePanel = EditorPanel.STYLE
+                                    EditorCategory.STYLE -> activePanel = EditorPanel.APPEARANCE
                                     EditorCategory.TEMPLATE -> { templateSubPanel = EditorPanel.TEMPLATE; activePanel = EditorPanel.TEMPLATE }
                                     EditorCategory.DOCUMENT -> activePanel = EditorPanel.DOCUMENT
                                 }
@@ -295,10 +296,29 @@ s = replace_once(
     s,
     '''                                listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
                                     Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 7.dp, vertical = 5.dp),''',
-    '''                                listOf(EditorPanel.TEMPLATE, EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
+    '''                                listOf(EditorPanel.TEMPLATE, EditorPanel.STYLE, EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
                                     Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 7.dp, vertical = 5.dp),''',
     "template library tab"
 )
+
+# Give the new 样式 category a real entry point into existing object appearance tools.
+appearance_branch = """                    EditorPanel.APPEARANCE -> {
+                        Text("对象样式与视觉属性", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(start = 2.dp, bottom = 6.dp))
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (selectedBlockHtml.isNotBlank()) EditorTool("模块外观") { showBlockProperties = true }
+                            if (selectedTextActive) EditorTool("文字样式") {
+                                text2MainTab = "样式"
+                                activePanel = EditorPanel.TEXT2
+                                runJs("setText2SelectionPreview(true);")
+                            }
+                            if (selectedImageHtml.isNotBlank()) EditorTool("图片样式") { activePanel = EditorPanel.IMAGE }
+                        }
+                        Text("文字、图片和组件的专属属性仍保留在各自编辑面板；这里提供统一的外观入口。", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 6.dp))
+                    }
+"""
+if s.count("                    EditorPanel.STYLE -> {") != 1:
+    fail("favorites panel anchor is missing or ambiguous")
+s = s.replace("                    EditorPanel.STYLE -> {", appearance_branch + "                    EditorPanel.STYLE -> {", 1)
 
 # Ensure the old primary enum loop cannot silently reappear.
 if "EditorPanel.values().filterNot" in s:
@@ -321,6 +341,7 @@ for token in [
     "EditorPanel.CARD",
     "EditorPanel.SVG",
     "EditorPanel.CANVAS",
+    "EditorPanel.APPEARANCE",
     "EditorPanel.DOCUMENT",
 ]:
     if token not in s:
