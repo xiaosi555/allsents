@@ -339,7 +339,9 @@ data class XingtuV2History(
             return copy(
                 document = activeSnapshot,
                 redoStack = (redoStack + document).takeLast(100),
-                transformSnapshot = null
+                // Keep the panel transaction open from the restored baseline so
+                // edits made after undo are still committed as one undo step.
+                transformSnapshot = activeSnapshot
             )
         }
         if (undoStack.isEmpty()) return this
