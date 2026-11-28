@@ -37,6 +37,20 @@ if "ShiWanJuLineIcon(item.label" not in x or "ShiWanJuLineIcon(\"加图\"" not i
 XIUMI.write_text(x, encoding="utf-8")
 
 v = XINGTU2.read_text(encoding="utf-8")
+v = v.replace('''Text("−", color = colors.onSurface, fontSize = 18.sp,
+                    modifier = Modifier.sizeIn(minWidth = 36.dp, minHeight = 32.dp)
+                        .clickable { viewportScale = (viewportScale / 1.15f).coerceIn(.1f, 8f) }
+                        .wrapContentSize(Alignment.Center))''', '''Box(Modifier.sizeIn(minWidth = 36.dp, minHeight = 32.dp)
+                    .clickable { viewportScale = (viewportScale / 1.15f).coerceIn(.1f, 8f) }, contentAlignment = Alignment.Center) {
+                    ShiWanJuLineIcon("缩小", colors.onSurface, Modifier.size(18.dp))
+                }''')
+v = v.replace('''Text("+", color = colors.onSurface, fontSize = 18.sp,
+                    modifier = Modifier.sizeIn(minWidth = 36.dp, minHeight = 32.dp)
+                        .clickable { viewportScale = (viewportScale * 1.15f).coerceIn(.1f, 8f) }
+                        .wrapContentSize(Alignment.Center))''', '''Box(Modifier.sizeIn(minWidth = 36.dp, minHeight = 32.dp)
+                    .clickable { viewportScale = (viewportScale * 1.15f).coerceIn(.1f, 8f) }, contentAlignment = Alignment.Center) {
+                    ShiWanJuLineIcon("放大", colors.onSurface, Modifier.size(18.dp))
+                }''')
 v = v.replace('Text("⠿", color = panelColors.onSurfaceVariant, fontSize = 17.sp,', 'ShiWanJuLineIcon("拖动", panelColors.onSurfaceVariant, Modifier.size(20.dp)); Text(" ", color = panelColors.onSurfaceVariant, fontSize = 1.sp,')
 if 'Text("⠿"' in v or 'ShiWanJuLineIcon("拖动"' not in v:
     raise SystemExit("Xingtu 2.0 layer drag handle is not using the shared line icon.")
