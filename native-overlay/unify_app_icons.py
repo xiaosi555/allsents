@@ -12,7 +12,7 @@ if not registry.is_file():
     raise SystemExit("Central icon registry is missing.")
 
 files = list(ROOT.rglob("*.kt"))
-pattern = re.compile(r"Icons\\.(Outlined|Filled|Rounded|TwoTone|Sharp|Default)\\.([A-Za-z0-9_]+)")
+pattern = re.compile(r"Icons\.(Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.([A-Za-z0-9_]+)")
 found = {}
 for path in files:
     if path == registry:
@@ -55,7 +55,7 @@ labels = {
 }
 
 registry_source = registry.read_text(encoding="utf-8")
-existing = set(re.findall(r'AppIconItem\\("([^"]+)"', registry_source))
+existing = set(re.findall(r'AppIconItem\("([^"]+)"', registry_source))
 additions = []
 for name, (style, _) in sorted(found.items()):
     key = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
@@ -63,10 +63,10 @@ for name, (style, _) in sorted(found.items()):
         continue
     additions.append(f' AppIconItem("{key}","{labels.get(name, name)}","扩展",Icons.{style}.{name}),')
 if additions:
-    anchor = ")\\n\\n@Composable fun AppIconVector"
+    anchor = ")\n\n@Composable fun AppIconVector"
     if anchor not in registry_source:
         raise SystemExit("Cannot locate icon registry insertion point.")
-    registry_source = registry_source.replace(anchor, "\\n" + "\\n".join(additions) + anchor, 1)
+    registry_source = registry_source.replace(anchor, "\n" + "\n".join(additions) + anchor, 1)
     registry.write_text(registry_source, encoding="utf-8")
 
 replaced = 0
@@ -76,7 +76,7 @@ for path in files:
     source = path.read_text(encoding="utf-8")
     if not pattern.search(source):
         continue
-    package = re.search(r"(?m)^package ([\\w.]+)", source)
+    package = re.search(r"(?m)^package ([\w.]+)", source)
     package_name = package.group(1) if package else ""
     def convert(match):
         nonlocal_dummy = None
@@ -85,7 +85,7 @@ for path in files:
         return f'AppIconVector("{key}")'
     updated = pattern.sub(convert, source)
     if package_name != "com.shiwanju.app.ui" and "import com.shiwanju.app.ui.AppIconVector" not in updated:
-        updated = re.sub(r"(?m)^package [^\\n]+\\n", lambda m: m.group(0) + "\\nimport com.shiwanju.app.ui.AppIconVector\\n", updated, count=1)
+        updated = re.sub(r"(?m)^package [^\n]+\n", lambda m: m.group(0) + "\nimport com.shiwanju.app.ui.AppIconVector\n", updated, count=1)
     path.write_text(updated, encoding="utf-8")
     replaced += 1
 
