@@ -1173,15 +1173,54 @@ private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPoin
 }
 
 @Composable
+@Composable
+private fun V2NumberField(label: String, value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
+    var text by remember { mutableStateOf(String.format(java.util.Locale.US, "%.1f", value)) }
+    LaunchedEffect(value) {
+        val parsed = text.toFloatOrNull()
+        if (parsed == null || kotlin.math.abs(parsed - value) > 0.0001f) {
+            text = String.format(java.util.Locale.US, "%.1f", value)
+        }
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { next ->
+            text = next.filter { it.isDigit() || it == '.' || it == '-' }
+            text.toFloatOrNull()?.let(onValueChange)
+        },
+        modifier = modifier,
+        label = { Text(label, fontSize = 10.sp) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+    )
+}
+
+@Composable
 private fun V2TransformControls(transform: XingtuV2Transform, onChange: (XingtuV2Transform) -> Unit) {
-    V2ValueSlider("X 坐标", transform.x, 0f..1080f) { onChange(transform.copy(x = it)) }
-    V2ValueSlider("Y 坐标", transform.y, 0f..1440f) { onChange(transform.copy(y = it)) }
-    V2ValueSlider("宽度", transform.width, 24f..1080f) { onChange(transform.copy(width = it)) }
-    V2ValueSlider("高度", transform.height, 24f..1440f) { onChange(transform.copy(height = it)) }
-    V2ValueSlider("缩放 X", transform.scaleX, 0.1f..5f) { onChange(transform.copy(scaleX = it)) }
-    V2ValueSlider("缩放 Y", transform.scaleY, 0.1f..5f) { onChange(transform.copy(scaleY = it)) }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        V2NumberField("X 坐标", transform.x, { onChange(transform.copy(x = it)) }, Modifier.weight(1f))
+        V2NumberField("Y 坐标", transform.y, { onChange(transform.copy(y = it)) }, Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        V2NumberField("宽度", transform.width, { onChange(transform.copy(width = it.coerceAtLeast(1f))) }, Modifier.weight(1f))
+        V2NumberField("高度", transform.height, { onChange(transform.copy(height = it.coerceAtLeast(1f))) }, Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        V2NumberField("缩放 X", transform.scaleX, { onChange(transform.copy(scaleX = it.coerceIn(0.1f, 10f))) }, Modifier.weight(1f))
+        V2NumberField("缩放 Y", transform.scaleY, { onChange(transform.copy(scaleY = it.coerceIn(0.1f, 10f))) }, Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        V2NumberField("旋转角度", transform.rotation, { onChange(transform.copy(rotation = it.coerceIn(-360f, 360f))) }, Modifier.weight(1f))
+        V2NumberField("透明度 0–1", transform.alpha, { onChange(transform.copy(alpha = it.coerceIn(0f, 1f))) }, Modifier.weight(1f))
+    }
+    V2ValueSlider("X 坐标", transform.x, -1080f..2160f) { onChange(transform.copy(x = it)) }
+    V2ValueSlider("Y 坐标", transform.y, -1440f..2880f) { onChange(transform.copy(y = it)) }
+    V2ValueSlider("宽度", transform.width, 1f..2160f) { onChange(transform.copy(width = it)) }
+    V2ValueSlider("高度", transform.height, 1f..2880f) { onChange(transform.copy(height = it)) }
+    V2ValueSlider("缩放 X", transform.scaleX, 0.1f..10f) { onChange(transform.copy(scaleX = it)) }
+    V2ValueSlider("缩放 Y", transform.scaleY, 0.1f..10f) { onChange(transform.copy(scaleY = it)) }
     V2ValueSlider("透明度", transform.alpha, 0f..1f) { onChange(transform.copy(alpha = it)) }
-    V2ValueSlider("旋转角度", transform.rotation, -180f..180f) { onChange(transform.copy(rotation = it)) }
+    V2ValueSlider("旋转角度", transform.rotation, -360f..360f) { onChange(transform.copy(rotation = it)) }
 }
 
 private fun v2ImageColorMatrix(item: XingtuV2Object.Image): ColorMatrix {
