@@ -177,6 +177,47 @@ data class XingtuV2History(
         return if (updated == document) this else copy(document = updated)
     }
 
+    /** Uniformly scale and rotate the selected group around its collective center. */
+    fun updateSelectedGroup(scaleFactor: Float, rotationDelta: Float): XingtuV2History {
+        val selected = document.selectedObjects().filterNot { it.locked }
+        if (selected.isEmpty()) return this
+        val left = selected.minOf { it.transform.x }
+        val top = selected.minOf { it.transform.y }
+        val right = selected.maxOf { it.transform.x + it.transform.width * it.transform.scaleX }
+        val bottom = selected.maxOf { it.transform.y + it.transform.height * it.transform.scaleY }
+        val centerX = (left + right) / 2f
+        val centerY = (top + bottom) / 2f
+        val radians = Math.toRadians(rotationDelta.toDouble())
+        val c = kotlin.math.cos(radians).toFloat()
+        val sn = kotlin.math.sin(radians).toFloat()
+        val factor = scaleFactor.coerceIn(0.1f, 5f)
+        val updatedObjects = document.objects.map { item ->
+            if (item !in selected) item else {
+                val t = item.transform
+                val objectCenterX = t.x + t.width * t.scaleX / 2f
+                val objectCenterY = t.y + t.height * t.scaleY / 2f
+                val dx = (objectCenterX - centerX) * factor
+                val dy = (objectCenterY - centerY) * factor
+                val nextCenterX = centerX + dx * c - dy * sn
+                val nextCenterY = centerY + dx * sn + dy * c
+                val next = t.copy(
+                    x = nextCenterX - t.width * factor * t.scaleX / 2f,
+                    y = nextCenterY - t.height * factor * t.scaleY / 2f,
+                    width = t.width * factor,
+                    height = t.height * factor,
+                    rotation = t.rotation + rotationDelta
+                )
+                when (item) {
+                    is XingtuV2Object.Text -> item.copy(transform = next, boxWidth = next.width, boxHeight = next.height)
+                    is XingtuV2Object.Image -> item.copy(transform = next)
+                    is XingtuV2Object.Component -> item.copy(transform = next)
+                }
+            }
+        }
+        val updated = document.copy(objects = updatedObjects, revision = document.revision + 1)
+        return if (updated == document) this else copy(document = updated)
+    }
+
     /** Apply live panel edits without creating one undo entry per slider tick. */
     fun updateObjectLive(value: XingtuV2Object): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, XingtuV2Action.ReplaceObject(value))
