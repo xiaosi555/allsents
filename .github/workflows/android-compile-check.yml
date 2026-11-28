@@ -2,7 +2,7 @@ name: Android Kotlin Compile Check
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/xingtu-editor-v2-rewrite]
   workflow_dispatch:
 
 permissions:
@@ -246,6 +246,30 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_status_bar.py
 
+
+      - name: Install independent Xingtu Editor V2 sources
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/install_xingtu_editor_v2.py
+
+      - name: Add visible Xingtu Editor V2 home entry
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/add_xingtu_v2_home_entry.py
+
+      - name: Install new home portal and centralized icon library
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/install_home_and_icon_library.py
+
+      - name: Apply the unified linear icon language to Xiumi and Xingtu 2.0
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_linear_icons_to_xiumi_and_v2.py
+
+      - name: Migrate every interface icon to the centralized icon library
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/centralize_app_icons.py
+
+      - name: Migrate all Material icons to semantic line icons
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/unify_app_icons.py
 
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'

@@ -7,10 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Contrast
-import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +42,7 @@ fun ThemeSettingsPage(vm: AppViewModel) {
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionIcon(Icons.Default.Palette)
+                SectionIcon("调色")
                 Text("主题色", color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(AppColors.MyCard).padding(16.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
@@ -70,7 +66,7 @@ fun ThemeSettingsPage(vm: AppViewModel) {
                             Column(Modifier.weight(1f).clickable { vm.selectThemeColor(option.hex) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(11.dp)).background(Color(android.graphics.Color.parseColor(option.hex))).padding(3.dp), contentAlignment = Alignment.Center) {
                                     if (selected) Box(Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)).background(Color.Transparent).padding(2.dp)) {
-                                        Text("✦", Modifier.align(Alignment.Center), color = Color.White, fontSize = 24.sp)
+                                        ShiWanJuLineIcon("成功", Color.White, Modifier.align(Alignment.Center).size(18.dp))
                                     }
                                 }
                                 Text(option.name, color = if (selected) AppColors.Theme else AppColors.MyText, fontSize = 10.sp, maxLines = 1)
@@ -83,7 +79,7 @@ fun ThemeSettingsPage(vm: AppViewModel) {
         }
         Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionIcon(Icons.Default.Contrast)
+                SectionIcon("对比度")
                 Text("外观模式", color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -103,7 +99,7 @@ fun ThemeSettingsPage(vm: AppViewModel) {
         }
         Column(verticalArrangement = Arrangement.spacedBy(15.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionIcon(Icons.Default.Widgets)
+                SectionIcon("组件")
                 Text("图标", color = AppColors.MyText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             }
             IconSettingsSection(vm)
@@ -112,8 +108,8 @@ fun ThemeSettingsPage(vm: AppViewModel) {
 }
 
 @Composable
-private fun SectionIcon(icon: androidx.compose.ui.graphics.vector.ImageVector) {
+private fun SectionIcon(key: String) {
     Box(Modifier.size(42.dp).clip(RoundedCornerShape(9.dp)).background(AppColors.Theme.copy(alpha = .10f)), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = AppColors.Theme, modifier = Modifier.size(23.dp))
+        ShiWanJuLineIcon(key, AppColors.Theme, Modifier.size(23.dp))
     }
 }

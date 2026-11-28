@@ -52,11 +52,11 @@ once(
 
 icon_composable = r'''
 @Composable
-private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(22.dp)) {
+fun ShiWanJuLineIcon(label: String, tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(24.dp)) {
         val w = size.width
         val h = size.height
-        val sw = (w + h) / 48f * 2.0f
+        val sw = (w + h) / 48f * 1.5f
         val c = tint
         val cx = w / 2f
         val cy = h / 2f
@@ -67,7 +67,7 @@ private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Mo
             drawRoundRect(c, Offset(x, y), Size(rw, rh), androidx.compose.ui.geometry.CornerRadius(radius, radius), style = Stroke(sw))
         }
         fun circle(x: Float, y: Float, radius: Float, filled: Boolean = false) {
-            drawCircle(c, radius, Offset(x, y), style = if (filled) androidx.compose.ui.graphics.drawscope.Fill else Stroke(sw))
+            drawCircle(c, radius, Offset(x, y), style = Stroke(sw))
         }
         fun poly(points: List<Offset>, close: Boolean = false) {
             val p = androidx.compose.ui.graphics.Path()
@@ -79,10 +79,14 @@ private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Mo
         when {
             k.contains("撤销") || k.contains("undo") -> { poly(listOf(Offset(w*.42f,h*.24f),Offset(w*.18f,h*.24f),Offset(w*.18f,h*.48f))); poly(listOf(Offset(w*.18f,h*.48f),Offset(w*.38f,h*.29f),Offset(w*.55f,h*.25f),Offset(w*.75f,h*.34f),Offset(w*.82f,h*.52f),Offset(w*.76f,h*.72f))) }
             k.contains("重做") || k.contains("redo") -> { poly(listOf(Offset(w*.58f,h*.24f),Offset(w*.82f,h*.24f),Offset(w*.82f,h*.48f))); poly(listOf(Offset(w*.82f,h*.48f),Offset(w*.62f,h*.29f),Offset(w*.45f,h*.25f),Offset(w*.25f,h*.34f),Offset(w*.18f,h*.52f),Offset(w*.24f,h*.72f))) }
-            k.contains("透明度") || k.contains("opacity") -> { circle(cx,cy,w*.34f); drawArc(c, -90f, 180f, true, Offset(cx-w*.34f,cy-w*.34f), Size(w*.68f,w*.68f)); line(cx,cy-w*.34f,cx,cy+w*.34f) }
+            k.contains("透明度") || k.contains("opacity") -> { circle(cx,cy,w*.34f); drawArc(c, -90f, 180f, false, Offset(cx-w*.34f,cy-w*.34f), Size(w*.68f,w*.68f), style = Stroke(sw)); line(cx,cy-w*.34f,cx,cy+w*.34f) }
             k.contains("裁剪") || k.contains("裁切") || k.contains("crop") -> { line(w*.12f,h*.36f,w*.12f,h*.12f); line(w*.12f,h*.12f,w*.36f,h*.12f); line(w*.64f,h*.12f,w*.88f,h*.12f); line(w*.88f,h*.12f,w*.88f,h*.36f); line(w*.12f,h*.64f,w*.12f,h*.88f); line(w*.12f,h*.88f,w*.36f,h*.88f); line(w*.64f,h*.88f,w*.88f,h*.88f); line(w*.88f,h*.64f,w*.88f,h*.88f) }
-            k.contains("图片") || k.contains("相册") || k.contains("封面") || k.contains("image") -> { outlineRect(w*.12f,h*.16f,w*.76f,h*.68f,sw*1.4f); circle(w*.68f,h*.35f,w*.07f,true); poly(listOf(Offset(w*.18f,h*.72f),Offset(w*.40f,h*.49f),Offset(w*.54f,h*.62f),Offset(w*.64f,h*.52f),Offset(w*.82f,h*.73f))) }
-            k.contains("文字") || k.contains("字体") || k.contains("字号") || k.contains("标题") || k.contains("加粗") || k.contains("粗体") || k.contains("斜体") || k.contains("下划线") || k.contains("删除线") || k.contains("font") -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.35f,h*.45f,w*.65f,h*.45f) }
+            k.contains("图片") || k.contains("加图") || k.contains("相册") || k.contains("封面") || k.contains("image") -> { outlineRect(w*.12f,h*.16f,w*.76f,h*.68f,sw*1.4f); circle(w*.68f,h*.35f,w*.07f,true); poly(listOf(Offset(w*.18f,h*.72f),Offset(w*.40f,h*.49f),Offset(w*.54f,h*.62f),Offset(w*.64f,h*.52f),Offset(w*.82f,h*.73f))) }
+            k.contains("加粗") || k.contains("粗体") || k.contains("bold") -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.30f,h*.45f,w*.70f,h*.45f); line(w*.24f,h*.54f,w*.76f,h*.54f) }
+            k.contains("斜体") || k.contains("italic") -> { poly(listOf(Offset(w*.58f,h*.18f),Offset(w*.42f,h*.82f))); line(w*.32f,h*.18f,w*.78f,h*.18f); line(w*.22f,h*.82f,w*.68f,h*.82f) }
+            k.contains("下划线") || k.contains("underline") -> { line(w*.18f,h*.22f,w*.82f,h*.22f); line(cx,h*.22f,cx,h*.66f); line(w*.18f,h*.82f,w*.82f,h*.82f) }
+            k.contains("删除线") || k.contains("strike") -> { line(w*.18f,h*.22f,w*.82f,h*.22f); line(cx,h*.22f,cx,h*.78f); line(w*.18f,h*.50f,w*.82f,h*.50f) }
+            k.contains("文字") || k.contains("加字") || k.contains("字体") || k.contains("字号") || k.contains("标题") || k.contains("font") -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.35f,h*.45f,w*.65f,h*.45f) }
             k.contains("颜色") || k.contains("调色") || k.contains("高亮") || k.contains("color") -> { poly(listOf(Offset(w*.50f,h*.13f),Offset(w*.78f,h*.29f),Offset(w*.85f,h*.56f),Offset(w*.67f,h*.82f),Offset(w*.34f,h*.86f),Offset(w*.14f,h*.63f),Offset(w*.18f,h*.36f),Offset(w*.50f,h*.13f)),true); circle(w*.35f,h*.43f,w*.045f,true); circle(w*.55f,h*.34f,w*.045f,true); circle(w*.69f,h*.51f,w*.045f,true) }
             k.contains("对齐") || k.contains("居中") || k.contains("align") -> { line(w*.18f,h*.23f,w*.82f,h*.23f); line(w*.18f,h*.42f,w*.68f,h*.42f); line(w*.32f,h*.61f,w*.82f,h*.61f); line(w*.18f,h*.80f,w*.68f,h*.80f) }
             k.contains("边框") || k.contains("border") -> outlineRect(w*.16f,h*.16f,w*.68f,h*.68f,sw*.5f)
@@ -98,6 +102,14 @@ private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Mo
             k.contains("收藏") || k.contains("喜欢") || k.contains("模板") || k.contains("save-template") -> { val pts=(0..10).map{idx->val a=(-90+idx*36)*Math.PI/180.0;val r=if(idx%2==0)w*.36f else w*.16f;Offset(cx+Math.cos(a).toFloat()*r,cy+Math.sin(a).toFloat()*r)};poly(pts,true) }
             k.contains("顺序") || k.contains("order") -> { line(cx,h*.18f,cx,h*.82f); poly(listOf(Offset(w*.32f,h*.34f),Offset(cx,h*.18f),Offset(w*.68f,h*.34f))); poly(listOf(Offset(w*.32f,h*.66f),Offset(cx,h*.82f),Offset(w*.68f,h*.66f))) }
             k.contains("插入") || k.contains("添加") || k.contains("新建") || k.contains("加图") || k.contains("加字") -> { line(cx,h*.18f,cx,h*.82f); line(w*.18f,cy,w*.82f,cy) }
+            k.contains("放大") || k.contains("zoom-in") -> { circle(cx,cy,w*.30f); line(cx-w*.16f,cy,cx+w*.16f,cy); line(cx,cy-w*.16f,cx,cy+w*.16f); line(w*.70f,h*.70f,w*.88f,h*.88f) }
+            k.contains("缩小") || k.contains("zoom-out") -> { circle(cx,cy,w*.30f); line(cx-w*.16f,cy,cx+w*.16f,cy); line(w*.70f,h*.70f,w*.88f,h*.88f) }
+            k.contains("拖动") || k.contains("移动") || k.contains("move") -> { line(cx,h*.12f,cx,h*.88f); line(w*.12f,cy,w*.88f,cy); poly(listOf(Offset(w*.38f,h*.28f),Offset(cx,h*.12f),Offset(w*.62f,h*.28f))); poly(listOf(Offset(w*.38f,h*.72f),Offset(cx,h*.88f),Offset(w*.62f,h*.72f))); poly(listOf(Offset(w*.28f,h*.38f),Offset(w*.12f,cy),Offset(w*.28f,h*.62f))); poly(listOf(Offset(w*.72f,h*.38f),Offset(w*.88f,cy),Offset(w*.72f,h*.62f))) }
+            k.contains("上移") || k.contains("move-up") -> { line(cx,h*.82f,cx,h*.20f); poly(listOf(Offset(w*.28f,h*.42f),Offset(cx,h*.20f),Offset(w*.72f,h*.42f))) }
+            k.contains("下移") || k.contains("move-down") -> { line(cx,h*.18f,cx,h*.80f); poly(listOf(Offset(w*.28f,h*.58f),Offset(cx,h*.80f),Offset(w*.72f,h*.58f))) }
+            k.contains("说明") || k.contains("信息") || k.contains("info") -> { circle(cx,cy,w*.37f); circle(cx,h*.31f,sw*.75f,true); line(cx,h*.45f,cx,h*.72f) }
+            k.contains("尺寸") || k.contains("size") -> { outlineRect(w*.16f,h*.16f,w*.68f,h*.68f,sw*.6f); line(w*.16f,h*.08f,w*.16f,h*.25f); line(w*.08f,h*.16f,w*.25f,h*.16f); line(w*.75f,h*.84f,w*.92f,h*.84f); line(w*.84f,h*.75f,w*.84f,h*.92f) }
+            k.contains("样式") || k.contains("外观") || k.contains("style") -> { circle(cx,cy,w*.30f); circle(w*.50f,h*.18f,sw*.8f,true); circle(w*.78f,h*.50f,sw*.8f,true); circle(w*.50f,h*.82f,sw*.8f,true); circle(w*.22f,h*.50f,sw*.8f,true) }
             k.contains("搜索") || k.contains("查找") || k.contains("search") -> { circle(w*.43f,h*.42f,w*.25f); line(w*.61f,h*.61f,w*.84f,h*.84f) }
             k.contains("表格") || k.contains("table") -> { outlineRect(w*.12f,h*.16f,w*.76f,h*.68f,sw*.5f); line(w*.12f,h*.39f,w*.88f,h*.39f); line(w*.12f,h*.62f,w*.88f,h*.62f); line(w*.38f,h*.16f,w*.38f,h*.84f); line(w*.64f,h*.16f,w*.64f,h*.84f) }
             k.contains("列表") || k.contains("编号") || k.contains("list") -> { for(i in 0..2){circle(w*.22f,h*(.28f+i*.23f),sw*.8f,true);line(w*.38f,h*(.28f+i*.23f),w*.82f,h*(.28f+i*.23f))} }
@@ -113,6 +125,29 @@ private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Mo
             k.contains("旋转") || k.contains("rotate") -> { val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.78f,h*.36f);quadraticTo(w*.82f,h*.12f,w*.54f,h*.13f);quadraticTo(w*.20f,h*.12f,w*.18f,h*.48f);quadraticTo(w*.18f,h*.82f,w*.55f,h*.84f);quadraticTo(w*.82f,h*.84f,w*.84f,h*.60f)};drawPath(p,c,style=Stroke(sw));poly(listOf(Offset(w*.65f,h*.20f),Offset(w*.80f,h*.36f),Offset(w*.61f,h*.43f))) }
             k.contains("删除") || k.contains("delete") -> { outlineRect(w*.22f,h*.30f,w*.56f,h*.56f,w*.04f); line(w*.16f,h*.25f,w*.84f,h*.25f); line(w*.38f,h*.16f,w*.62f,h*.16f); line(w*.40f,h*.42f,w*.40f,h*.72f); line(w*.60f,h*.42f,w*.60f,h*.72f) }
             k.contains("链接") || k.contains("link") -> { val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.43f,h*.64f);lineTo(w*.31f,h*.76f);quadraticTo(w*.12f,h*.80f,w*.12f,h*.62f);quadraticTo(w*.12f,h*.48f,w*.25f,h*.36f);lineTo(w*.38f,h*.24f);quadraticTo(w*.55f,h*.12f,w*.68f,h*.28f);lineTo(w*.72f,h*.32f);moveTo(w*.57f,h*.36f);lineTo(w*.69f,h*.24f);quadraticTo(w*.88f,h*.20f,w*.88f,h*.38f);quadraticTo(w*.88f,h*.52f,w*.75f,h*.64f);lineTo(w*.62f,h*.76f);quadraticTo(w*.45f,h*.88f,w*.32f,h*.72f)};drawPath(p,c,style=Stroke(sw)) }
+            k.contains("编辑") || k.contains("edit") -> { line(w*.25f,h*.76f,w*.72f,h*.29f); poly(listOf(Offset(w*.64f,h*.22f),Offset(w*.78f,h*.36f),Offset(w*.72f,h*.29f))); line(w*.20f,h*.82f,w*.36f,h*.78f) }
+            k.contains("关闭") || k.contains("close") -> { line(w*.22f,h*.22f,w*.78f,h*.78f); line(w*.78f,h*.22f,w*.22f,h*.78f) }
+            k.contains("对比度") || k.contains("contrast") -> { circle(cx,cy,w*.34f); line(cx,h*.16f,cx,h*.84f); line(w*.16f,cy,w*.84f,cy); poly(listOf(Offset(w*.28f,h*.28f),Offset(w*.72f,h*.72f))); poly(listOf(Offset(w*.72f,h*.28f),Offset(w*.28f,h*.72f))) }
+            k.contains("更多") || k.contains("more") -> { for(i in 0..2) circle(w*(.25f+i*.25f),cy,sw*.9f,true) }
+            k.contains("随机") || k.contains("shuffle") -> { poly(listOf(Offset(w*.16f,h*.28f),Offset(w*.35f,h*.28f),Offset(w*.66f,h*.72f),Offset(w*.84f,h*.72f))); poly(listOf(Offset(w*.16f,h*.72f),Offset(w*.35f,h*.72f),Offset(w*.66f,h*.28f),Offset(w*.84f,h*.28f))); poly(listOf(Offset(w*.70f,h*.58f),Offset(w*.84f,h*.72f),Offset(w*.70f,h*.86f))); poly(listOf(Offset(w*.70f,h*.14f),Offset(w*.84f,h*.28f),Offset(w*.70f,h*.42f))) }
+            k.contains("切换") || k.contains("swap") -> { poly(listOf(Offset(w*.16f,h*.32f),Offset(w*.82f,h*.32f),Offset(w*.68f,h*.18f))); poly(listOf(Offset(w*.84f,h*.68f),Offset(w*.18f,h*.68f),Offset(w*.32f,h*.82f))) }
+            k.contains("刷新") || k.contains("refresh") -> { val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.78f,h*.38f);quadraticTo(w*.66f,h*.12f,w*.42f,h*.18f);quadraticTo(w*.12f,h*.24f,w*.16f,h*.56f);quadraticTo(w*.20f,h*.84f,w*.50f,h*.84f);quadraticTo(w*.72f,h*.84f,w*.82f,h*.64f)};drawPath(p,c,style=Stroke(sw));poly(listOf(Offset(w*.65f,h*.18f),Offset(w*.80f,h*.18f),Offset(w*.80f,h*.34f))) }
+            k.contains("新增") || k.contains("添加") || k.contains("add") -> { line(cx,h*.16f,cx,h*.84f); line(w*.16f,cy,w*.84f,cy) }
+            k.contains("悬浮窗") || k.contains("浮窗") || k.contains("overlay") -> { outlineRect(w*.12f,h*.18f,w*.76f,h*.64f,w*.05f); outlineRect(w*.48f,h*.42f,w*.40f,h*.34f,w*.04f) }
+            k.contains("缩放") || k.contains("resize") -> { poly(listOf(Offset(w*.18f,h*.40f),Offset(w*.18f,h*.18f),Offset(w*.40f,h*.18f))); poly(listOf(Offset(w*.60f,h*.82f),Offset(w*.82f,h*.82f),Offset(w*.82f,h*.60f))); line(w*.22f,h*.38f,w*.78f,h*.78f) }
+            k.contains("边距") || k.contains("margin") -> { outlineRect(w*.12f,h*.12f,w*.76f,h*.76f,sw*.6f); outlineRect(w*.30f,h*.30f,w*.40f,h*.40f,sw*.6f) }
+            k.contains("空行") || k.contains("间距") || k.contains("spacing") -> { line(cx,h*.14f,cx,h*.86f); poly(listOf(Offset(w*.34f,h*.30f),Offset(cx,h*.14f),Offset(w*.66f,h*.30f))); poly(listOf(Offset(w*.34f,h*.70f),Offset(cx,h*.86f),Offset(w*.66f,h*.70f))); line(w*.18f,h*.50f,w*.82f,h*.50f) }
+            k.contains("公众号") || k.contains("账号") || k.contains("account") -> { outlineRect(w*.14f,h*.12f,w*.72f,h*.76f,w*.08f); circle(cx,h*.39f,w*.13f); val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.28f,h*.76f);quadraticTo(w*.28f,h*.58f,cx,h*.58f);quadraticTo(w*.72f,h*.58f,w*.72f,h*.76f)};drawPath(p,c,style=Stroke(sw)) }
+            k.contains("emoji") || k.contains("表情") -> { circle(cx,cy,w*.36f); circle(w*.38f,h*.42f,sw*.8f,true); circle(w*.62f,h*.42f,sw*.8f,true); val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.34f,h*.60f);quadraticTo(cx,h*.78f,w*.66f,h*.60f)};drawPath(p,c,style=Stroke(sw)) }
+            k.contains("动图") || k.contains("gif") || k.contains("视频") -> { outlineRect(w*.12f,h*.20f,w*.76f,h*.60f,w*.08f); poly(listOf(Offset(w*.43f,h*.34f),Offset(w*.66f,cy),Offset(w*.43f,h*.66f)),true) }
+            k.contains("往期") || k.contains("历史") || k.contains("history") -> { circle(cx,cy,w*.34f); line(cx,cy,cx,h*.28f); line(cx,cy,w*.68f,h*.60f); poly(listOf(Offset(w*.18f,h*.34f),Offset(w*.18f,h*.16f),Offset(w*.36f,h*.16f))) }
+            k.contains("朋友圈") || k.contains("moments") -> { circle(cx,cy,w*.32f); circle(cx,cy,w*.12f); circle(cx,h*.12f,sw*.6f); circle(cx,h*.88f,sw*.6f) }
+            k.contains("抖音") || k.contains("音乐") || k.contains("douyin") -> { val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.58f,h*.16f);lineTo(w*.58f,h*.64f);quadraticTo(w*.58f,h*.84f,w*.38f,h*.84f);quadraticTo(w*.20f,h*.84f,w*.20f,h*.68f);quadraticTo(w*.20f,h*.52f,w*.42f,h*.50f);lineTo(w*.58f,h*.50f);lineTo(w*.58f,h*.16f);lineTo(w*.78f,h*.32f)};drawPath(p,c,style=Stroke(sw)) }
+            k.contains("json") -> { val p=androidx.compose.ui.graphics.Path().apply{moveTo(w*.40f,h*.18f);quadraticTo(w*.24f,h*.18f,w*.24f,h*.34f);lineTo(w*.24f,h*.44f);quadraticTo(w*.24f,h*.50f,w*.14f,h*.50f);quadraticTo(w*.24f,h*.50f,w*.24f,h*.58f);lineTo(w*.24f,h*.68f);quadraticTo(w*.24f,h*.82f,w*.40f,h*.82f);moveTo(w*.60f,h*.18f);quadraticTo(w*.76f,h*.18f,w*.76f,h*.34f);lineTo(w*.76f,h*.44f);quadraticTo(w*.76f,h*.50f,w*.86f,h*.50f);quadraticTo(w*.76f,h*.50f,w*.76f,h*.58f);lineTo(w*.76f,h*.68f);quadraticTo(w*.76f,h*.82f,w*.60f,h*.82f)};drawPath(p,c,style=Stroke(sw)) }
+            k.contains("本地保存") || k.contains("手机") || k.contains("local") -> { outlineRect(w*.28f,h*.10f,w*.44f,h*.80f,w*.08f); line(w*.40f,h*.20f,w*.60f,h*.20f); line(w*.44f,h*.78f,w*.56f,h*.78f) }
+            k.contains("成功") || k.contains("success") -> { circle(cx,cy,w*.38f); poly(listOf(Offset(w*.28f,h*.52f),Offset(w*.44f,h*.68f),Offset(w*.74f,h*.34f))) }
+            k.contains("警告") || k.contains("warning") -> { poly(listOf(Offset(cx,h*.12f),Offset(w*.88f,h*.84f),Offset(w*.12f,h*.84f)),true); line(cx,h*.36f,cx,h*.60f); circle(cx,h*.70f,sw*.7f,true) }
+            k.contains("提示") || k.contains("信息") || k.contains("info") -> { circle(cx,cy,w*.38f); circle(cx,h*.31f,sw*.7f,true); line(cx,h*.46f,cx,h*.72f) }
             else -> { outlineRect(w*.18f,h*.12f,w*.64f,h*.76f,w*.06f); line(w*.31f,h*.35f,w*.69f,h*.35f); line(w*.31f,h*.52f,w*.69f,h*.52f); line(w*.31f,h*.69f,w*.58f,h*.69f) }
         }
     }
@@ -127,27 +162,200 @@ icon_composable + "@Composable\nprivate fun EditorTool(label: String, selected: 
 once(
 """        Text(editorToolGlyph(label), color = if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain,
             fontSize = 19.sp, fontWeight = FontWeight.Medium, lineHeight = 21.sp)""",
-"""        EditorVectorIcon(label, if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain, Modifier.size(22.dp))""",
+"""        ShiWanJuLineIcon(label, if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain, Modifier.size(22.dp))""",
 "replace glyph icons in secondary panels"
 )
 once(
 """        Text(glyph, color = AppColors.TextMain, fontSize = 19.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium)""",
-"""        EditorVectorIcon(label, AppColors.TextMain, Modifier.size(21.dp))""",
+"""        ShiWanJuLineIcon(label, AppColors.TextMain, Modifier.size(21.dp))""",
 "replace glyph icons in text/image selection dock"
 )
 once(
 """Text(editorToolGlyph(item), color = Color(0xFFDDDDDD), fontSize = 18.sp, lineHeight = 20.sp)""",
-"""EditorVectorIcon(item, Color(0xFFDDDDDD), Modifier.size(20.dp))""",
+"""ShiWanJuLineIcon(item, Color(0xFFDDDDDD), Modifier.size(20.dp))""",
 "replace glyph icons in persistent primary dock"
 )
 
+# Replace remaining toolbar glyphs with the same semantic line renderer.
+glyph_replacements = {
+    'Text("⠿", color = AppColors.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 6.dp))':
+        'ShiWanJuLineIcon("拖动", AppColors.TextDim, Modifier.padding(end = 6.dp).size(20.dp))',
+    'Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("尺寸", accent, Modifier.size(15.dp)); Text("尺寸 ▾", color = accent, fontSize = 11.sp) }',
+    'Text("▧ 裁切 ▾", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("裁剪", ink, Modifier.size(15.dp)); Text("裁切 ▾", color = ink, fontSize = 11.sp) }',
+    'Text("↻ 旋转", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("旋转", ink, Modifier.size(15.dp)); Text("旋转", color = ink, fontSize = 11.sp) }',
+    'Text("◒ 外观 ▾", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("样式", ink, Modifier.size(15.dp)); Text("外观 ▾", color = ink, fontSize = 11.sp) }',
+    'Text("▧ 替换", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("替换图片", ink, Modifier.size(15.dp)); Text("替换", color = ink, fontSize = 11.sp) }',
+    'Text("ⓘ 说明", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("说明", ink, Modifier.size(15.dp)); Text("说明", color = ink, fontSize = 11.sp) }',
+    'Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("删除", Color(0xFFCC5555), Modifier.size(15.dp)); Text("删除", color = Color(0xFFCC5555), fontSize = 11.sp) }',
+    'Text("更多 ⋯", color = accent, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("更多", accent, Modifier.size(15.dp)); Text("更多", color = accent, fontSize = 11.sp) }',
+    'Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("字号", accent, Modifier.size(15.dp)); Text("字号 ▾", color = accent, fontSize = 11.sp) }',
+    'Text("≡", color = ink, fontSize = 15.sp)':
+        'ShiWanJuLineIcon("左对齐", ink, Modifier.size(20.dp))',
+    'Text("☷", color = ink, fontSize = 15.sp)':
+        'ShiWanJuLineIcon("居中对齐", ink, Modifier.size(20.dp))',
+    'Text("☷•", color = ink, fontSize = 12.sp)':
+        'ShiWanJuLineIcon("列表", ink, Modifier.size(18.dp))',
+    'Text("⌕", color = ink, fontSize = 15.sp)':
+        'ShiWanJuLineIcon("搜索", ink, Modifier.size(20.dp))',
+    'Text("↑", color = ink, fontSize = 12.sp)':
+        'ShiWanJuLineIcon("上移", ink, Modifier.size(16.dp))',
+    'Text("↓", color = ink, fontSize = 12.sp)':
+        'ShiWanJuLineIcon("下移", ink, Modifier.size(16.dp))',
+    'Text("B", color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("加粗", ink, Modifier.size(18.dp))',
+    'Text("I", color = ink, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("斜体", ink, Modifier.size(18.dp))',
+    'Text("U", color = ink, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("下划线", ink, Modifier.size(18.dp))',
+    'Text("S", color = ink, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("删除线", ink, Modifier.size(18.dp))',
+    'Text("−", color = Color.White)':
+        'ShiWanJuLineIcon("缩小", Color.White, Modifier.size(16.dp))',
+    'Text("+ 新建文章", color = accent)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("新增", accent, Modifier.size(16.dp)); Text("新建文章", color = accent) }',
+
+    'Text("⠿", color = AppColors.Theme, fontSize = 17.sp)':
+        'ShiWanJuLineIcon("拖动", AppColors.Theme, Modifier.size(20.dp))',
+}
+for old, new in glyph_replacements.items():
+    s = s.replace(old, new)
+
+# Snapped image movement: standalone images move by vertical row; table images
+# snap between cells, so horizontal columns and vertical rows both work.
+touch_old = """                            root.addEventListener('touchstart',function(ev){if(!ev.touches||ev.touches.length!==1)return;const t=ev.touches[0],img=ev.target&&ev.target.closest?ev.target.closest('img'):null,cell=img?img.closest('td,th'):null;const block=topLevelAt(ev.target);if(cell&&activeImage&&cell.contains(activeImage)&&cell.parentElement&&cell.parentElement.children.length>1){touchDrag={kind:'group',source:cell,row:cell.parentElement,x:t.clientX,y:t.clientY,started:Date.now(),active:false};}else if(block&&block.classList.contains('selected-block')){touchDrag={kind:multiSelectMode?'blocks':'block',source:block,sources:multiSelectMode?Array.from(root.querySelectorAll('.selected-block')):[block],x:t.clientX,y:t.clientY,started:Date.now(),active:false};}}, {passive:true});
+                            root.addEventListener('touchmove',function(ev){if(!touchDrag||!ev.touches||ev.touches.length!==1)return;const t=ev.touches[0],dx=t.clientX-touchDrag.x,dy=t.clientY-touchDrag.y;if(!touchDrag.active){if(Date.now()-touchDrag.started<260||Math.abs(dx)+Math.abs(dy)<10)return;touchDrag.active=true;root.style.userSelect='none';}ev.preventDefault();const hit=document.elementFromPoint(t.clientX,t.clientY);let target=null;if(touchDrag.kind==='group'){const cell=hit&&hit.closest?hit.closest('td,th'):null;if(cell&&cell.parentElement===touchDrag.row&&cell!==touchDrag.source)target=cell;}else{target=topLevelAt(hit);if((touchDrag.sources||[touchDrag.source]).includes(target))target=null;}if(target!== (touchDrop&&touchDrop.el)){clearTouchDrop();if(target){touchDrop={el:target,outline:target.style.outline,shadow:target.style.boxShadow};target.style.outline='2px dashed #159765';target.style.boxShadow='0 0 0 2px rgba(21,151,101,.12)';}}},{passive:false});
+                            function finishTouchDrag(){if(!touchDrag)return;const drag=touchDrag;const target=touchDrop&&touchDrop.el;clearTouchDrop();root.style.userSelect='';if(drag.active&&target){if(drag.kind==='group'&&target.parentElement===drag.row){const rect=target.getBoundingClientRect();drag.row.insertBefore(drag.source,touchDrag.lastX<rect.left+rect.width/2?target:target.nextSibling);commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.imageSelected(activeImage?activeImage.outerHTML:'');}else if((drag.kind==='block'||drag.kind==='blocks')&&target.parentElement===root){const rect=target.getBoundingClientRect(),anchor=touchDrag.lastY<rect.top+rect.height/2?target:target.nextSibling,sources=drag.kind==='blocks'?drag.sources:[drag.source];sources.forEach(node=>root.insertBefore(node,anchor));commitHistory();NativeEditor.changed(root.innerHTML);NativeEditor.blockSelected(sources.map(node=>cleanBlockHtml(node)).join(''));}}touchDrag=null;}"""
+touch_new = """                            root.addEventListener('touchstart',function(ev){
+                              if(!ev.touches||ev.touches.length!==1)return;
+                              const t=ev.touches[0],img=ev.target&&ev.target.closest?ev.target.closest('img'):null;
+                              const cell=img?img.closest('td,th'):null,table=cell?cell.closest('table'):null,block=topLevelAt(ev.target);
+                              if(img&&activeImage===img&&cell&&table&&table.querySelectorAll('img').length>1){
+                                touchDrag={kind:'image-grid',source:cell,table:table,x:t.clientX,y:t.clientY,started:Date.now(),active:false};
+                              }else if(img&&activeImage===img&&block&&block.parentElement===root){
+                                touchDrag={kind:'image-row',source:block,x:t.clientX,y:t.clientY,started:Date.now(),active:false};
+                              }else if(block&&block.classList.contains('selected-block')){
+                                touchDrag={kind:multiSelectMode?'blocks':'block',source:block,sources:multiSelectMode?Array.from(root.querySelectorAll('.selected-block')):[block],x:t.clientX,y:t.clientY,started:Date.now(),active:false};
+                              }
+                            },{passive:true});
+                            root.addEventListener('touchmove',function(ev){
+                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;
+                              const t=ev.touches[0],dx=t.clientX-touchDrag.x,dy=t.clientY-touchDrag.y;
+                              if(!touchDrag.active){if(Date.now()-touchDrag.started<180||Math.abs(dx)+Math.abs(dy)<8)return;touchDrag.active=true;root.style.userSelect='none';}
+                              ev.preventDefault();
+                              const hit=document.elementFromPoint(t.clientX,t.clientY);let target=null;
+                              if(touchDrag.kind==='image-grid'){
+                                const cell=hit&&hit.closest?hit.closest('td,th'):null;
+                                if(cell&&cell!==touchDrag.source&&cell.closest('table')===touchDrag.table)target=cell;
+                              }else if(touchDrag.kind==='image-row'){
+                                target=topLevelAt(hit);
+                                if(target===touchDrag.source||!target||target.parentElement!==root)target=null;
+                              }else{
+                                target=topLevelAt(hit);
+                                if((touchDrag.sources||[touchDrag.source]).includes(target))target=null;
+                              }
+                              if(target!==(touchDrop&&touchDrop.el)){
+                                clearTouchDrop();
+                                if(target){touchDrop={el:target,outline:target.style.outline,shadow:target.style.boxShadow};target.style.outline='2px dashed #159765';target.style.boxShadow='0 0 0 2px rgba(21,151,101,.12)';}
+                              }
+                            },{passive:false});
+                            function finishTouchDrag(){
+                              if(!touchDrag)return;
+                              const drag=touchDrag,target=touchDrop&&touchDrop.el;
+                              clearTouchDrop();root.style.userSelect='';
+                              if(drag.active&&target){
+                                if(drag.kind==='image-grid'&&target.closest('table')===drag.table){
+                                  const sourceHtml=drag.source.innerHTML,targetHtml=target.innerHTML;
+                                  drag.source.innerHTML=targetHtml;target.innerHTML=sourceHtml;
+                                  activeImage=target.querySelector('img');
+                                  root.querySelectorAll('.selected-image').forEach(x=>x.classList.remove('selected-image'));
+                                  if(activeImage){activeImage.classList.add('selected-image');NativeEditor.imageSelected(activeImage.outerHTML);}
+                                  commitHistory();NativeEditor.changed(root.innerHTML);
+                                }else if(drag.kind==='image-row'&&target.parentElement===root){
+                                  const rect=target.getBoundingClientRect(),before=touchDrag.lastY<rect.top+rect.height/2;
+                                  root.insertBefore(drag.source,before?target:target.nextSibling);
+                                  commitHistory();NativeEditor.changed(root.innerHTML);
+                                  if(activeImage)NativeEditor.imageSelected(activeImage.outerHTML);
+                                }else if((drag.kind==='block'||drag.kind==='blocks')&&target.parentElement===root){
+                                  const rect=target.getBoundingClientRect(),anchor=touchDrag.lastY<rect.top+rect.height/2?target:target.nextSibling;
+                                  const sources=drag.kind==='blocks'?drag.sources:[drag.source];
+                                  sources.forEach(node=>root.insertBefore(node,anchor));
+                                  commitHistory();NativeEditor.changed(root.innerHTML);
+                                  NativeEditor.blockSelected(sources.map(node=>cleanBlockHtml(node)).join(''));
+                                }
+                              }
+                              touchDrag=null;
+                            }"""
+if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
+touch_new = touch_new.replace(
+    "                            root.addEventListener('touchstart',function(ev){\\n                              if(!ev.touches||ev.touches.length!==1)return;",
+    """                            root.addEventListener('touchstart',function(ev){
+                              if(ev.touches&&ev.touches.length===2){
+                                const img=ev.target&&ev.target.closest?ev.target.closest('img'):null;
+                                if(img&&activeImage===img){
+                                  const p1=ev.touches[0],p2=ev.touches[1],rect=img.getBoundingClientRect();
+                                  imageTransformGesture={img:img,distance:Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY),width:rect.width,
+                                    angle:Math.atan2(p2.clientY-p1.clientY,p2.clientX-p1.clientX)*180/Math.PI,
+                                    rotation:parseFloat(img.dataset.rotation||'0'),maxWidth:img.parentElement.clientWidth||rect.width};
+                                  touchDrag=null;return;
+                                }
+                              }
+                              if(!ev.touches||ev.touches.length!==1)return;"""
+)
+touch_new = touch_new.replace(
+    "                            root.addEventListener('touchmove',function(ev){\\n                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;",
+    """                            root.addEventListener('touchmove',function(ev){
+                              if(imageTransformGesture&&ev.touches&&ev.touches.length===2){
+                                const g=imageTransformGesture,p1=ev.touches[0],p2=ev.touches[1];
+                                const distance=Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY);
+                                const angle=Math.atan2(p2.clientY-p1.clientY,p2.clientX-p1.clientX)*180/Math.PI;
+                                const width=Math.max(48,Math.min(g.maxWidth,g.width*distance/Math.max(1,g.distance)));
+                                const rotation=g.rotation+angle-g.angle;
+                                g.img.style.width=width+'px';g.img.style.maxWidth='100%';g.img.style.height='auto';
+                                g.img.dataset.rotation=String(rotation);g.img.style.transform='rotate('+rotation+'deg)';
+                                ev.preventDefault();if(typeof notifyCanvasPreview==='function')notifyCanvasPreview();return;
+                              }
+                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;"""
+)
+touch_new = touch_new.replace(
+    "                            function finishTouchDrag(){",
+    "                            let imageTransformGesture=null;\\n                            function finishTouchDrag(){"
+)
+if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
+s=s.replace(touch_old,touch_new);
+touch_end_old = "root.addEventListener('touchend',function(ev){if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){";
+touch_end_new = "root.addEventListener('touchend',function(ev){if(imageTransformGesture){commitHistory();NativeEditor.changed(root.innerHTML);if(activeImage)NativeEditor.imageSelected(activeImage.outerHTML);imageTransformGesture=null;}if(touchDrag&&ev.changedTouches&&ev.changedTouches.length){";
+if(!s.includes(touch_end_old)) throw new Error("touchend commit anchor missing");
+s=s.replace(touch_end_old,touch_end_new,1);
+const hintOld='''                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))''';
+const hintNew='''                             Text("图片调整", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(top = 7.dp))
+                             Text("长按拖动按行/列吸附；双指缩放与旋转，松手自动保存", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))''';
+if(!s.includes(hintOld)) throw new Error("image panel hint anchor missing");
+s=s.replace(hintOld,hintNew);
+const checkOld='''    "primary dock glyphs replaced": "Text(editorToolGlyph(item)" not in s,
+}''';
+const checkNew='''    "primary dock glyphs replaced": "Text(editorToolGlyph(item)" not in s,
+    "segmented image grid drag installed": "kind:'image-grid'" in s and "cell.closest('table')===touchDrag.table" in s,
+    "segmented image row drag installed": "kind:'image-row'" in s and "root.insertBefore(drag.source,before?target:target.nextSibling)" in s,
+    "image drag snap hint installed": "单列按行移动，多列按格移动" in s,
+}''';
+if(!s.includes(checkOld)) throw new Error("validation anchor missing");
+s=s.replace(checkOld,checkNew);
 # Validate that every icon-bearing dock now uses the vector renderer and that the
 # live Text2 path updates both persisted HTML state and the visible WebView canvas.
 checks = {
     "Text2 applies style to active selected text": "activeTextBlock:root.querySelector('.selected-text-block')" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
     "Text2 updates HTML immediately": "NativeEditor.changed(root.innerHTML);" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
     "Text2 notifies live canvas": "notifyCanvasPreview();" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
-    "Compose vector icon renderer installed": "private fun EditorVectorIcon(" in s and "Canvas(modifier = modifier.size(22.dp))" in s,
+    "Compose vector icon renderer installed": "fun ShiWanJuLineIcon(" in s and "Canvas(modifier = modifier.size(24.dp))" in s,
     "secondary panel glyphs replaced": "Text(editorToolGlyph(label)" not in s,
     "selection dock glyphs replaced": "Text(glyph, color = AppColors.TextMain" not in s,
     "primary dock glyphs replaced": "Text(editorToolGlyph(item)" not in s,

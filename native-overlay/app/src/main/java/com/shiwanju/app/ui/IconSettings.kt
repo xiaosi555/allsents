@@ -68,7 +68,7 @@ fun IconSettingsSection(vm: AppViewModel) {
                                         .clip(CircleShape).background(AppColors.Theme),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("✓", color = AppColors.OnTheme, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    ShiWanJuLineIcon("成功", AppColors.OnTheme, Modifier.size(13.dp))
                                 }
                             }
                         }
