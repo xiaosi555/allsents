@@ -678,6 +678,22 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     Text("图层", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
                     Text("多选", color = if (multiSelect) colors.primary else colors.onSurfaceVariant,
                         modifier = Modifier.clickable { multiSelect = !multiSelect }.padding(6.dp))
+                    Text("全选", color = colors.onSurfaceVariant, fontSize = 11.sp,
+                        modifier = Modifier.clickable {
+                            multiSelect = true
+                            history = history.dispatch(XingtuV2Action.Select(history.document.objects.filter { it.visible }.map { it.id }.toSet()))
+                        }.padding(5.dp))
+                    Text("反选", color = colors.onSurfaceVariant, fontSize = 11.sp,
+                        modifier = Modifier.clickable {
+                            multiSelect = true
+                            val visibleIds = history.document.objects.filter { it.visible }.map { it.id }.toSet()
+                            history = history.dispatch(XingtuV2Action.Select(visibleIds - history.document.selectedIds))
+                        }.padding(5.dp))
+                    Text("取消", color = colors.onSurfaceVariant, fontSize = 11.sp,
+                        modifier = Modifier.clickable {
+                            history = history.dispatch(XingtuV2Action.Select(emptySet()))
+                            multiSelect = false
+                        }.padding(5.dp))
                 }
                 LazyColumn {
                     items(history.document.objects.asReversed(), key = { it.id }) { item ->
@@ -686,6 +702,27 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                         }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(if (item.id in history.document.selectedIds) "●" else "○",
                                 color = colors.primary, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
+                            Text("⠿", color = colors.onSurfaceVariant, fontSize = 17.sp,
+                                modifier = Modifier.pointerInput(item.id) {
+                                    var dragDistance = 0f
+                                    detectDragGestures(
+                                        onDragStart = { dragDistance = 0f },
+                                        onDragEnd = { dragDistance = 0f },
+                                        onDragCancel = { dragDistance = 0f }
+                                    ) { change, drag ->
+                                        change.consume()
+                                        dragDistance += drag.y
+                                        while (kotlin.math.abs(dragDistance) >= 52f) {
+                                            val currentIndex = history.document.objects.indexOfFirst { it.id == item.id }
+                                            if (currentIndex < 0) break
+                                            val step = if (dragDistance > 0f) -1 else 1
+                                            val targetIndex = (currentIndex + step).coerceIn(0, history.document.objects.lastIndex)
+                                            if (targetIndex == currentIndex) break
+                                            history = history.dispatch(XingtuV2Action.Reorder(item.id, targetIndex))
+                                            dragDistance -= if (dragDistance > 0f) 52f else -52f
+                                        }
+                                    }
+                                }.padding(horizontal = 5.dp))
                             Text(when (item) {
                                 is XingtuV2Object.Text -> item.content
                                 is XingtuV2Object.Image -> "图片"
