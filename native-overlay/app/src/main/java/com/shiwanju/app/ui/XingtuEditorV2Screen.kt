@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.RectangleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.OutlinedTextField
@@ -440,7 +439,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     val shape = when (item.componentType) {
                                         "ellipse" -> CircleShape
                                         "rounded-rectangle" -> RoundedCornerShape((item.cornerRadius * scaleX).dp)
-                                        else -> RectangleShape
+                                        else -> RoundedCornerShape(0.dp)
                                     }
                                     if (item.componentType == "line") {
                                         Box(objectModifier.background(Color(item.fillColor)))
@@ -772,7 +771,12 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 is XingtuV2Object.Image -> "图片"
                                 is XingtuV2Object.Component -> "组件 ${item.componentType}"
                             }
-                            item.layerName.contains(layerQuery, ignoreCase = true) ||
+                            val layerName = when (item) {
+                                is XingtuV2Object.Text -> item.layerName
+                                is XingtuV2Object.Image -> item.layerName
+                                is XingtuV2Object.Component -> item.layerName
+                            }
+                            layerName.contains(layerQuery, ignoreCase = true) ||
                                 fallback.contains(layerQuery, ignoreCase = true)
                         }
                     }, key = { it.id }) { item ->
@@ -825,12 +829,17 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     is XingtuV2Object.Image -> "图片"
                                     is XingtuV2Object.Component -> "组件 · ${item.componentType}"
                                 }
-                                Text(item.layerName.ifBlank { fallbackName }, color = colors.onSurface,
+                                val currentLayerName = when (item) {
+                                    is XingtuV2Object.Text -> item.layerName
+                                    is XingtuV2Object.Image -> item.layerName
+                                    is XingtuV2Object.Component -> item.layerName
+                                }
+                                Text(currentLayerName.ifBlank { fallbackName }, color = colors.onSurface,
                                     fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
                                 Text("✎", color = colors.onSurfaceVariant, fontSize = 13.sp,
                                     modifier = Modifier.clickable {
                                         editingLayerId = item.id
-                                        layerNameDraft = item.layerName.ifBlank { fallbackName }
+                                        layerNameDraft = currentLayerName.ifBlank { fallbackName }
                                     }.padding(horizontal = 5.dp))
                             }
                             val layerIndex = history.document.objects.indexOfFirst { it.id == item.id }
@@ -1250,7 +1259,7 @@ private fun XingtuV2PropertyPanel(
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf(0x66000000, 0x66FFFFFF, 0x66E64A4A, 0x660000FF).forEach { value ->
+                            listOf(0x66000000L, 0x66FFFFFFL, 0x66E64A4AL, 0x660000FFL).forEach { value ->
                                 Box(Modifier.size(28.dp).clip(CircleShape).background(Color(value))
                                     .border(if (selectedObject.shadowColor == value) 2.dp else 1.dp,
                                         if (selectedObject.shadowColor == value) colors.primary else colors.outlineVariant, CircleShape)
@@ -1264,30 +1273,6 @@ private fun XingtuV2PropertyPanel(
 
                     "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
                         onUpdate(selectedObject.copy(transform = it))
-                    }
-                    "边框" -> {
-                        V2ValueSlider("边框宽度", selectedObject.borderWidth, 0f..24f) {
-                            onUpdate(selectedObject.copy(borderWidth = it))
-                        }
-                        Text("边框颜色", color = colors.onSurfaceVariant, fontSize = 11.sp)
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf(0xFF222222, 0xFFFFFFFF, 0xFFE64A4A, 0xFF2878D0, 0xFF159765, 0xFFFFB020).forEach { value ->
-                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
-                                    .border(if (selectedObject.borderColor == value) 2.dp else 1.dp,
-                                        if (selectedObject.borderColor == value) colors.primary else colors.outlineVariant, CircleShape)
-                                    .clickable { onUpdate(selectedObject.copy(borderColor = value)) })
-                            }
-                        }
-                        V2ColorInput("自定义边框颜色", selectedObject.borderColor) {
-                            onUpdate(selectedObject.copy(borderColor = it))
-                        }
-                    }
-                    "圆角" -> V2ValueSlider("图片圆角", selectedObject.cornerRadius, 0f..120f) {
-                        onUpdate(selectedObject.copy(cornerRadius = it))
-                    }
-                    "阴影" -> V2ValueSlider("阴影范围", selectedObject.shadowRadius, 0f..48f) {
-                        onUpdate(selectedObject.copy(shadowRadius = it))
                     }
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
@@ -1385,6 +1370,30 @@ private fun XingtuV2PropertyPanel(
                             }
                         }
                     }
+                    "边框" -> {
+                        V2ValueSlider("边框宽度", selectedObject.borderWidth, 0f..24f) {
+                            onUpdate(selectedObject.copy(borderWidth = it))
+                        }
+                        Text("边框颜色", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0xFF222222L, 0xFFFFFFFFL, 0xFFE64A4AL, 0xFF2878D0L, 0xFF159765L, 0xFFFFB020L).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
+                                    .border(if (selectedObject.borderColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.borderColor == value) colors.primary else colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(borderColor = value)) })
+                            }
+                        }
+                        V2ColorInput("自定义边框颜色", selectedObject.borderColor) {
+                            onUpdate(selectedObject.copy(borderColor = it))
+                        }
+                    }
+                    "圆角" -> V2ValueSlider("图片圆角", selectedObject.cornerRadius, 0f..120f) {
+                        onUpdate(selectedObject.copy(cornerRadius = it))
+                    }
+                    "阴影" -> V2ValueSlider("图片阴影范围", selectedObject.shadowRadius, 0f..48f) {
+                        onUpdate(selectedObject.copy(shadowRadius = it))
+                    }
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
                     }
@@ -1456,7 +1465,7 @@ private fun XingtuV2PropertyPanel(
                         }
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf(0x00000000, 0x66000000, 0x66FFFFFF, 0x66E64A4A, 0x662878D0).forEach { value ->
+                            listOf(0x00000000L, 0x66000000L, 0x66FFFFFFL, 0x66E64A4AL, 0x662878D0L).forEach { value ->
                                 Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
                                     .border(if (selectedObject.shadowColor == value) 2.dp else 1.dp,
                                         if (selectedObject.shadowColor == value) colors.primary else colors.outlineVariant, CircleShape)
@@ -1611,7 +1620,6 @@ private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPoin
     }
 }
 
-@Composable
 @Composable
 private fun V2SingleAlignControls(
     transform: XingtuV2Transform,
