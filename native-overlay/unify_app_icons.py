@@ -97,7 +97,7 @@ for path in files:
      items[label]=(label,category(label))
  # Route all shared-renderer call sites through AppIcon, preserving argument order.
  edits=[]
- for call in re.finditer(r"(?<!fun )ShiWanJuLineIcon\\s*\\(",src):
+ for call in re.finditer(r"(?<!fun )ShiWanJuLineIcon\s*\(",src):
   end=end_call(src,call.end()-1)
   if end<0: continue
   args=split_args(src[call.end():end])
