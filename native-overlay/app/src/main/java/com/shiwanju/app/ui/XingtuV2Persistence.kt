@@ -68,6 +68,10 @@ object XingtuV2Persistence {
                         saturation = item.optDouble("saturation", 1.0).toFloat(),
                         brightness = item.optDouble("brightness", 0.0).toFloat(),
                         contrast = item.optDouble("contrast", 1.0).toFloat(),
+                        cornerRadius = item.optDouble("cornerRadius", 0.0).toFloat(),
+                        borderWidth = item.optDouble("borderWidth", 0.0).toFloat(),
+                        borderColor = item.optLong("borderColor", 0x00000000),
+                        shadowRadius = item.optDouble("shadowRadius", 0.0).toFloat(),
                         flipHorizontal = item.optBoolean("flipHorizontal", false),
                         flipVertical = item.optBoolean("flipVertical", false),
                         transform = transform, visible = visible, locked = locked
@@ -183,6 +187,8 @@ object XingtuV2Persistence {
                         .put("cropBottom", item.cropBottom).put("colorTemperature", item.colorTemperature)
                         .put("saturation", item.saturation).put("brightness", item.brightness)
                         .put("contrast", item.contrast)
+                        .put("cornerRadius", item.cornerRadius).put("borderWidth", item.borderWidth)
+                        .put("borderColor", item.borderColor).put("shadowRadius", item.shadowRadius)
                         .put("flipHorizontal", item.flipHorizontal).put("flipVertical", item.flipVertical)
                     is XingtuV2Object.Component -> json
                         .put("componentType", item.componentType).put("fillColor", item.fillColor)

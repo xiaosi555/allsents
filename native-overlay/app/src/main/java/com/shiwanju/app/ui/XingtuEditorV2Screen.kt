@@ -32,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
@@ -451,7 +452,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             }.getOrNull()
                                         }
                                     }
-                                    Box(objectModifier.clip(RoundedCornerShape(2.dp)).background(Color(0xFFE9E9E9))) {
+                                    val imageShape = RoundedCornerShape(item.cornerRadius.coerceIn(0f, 120f).dp)
+                                    Box(objectModifier.shadow(item.shadowRadius.coerceIn(0f, 48f).dp, imageShape)
+                                        .clip(imageShape).background(Color(0xFFE9E9E9))
+                                        .border(item.borderWidth.coerceIn(0f, 24f).dp, Color(item.borderColor), imageShape)) {
                                         if (bitmap != null) {
                                             Image(bitmap = bitmap!!, contentDescription = "画布图片",
                                                 modifier = Modifier.fillMaxSize().graphicsLayer(
@@ -837,7 +841,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             activePanel = tab
                         }
                     }
-                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "对齐", "透明度", "变换").forEach { tab ->
+                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "边框", "圆角", "阴影", "对齐", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (tab == "替换") {
                                 history = history.beginTransform()
@@ -959,7 +963,7 @@ private fun XingtuV2PropertyPanel(
         }
         val panelTabs = when (selectedObject) {
             is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换")
-            is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "对齐", "透明度", "变换")
+            is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "边框", "圆角", "阴影", "对齐", "透明度", "变换")
             is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "对齐", "变换")
         }
         Row(
@@ -1062,6 +1066,30 @@ private fun XingtuV2PropertyPanel(
 
                     "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
                         onUpdate(selectedObject.copy(transform = it))
+                    }
+                    "边框" -> {
+                        V2ValueSlider("边框宽度", selectedObject.borderWidth, 0f..24f) {
+                            onUpdate(selectedObject.copy(borderWidth = it))
+                        }
+                        Text("边框颜色", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0xFF222222, 0xFFFFFFFF, 0xFFE64A4A, 0xFF2878D0, 0xFF159765, 0xFFFFB020).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
+                                    .border(if (selectedObject.borderColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.borderColor == value) colors.primary else colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(borderColor = value)) })
+                            }
+                        }
+                        V2ColorInput("自定义边框颜色", selectedObject.borderColor) {
+                            onUpdate(selectedObject.copy(borderColor = it))
+                        }
+                    }
+                    "圆角" -> V2ValueSlider("图片圆角", selectedObject.cornerRadius, 0f..120f) {
+                        onUpdate(selectedObject.copy(cornerRadius = it))
+                    }
+                    "阴影" -> V2ValueSlider("阴影范围", selectedObject.shadowRadius, 0f..48f) {
+                        onUpdate(selectedObject.copy(shadowRadius = it))
                     }
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
