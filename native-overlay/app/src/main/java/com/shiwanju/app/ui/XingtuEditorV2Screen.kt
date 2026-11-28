@@ -13,6 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -30,6 +33,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -1023,7 +1027,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             ) {
                 Text("${history.document.selectedIds.size} 个对象", color = colors.primary, fontSize = 12.sp)
                 ObjectToolChip("组合") {
-                    if (history.document.selectedIds.size > 1) {
+                    if (activePanel == null && !activeCanvasPanel && !activeMultiTransform) {
+        if (history.document.selectedIds.size > 1) {
                         history = history.dispatch(XingtuV2Action.GroupObjects(
                             history.document.selectedIds, "group-${System.nanoTime()}"
                         ))
@@ -1130,7 +1135,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     showLayers = false
                 }
             }
-        }
+        }        }
+
     }
 }
 
@@ -1204,6 +1210,61 @@ private fun XingtuV2DarkPanel(content: @Composable () -> Unit) {
 }
 
 @Composable
+@Composable
+private fun XingtuV2PanelDragArea(
+    panelHeight: Float,
+    onPanelHeightChange: (Float) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current.density
+    val currentHeight by rememberUpdatedState(panelHeight)
+    val updateHeight by rememberUpdatedState(onPanelHeightChange)
+    val scope = rememberCoroutineScope()
+    Box(
+        modifier.pointerInput(Unit) {
+            var startHeight = 220f
+            var totalDrag = 0f
+            detectDragGestures(
+                onDragStart = {
+                    startHeight = currentHeight
+                    totalDrag = 0f
+                },
+                onDragEnd = {
+                    val delta = totalDrag / density
+                    val target = when {
+                        delta <= -36f -> 400f
+                        delta >= 36f -> 200f
+                        else -> (startHeight - delta).coerceIn(200f, 400f)
+                    }
+                    scope.launch {
+                        Animatable(currentHeight).animateTo(
+                            target,
+                            animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                        ) { updateHeight(value.coerceIn(200f, 400f)) }
+                    }
+                },
+                onDragCancel = {
+                    totalDrag = 0f
+                }
+            ) { change, drag ->
+                change.consume()
+                totalDrag += drag.y
+                updateHeight((startHeight - totalDrag / density).coerceIn(200f, 400f))
+            }
+        },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(Modifier.width(36.dp).height(4.dp).clip(CircleShape).background(Color(0xFF555555)))
+            Text(label, color = Color(0xFF999999), fontSize = 10.sp)
+        }
+    }
+}
+
 private fun XingtuV2PropertyPanel(
     selectedObject: XingtuV2Object,
     canvas: XingtuV2Canvas,
@@ -1240,20 +1301,7 @@ private fun XingtuV2PropertyPanel(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", Color.White, 20.dp) }
-            Box(
-                Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
-                    detectDragGestures { change, drag ->
-                        change.consume()
-                        onPanelHeightChange((panelHeight - drag.y / density).coerceIn(200f, 400f))
-                    }
-                },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Box(Modifier.width(36.dp).height(4.dp).clip(CircleShape).background(colors.outlineVariant))
-                    Text(tab, color = colors.onSurfaceVariant, fontSize = 10.sp)
-                }
-            }
+            XingtuV2PanelDragArea(panelHeight, onPanelHeightChange, "属性面板", Modifier.weight(1f).fillMaxHeight())
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", AppColors.Theme, 19.dp) }
         }
         val panelTabs = when (selectedObject) {
@@ -1685,17 +1733,7 @@ private fun XingtuV2CanvasPanel(
     Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
         Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
-            Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
-                detectDragGestures { change, drag ->
-                    change.consume()
-                    onPanelHeightChange((panelHeight - drag.y / density).coerceIn(200f, 400f))
-                }
-            }, contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.width(36.dp).height(4.dp).clip(CircleShape).background(colors.outlineVariant))
-                    Text("画布设置", color = colors.onSurfaceVariant, fontSize = 10.sp)
-                }
-            }
+            XingtuV2PanelDragArea(panelHeight, onPanelHeightChange, "画布设置", Modifier.weight(1f).fillMaxHeight())
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", colors.primary, 18.dp) }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
@@ -1737,17 +1775,7 @@ private fun XingtuV2MultiTransformPanel(
     Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
         Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
-            Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
-                detectDragGestures { change, drag ->
-                    change.consume()
-                    onPanelHeightChange((panelHeight - drag.y / density).coerceIn(200f, 400f))
-                }
-            }, contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.width(36.dp).height(4.dp).clip(CircleShape).background(colors.outlineVariant))
-                    Text("多选整体变换", color = colors.onSurfaceVariant, fontSize = 10.sp)
-                }
-            }
+            XingtuV2PanelDragArea(panelHeight, onPanelHeightChange, "多选整体变换", Modifier.weight(1f).fillMaxHeight())
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", colors.primary, 18.dp) }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
