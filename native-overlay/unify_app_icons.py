@@ -145,19 +145,23 @@ for path in files:
   if re.search(r'Text\(\s*"[^"]*[↻⌫ⓘ▧▦▤◇⊞▣♡⠿☰☷☻⚙★☆♥✚✎⌂⌕]',line):
    glyphs.append(f"{path.name}:{i}")
 report=ROOT.parent.parent.parent / "SHIWANJU_ICON_AUDIT_REPORT.md"
-report.write_text(
- "# 拾万句全局图标迁移审计\\n\n"
- f"- 统一图标目录：{len(items)} 个语义标识\\n"
- f"- Material 图标迁移：{converted} 处\\n"
- f"- 扫描 Kotlin 文件：{len(files)} 个\\n"
- f"- 遗留字符图标候选：{len(glyphs)} 处（需人工确认是否为正文文本）\\n\\n"
- "## 按文件统计\\n\\n"
- "| Kotlin 文件 | 统一图标调用数 |\\n|---|---:|\\n"
- + "".join(f"| {name} | {count} |\\n" for name,count in audit)
- + "\n## 遗留字符候选\\n\\n"
- + ("\\n".join("- "+g for g in glyphs) if glyphs else "无")
- + "\\n",
- encoding="utf-8")
+report_lines = [
+ "# 拾万句全局图标迁移审计",
+ "",
+ f"- 统一图标目录：{len(items)} 个语义标识",
+ f"- Material 图标迁移：{converted} 处",
+ f"- 扫描 Kotlin 文件：{len(files)} 个",
+ f"- 遗留字符图标候选：{len(glyphs)} 处（需人工确认是否为正文文本）",
+ "",
+ "## 按文件统计",
+ "",
+ "| Kotlin 文件 | 统一图标调用数 |",
+ "|---|---:|",
+]
+report_lines.extend(f"| {name} | {count} |" for name,count in audit)
+report_lines.extend(["", "## 遗留字符候选", ""])
+report_lines.extend(("- "+g for g in glyphs) if glyphs else ["无"])
+report.write_text("\n".join(report_lines)+"\n",encoding="utf-8")
 print(f"Semantic registry: {len(items)} keys; migrated {converted} Material Icon composables across {len(files)} Kotlin files.")
 print(f"AppIcon call sites: {sum(c for _,c in audit)}; legacy glyph text candidates remaining: {len(glyphs)}")
 print(f"Icon audit report: {report}")
