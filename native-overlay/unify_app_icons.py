@@ -72,7 +72,7 @@ for name, (style, _) in sorted(found.items()):
         continue
     additions.append(f' AppIconItem("{key}","{labels.get(name, name)}","扩展",Icons.{style}.{name}),')
 if additions:
-    anchor = ")\n\n@Composable fun AppIconVector"
+    anchor = ")\n\n/** The single vector source used by every application screen and icon-library preview. */\nfun AppIconVector"
     if anchor not in registry_source:
         raise SystemExit("Cannot locate icon registry insertion point.")
     registry_source = registry_source.replace(anchor, "\n" + "\n".join(additions) + anchor, 1)
