@@ -67,6 +67,8 @@ object XingtuV2Persistence {
                         colorTemperature = item.optDouble("colorTemperature", 0.0).toFloat(),
                         saturation = item.optDouble("saturation", 1.0).toFloat(),
                         brightness = item.optDouble("brightness", 0.0).toFloat(),
+                        flipHorizontal = item.optBoolean("flipHorizontal", false),
+                        flipVertical = item.optBoolean("flipVertical", false),
                         transform = transform, visible = visible, locked = locked
                     ))
                     "COMPONENT" -> add(XingtuV2Object.Component(
@@ -179,6 +181,7 @@ object XingtuV2Persistence {
                         .put("cropTop", item.cropTop).put("cropRight", item.cropRight)
                         .put("cropBottom", item.cropBottom).put("colorTemperature", item.colorTemperature)
                         .put("saturation", item.saturation).put("brightness", item.brightness)
+                        .put("flipHorizontal", item.flipHorizontal).put("flipVertical", item.flipVertical)
                     is XingtuV2Object.Component -> json
                         .put("componentType", item.componentType).put("fillColor", item.fillColor)
                         .put("cornerRadius", item.cornerRadius).put("strokeColor", item.strokeColor)

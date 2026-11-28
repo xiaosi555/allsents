@@ -420,7 +420,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     Box(objectModifier.clip(RoundedCornerShape(2.dp)).background(Color(0xFFE9E9E9))) {
                                         if (bitmap != null) {
                                             Image(bitmap = bitmap!!, contentDescription = "画布图片",
-                                                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize().graphicsLayer(
+                                                    scaleX = if (item.flipHorizontal) -1f else 1f,
+                                                    scaleY = if (item.flipVertical) -1f else 1f
+                                                ), contentScale = ContentScale.Crop,
                                                 colorFilter = ColorFilter.colorMatrix(v2ImageColorMatrix(item)))
                                         } else {
                                             Text("图片", color = Color.DarkGray, fontSize = 12.sp,
@@ -1028,6 +1031,12 @@ private fun XingtuV2PropertyPanel(
                     "变换" -> {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip(if (selectedObject.flipHorizontal) "取消水平镜像" else "水平镜像") {
+                                onUpdate(selectedObject.copy(flipHorizontal = !selectedObject.flipHorizontal))
+                            }
+                            ObjectToolChip(if (selectedObject.flipVertical) "取消垂直镜像" else "垂直镜像") {
+                                onUpdate(selectedObject.copy(flipVertical = !selectedObject.flipVertical))
+                            }
                             ObjectToolChip("左转 90°") {
                                 onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(
                                     rotation = (selectedObject.transform.rotation - 90f).let { if (it < -360f) it + 360f else it }
