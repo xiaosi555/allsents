@@ -166,9 +166,11 @@ s = replace_once(
 # Replace only the persistent primary dock. The secondary panel content and every
 # old EditorPanel implementation remain intact and are still reachable.
 marker = "// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog."
-if s.count(marker) != 1:
-    fail("persistent primary navigation anchor is not unique")
-start = s.index(marker)
+if marker not in s:
+    fail("persistent primary navigation anchor is missing")
+# Upstream editor refinements may retain an earlier hidden dock fragment; the
+# last matching marker is the active dock at the bottom of the editor root.
+start = s.rfind(marker)
 if_start = s.find("            if (!previewMode) {", start)
 if if_start < 0:
     fail("primary navigation if-block not found")
