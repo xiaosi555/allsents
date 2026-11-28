@@ -402,14 +402,18 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             runCatching {
                                                 context.contentResolver.openInputStream(Uri.parse(item.assetUri))?.use { stream ->
                                                     val source = BitmapFactory.decodeStream(stream) ?: return@use null
-                                                    val left = (source.width * item.cropLeft.coerceIn(0f, 0.95f)).toInt()
-                                                    val top = (source.height * item.cropTop.coerceIn(0f, 0.95f)).toInt()
-                                                    val right = (source.width * item.cropRight.coerceIn(item.cropLeft + 0.05f, 1f)).toInt()
-                                                    val bottom = (source.height * item.cropBottom.coerceIn(item.cropTop + 0.05f, 1f)).toInt()
+                                                    // Normalize imported crop bounds before converting to pixels.
+                                                    // Keep at least one pixel in each dimension, even for malformed JSON.
+                                                    val cropLeft = item.cropLeft.coerceIn(0f, 0.95f)
+                                                    val cropTop = item.cropTop.coerceIn(0f, 0.95f)
+                                                    val cropRight = item.cropRight.coerceIn(cropLeft + 0.05f, 1f)
+                                                    val cropBottom = item.cropBottom.coerceIn(cropTop + 0.05f, 1f)
+                                                    val left = (source.width * cropLeft).toInt().coerceIn(0, source.width - 1)
+                                                    val top = (source.height * cropTop).toInt().coerceIn(0, source.height - 1)
+                                                    val right = (source.width * cropRight).toInt().coerceIn(left + 1, source.width)
+                                                    val bottom = (source.height * cropBottom).toInt().coerceIn(top + 1, source.height)
                                                     val cropped = Bitmap.createBitmap(
-                                                        source, left, top,
-                                                        (right - left).coerceAtLeast(1),
-                                                        (bottom - top).coerceAtLeast(1)
+                                                        source, left, top, right - left, bottom - top
                                                     )
                                                     if (cropped !== source) source.recycle()
                                                     cropped.asImageBitmap()
@@ -658,6 +662,14 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 modifier = Modifier.clickable(enabled = layerIndex > 0) {
                                     history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex - 1))
                                 }.padding(horizontal = 4.dp))
+                            Text("底", color = colors.onSurfaceVariant, fontSize = 10.sp,
+                                modifier = Modifier.clickable(enabled = layerIndex > 0) {
+                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, 0))
+                                }.padding(horizontal = 3.dp))
+                            Text("顶", color = colors.onSurfaceVariant, fontSize = 10.sp,
+                                modifier = Modifier.clickable(enabled = layerIndex < history.document.objects.lastIndex) {
+                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, history.document.objects.lastIndex))
+                                }.padding(horizontal = 3.dp))
                             Text(if (item.visible) "显示" else "隐藏",
                                 color = colors.onSurfaceVariant, fontSize = 10.sp,
                                 modifier = Modifier.clickable {
@@ -982,9 +994,6 @@ private fun XingtuV2PropertyPanel(
                         }
                     }
 
-                    "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
-                        onUpdate(selectedObject.copy(transform = it))
-                    }
                     "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
                         onUpdate(selectedObject.copy(transform = it))
                     }
