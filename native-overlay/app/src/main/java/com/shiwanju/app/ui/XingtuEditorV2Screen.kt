@@ -178,8 +178,27 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
 
     BackHandler {
-        XingtuV2Persistence.save(context, history.document)
-        onBack()
+        when {
+            activePanel != null -> {
+                history = history.endTransform()
+                activePanel = null
+            }
+            activeCanvasPanel -> {
+                history = history.endTransform()
+                activeCanvasPanel = false
+            }
+            activeMultiTransform -> {
+                history = history.endTransform()
+                activeMultiTransform = false
+            }
+            showVersions -> showVersions = false
+            showLayers -> showLayers = false
+            showComponentPicker -> showComponentPicker = false
+            else -> {
+                XingtuV2Persistence.save(context, history.document)
+                onBack()
+            }
+        }
     }
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         Row(
