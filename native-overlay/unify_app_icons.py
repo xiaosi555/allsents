@@ -57,7 +57,7 @@ for path in files:
   if end<0: continue
   args=split_args(src[m.end():end])
   if not args: continue
-  first=args[0]; mat=re.fullmatch(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.([A-Za-z0-9_]+)",first); vec=re.fullmatch(r'AppIconVector\("([^"]+)"\)',first)
+  first=args[0]; mat=re.fullmatch(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.([A-Za-z0-9_]+)",first); vec=re.fullmatch(r'AppIconVector\("([^"]+)"\)',first); shared=re.fullmatch(r"AppIconVectors\.(?:Outlined|Default|Filled|Rounded|TwoTone|Sharp)([A-Za-z0-9_]+)",first)
   if not mat and not vec and not shared: continue
   if mat:
    name=mat.group(1); key=key_for(name); label=LABELS.get(name,name)
