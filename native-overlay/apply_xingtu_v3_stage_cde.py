@@ -99,6 +99,7 @@ if "k == \"back\"" not in s:
             k == "back" -> { poly(listOf(Offset(w*.68f,h*.16f),Offset(w*.34f,h*.50f),Offset(w*.68f,h*.84f))); line(w*.36f,h*.50f,w*.86f,h*.50f) }
             k == "save" -> { outlineRect(w*.16f,h*.12f,w*.68f,h*.76f,sw*.5f); outlineRect(w*.30f,h*.12f,w*.40f,h*.25f,sw*.4f); outlineRect(w*.30f,h*.54f,w*.40f,h*.22f,sw*.4f) }
             k == "document" -> { outlineRect(w*.20f,h*.10f,w*.60f,h*.80f,sw*.7f); line(w*.32f,h*.36f,w*.68f,h*.36f); line(w*.32f,h*.52f,w*.68f,h*.52f); line(w*.32f,h*.68f,w*.60f,h*.68f) }
+            k == "text" -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.35f,h*.45f,w*.65f,h*.45f) }
             k == "style" -> { circle(cx,cy,w*.30f); line(cx,cy-w*.42f,cx,cy+w*.42f); line(w*.16f,cy,w*.84f,cy) }""",
         "semantic vector icon paths"
     )
