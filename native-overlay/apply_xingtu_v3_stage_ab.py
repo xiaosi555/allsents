@@ -170,8 +170,8 @@ s = replace_once(
 # Locate the active category dock by its stable Compose structure, not comments
 # that upstream historical patch scripts may rewrite.
 dock_pattern = re.compile(
-    r"if\\s*\\(!previewMode(?:\\s*&&\\s*!showToolPopup)?\\)\\s*\\{\\s*"
-    r"Row\\(\\s*Modifier\\.fillMaxWidth\\(\\)\\.height\\(50\\.dp\\)"
+    r"if\s*\(!previewMode(?:\s*&&\s*!showToolPopup)?\)\s*\{\s*"
+    r"Row\(\s*Modifier\.fillMaxWidth\(\)\.height\(50\.dp\)"
 )
 dock_matches = list(dock_pattern.finditer(s))
 if not dock_matches:
