@@ -1118,7 +1118,7 @@ private fun XingtuV2Glyph(name: String, tint: Color, size: androidx.compose.ui.u
         "search" -> "⌕"; "visible" -> "◉"; "hidden" -> "⊘"; "move" -> "↕"; "up" -> "↑"; "down" -> "↓"
         "reset" -> "↺"; "selected" -> "●"; "unselected" -> "○"; "drag" -> "⠿"; else -> "◈"
     }
-    Text(glyph, color = tint, fontSize = (size.value * .92f).sp, fontWeight = FontWeight.Medium, lineHeight = size.sp)
+    Text(glyph, color = tint, fontSize = (size.value * .92f).sp, fontWeight = FontWeight.Medium, lineHeight = (size.value * 1.1f).sp)
 }
 
 @Composable
