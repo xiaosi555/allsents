@@ -144,6 +144,24 @@ data class XingtuV2History(
         else copy(undoStack = undoStack + snapshot, redoStack = emptyList(), transformSnapshot = null)
     }
 
+    /** Move all currently selected unlocked objects by one shared canvas-space delta. */
+    fun updateSelectedOffset(dx: Float, dy: Float): XingtuV2History {
+        val selected = document.selectedIds
+        if (selected.isEmpty()) return this
+        val updated = document.copy(objects = document.objects.map { item ->
+            if (item.id in selected && !item.locked) {
+                val t = item.transform
+                val next = t.copy(x = t.x + dx, y = t.y + dy)
+                when (item) {
+                    is XingtuV2Object.Text -> item.copy(transform = next)
+                    is XingtuV2Object.Image -> item.copy(transform = next)
+                    is XingtuV2Object.Component -> item.copy(transform = next)
+                }
+            } else item
+        }, revision = document.revision + 1)
+        return if (updated == document) this else copy(document = updated)
+    }
+
     fun dispatch(action: XingtuV2Action): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, action)
         return if (updated == document) this else copy(document = updated, undoStack = undoStack + document, redoStack = emptyList())

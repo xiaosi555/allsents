@@ -139,8 +139,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 Box(
                     Modifier.width(canvasWidth).height(canvasHeight)
                         .graphicsLayer {
-                            scaleX = viewportScale
-                            scaleY = viewportScale
+                            this.scaleX = viewportScale
+                            this.scaleY = viewportScale
                             translationX = viewportPanX
                             translationY = viewportPanY
                         }
@@ -188,13 +188,15 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             change.consume()
                                             val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                             val old = current.transform
-                                            history = history.updateTransform(
-                                                item.id,
-                                                old.copy(
-                                                    x = old.x + (drag.x / density) / (scaleX * viewportScale),
-                                                    y = old.y + (drag.y / density) / (scaleY * viewportScale)
+                                            val dx = (drag.x / density) / (scaleX * viewportScale)
+                                            val dy = (drag.y / density) / (scaleY * viewportScale)
+                                            if (history.document.selectedIds.size > 1 && item.id in history.document.selectedIds) {
+                                                history = history.updateSelectedOffset(dx, dy)
+                                            } else {
+                                                history = history.updateTransform(
+                                                    item.id, old.copy(x = old.x + dx, y = old.y + dy)
                                                 )
-                                            )
+                                            }
                                         }
                                     }
                                 }
