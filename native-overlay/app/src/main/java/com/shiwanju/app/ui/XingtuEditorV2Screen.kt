@@ -961,11 +961,15 @@ private fun XingtuV2PropertyPanel(
                     "样式" -> {
                         Text("文字颜色", color = colors.onSurface, fontSize = 12.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
-                            listOf(0xFF222222, 0xFF666666, 0xFFE64A4A, 0xFF2878D0, 0xFF159765).forEach { value ->
+                            listOf(0xFF222222, 0xFF666666, 0xFFE64A4A, 0xFF2878D0, 0xFF159765, 0xFFFFB020, 0xFFFFFFFF).forEach { value ->
                                 Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
-                                    .border(1.dp, colors.outlineVariant, CircleShape)
+                                    .border(if (selectedObject.color == value) 2.dp else 1.dp,
+                                        if (selectedObject.color == value) colors.primary else colors.outlineVariant, CircleShape)
                                     .clickable { onUpdate(selectedObject.copy(color = value)) })
                             }
+                        }
+                        V2ColorInput("自定义文字颜色", selectedObject.color) {
+                            onUpdate(selectedObject.copy(color = it))
                         }
                     }
 
@@ -1070,6 +1074,9 @@ private fun XingtuV2PropertyPanel(
                                     .clickable { onUpdate(selectedObject.copy(fillColor = value)) })
                             }
                         }
+                        V2ColorInput("自定义填充颜色", selectedObject.fillColor) {
+                            onUpdate(selectedObject.copy(fillColor = it))
+                        }
                     }
                     "圆角" -> V2ValueSlider("圆角", selectedObject.cornerRadius, 0f..80f) {
                         onUpdate(selectedObject.copy(cornerRadius = it))
@@ -1087,6 +1094,9 @@ private fun XingtuV2PropertyPanel(
                                         if (selectedObject.strokeColor == value) colors.primary else colors.outlineVariant, CircleShape)
                                     .clickable { onUpdate(selectedObject.copy(strokeColor = value)) })
                             }
+                        }
+                        V2ColorInput("自定义边框颜色", selectedObject.strokeColor) {
+                            onUpdate(selectedObject.copy(strokeColor = it))
                         }
                     }
                     "变换" -> V2TransformControls(selectedObject.transform) {
@@ -1203,6 +1213,31 @@ private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPoin
 }
 
 @Composable
+@Composable
+private fun V2ColorInput(label: String, value: Long, onChange: (Long) -> Unit) {
+    var text by remember { mutableStateOf("#%08X".format(value)) }
+    LaunchedEffect(value) {
+        val parsed = text.removePrefix("#").toLongOrNull(16)
+        if (parsed == null || parsed != value) text = "#%08X".format(value)
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { next ->
+            text = next.filter { it.isDigit() || it.lowercaseChar() in 'a'..'f' || it == '#' }.take(9)
+            val hex = text.removePrefix("#")
+            val parsed = when (hex.length) {
+                6 -> ("FF" + hex).toLongOrNull(16)
+                8 -> hex.toLongOrNull(16)
+                else -> null
+            }
+            parsed?.let(onChange)
+        },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("$label（#AARRGGBB）", fontSize = 10.sp) },
+        singleLine = true
+    )
+}
+
 @Composable
 private fun V2NumberField(label: String, value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
     var text by remember { mutableStateOf(String.format(java.util.Locale.US, "%.1f", value)) }
