@@ -45,7 +45,7 @@ def end_call(s,start):
    d-=1
    if d==0:return i
  return -1
-files=list(UI.rglob("*.kt")); registry=REGISTRY.read_text(encoding="utf-8")
+files=list(ROOT.rglob("*.kt")); registry=REGISTRY.read_text(encoding="utf-8")
 items={k:v for k,v in {
 "home":("主页","导航"),"layout":("排版","导航"),"xiumi":("秀米排版","导航"),"xingtu":("醒图","导航"),"xingtu2":("醒图 2.0","导航"),"profile":("我的","导航"),"icon-library":("图标库","导航"),"search":("搜索","通用"),"settings":("设置","通用"),"more":("更多","通用"),"back":("返回","通用"),"close":("关闭","通用"),"confirm":("确认","通用"),"add":("添加","通用"),"save":("保存","通用"),"undo":("撤销","通用"),"redo":("重做","通用"),"image":("图片","素材"),"gallery":("相册","素材"),"camera":("相机","素材"),"folder":("文件夹","素材"),"history":("历史记录","数据"),"text":("文字","编辑"),"font":("字体","编辑"),"brush":("画笔","编辑"),"crop":("裁剪","编辑"),"rotate":("旋转","编辑"),"layers":("图层","编辑"),"widgets":("组件","编辑"),"align":("对齐","编辑"),"palette":("调色","编辑"),"filter":("滤镜","编辑"),"opacity":("透明度","编辑"),"border":("边框","编辑"),"lock":("锁定","编辑"),"visible":("显示","编辑"),"delete":("删除","编辑"),"copy":("复制","编辑"),"upload":("导入","素材"),"download":("导出","素材"),"favorite":("收藏","通用")}.items()}
 converted=0; remaining=[]
@@ -77,6 +77,9 @@ for path in files:
  if edits:
   if not re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src):
    src=re.sub(r"(?m)^import androidx\.compose\.material\.icons\..*\n","",src)
+  package=re.search(r"(?m)^package ([\\w.]+)",src)
+  if package and package.group(1)!="com.shiwanju.app.ui" and "import com.shiwanju.app.ui.AppIcon" not in src:
+   src=re.sub(r"(?m)^package [^\\n]+\\n",lambda m:m.group(0)+"\\nimport com.shiwanju.app.ui.AppIcon\\n",src,count=1)
   path.write_text(src,encoding="utf-8"); converted+=len(edits)
  if re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src): remaining.append(str(path))
 entries=",\n".join(f' AppIconItem("{k}","{v[0]}","{v[1]}")' for k,v in sorted(items.items()))
