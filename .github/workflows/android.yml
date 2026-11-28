@@ -244,6 +244,19 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_xingtu_v3_stage_ab.py
 
+      - name: Apply Xingtu 3.0 Stage C D E
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_xingtu_v3_stage_cde.py
+
+      - name: Upload Xingtu 3.0 Stage C D E diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xingtu-3-stage-cde-diagnostic
+          path: xingtu_v3_stage_cde_patch_error.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
 
       - name: Upload editor selection and image import diagnostics v6
         if: always()
