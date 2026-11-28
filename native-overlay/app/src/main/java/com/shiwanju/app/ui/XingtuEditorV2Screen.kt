@@ -417,6 +417,15 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 is XingtuV2Object.Image -> "图片"
                                 is XingtuV2Object.Component -> "组件 · ${item.componentType}"
                             }, color = colors.onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                            val layerIndex = history.document.objects.indexOfFirst { it.id == item.id }
+                            Text("↑", color = colors.onSurfaceVariant,
+                                modifier = Modifier.clickable(enabled = layerIndex < history.document.objects.lastIndex) {
+                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex + 1))
+                                }.padding(horizontal = 4.dp))
+                            Text("↓", color = colors.onSurfaceVariant,
+                                modifier = Modifier.clickable(enabled = layerIndex > 0) {
+                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex - 1))
+                                }.padding(horizontal = 4.dp))
                             Text(if (item.visible) "显示" else "隐藏",
                                 color = colors.onSurfaceVariant, fontSize = 10.sp,
                                 modifier = Modifier.clickable {
@@ -499,6 +508,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             activePanel = tab
                         }
                     }
+                }
+                ObjectToolChip("复制") {
+                    val id = selectedObject.id
+                    history = history.dispatch(XingtuV2Action.DuplicateObject(id, "copy-${System.nanoTime()}"))
+                    activePanel = null
                 }
                 ObjectToolChip("图层") { showLayers = !showLayers }
                 ObjectToolChip("删除") {

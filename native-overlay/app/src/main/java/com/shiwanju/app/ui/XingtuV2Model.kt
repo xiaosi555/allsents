@@ -69,6 +69,7 @@ sealed class XingtuV2Action {
     data class InsertObject(val value: XingtuV2Object) : XingtuV2Action()
     data class DeleteObjects(val ids: Set<String>) : XingtuV2Action()
     data class Reorder(val id: String, val targetIndex: Int) : XingtuV2Action()
+    data class DuplicateObject(val id: String, val newId: String) : XingtuV2Action()
     data class SetCanvas(val canvas: XingtuV2Canvas) : XingtuV2Action()
 }
 
@@ -93,6 +94,20 @@ object XingtuV2Reducer {
                 document.copy(objects = document.objects.filterNot { it.id == action.value.id } + action.value, selectedIds = setOf(action.value.id))
             is XingtuV2Action.DeleteObjects ->
                 document.copy(objects = document.objects.filterNot { it.id in action.ids && !it.locked }, selectedIds = document.selectedIds - action.ids)
+            is XingtuV2Action.DuplicateObject -> {
+                val source = document.objects.firstOrNull { it.id == action.id && !it.locked }
+                if (source == null) document else {
+                    val duplicate = when (source) {
+                        is XingtuV2Object.Text -> source.copy(id = action.newId,
+                            transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+                        is XingtuV2Object.Image -> source.copy(id = action.newId,
+                            transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+                        is XingtuV2Object.Component -> source.copy(id = action.newId,
+                            transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+                    }
+                    document.copy(objects = document.objects + duplicate, selectedIds = setOf(action.newId))
+                }
+            }
             is XingtuV2Action.Reorder -> {
                 val list = document.objects.toMutableList()
                 val old = list.indexOfFirst { it.id == action.id }
