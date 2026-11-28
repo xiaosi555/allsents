@@ -259,6 +259,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/install_home_and_icon_library.py
 
+      - name: Migrate every interface icon to the centralized icon library
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/unify_app_icons.py
+
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
         shell: bash
