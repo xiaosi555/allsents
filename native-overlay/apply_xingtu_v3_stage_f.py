@@ -21,42 +21,18 @@ if not V3.is_file():
     fail("generated V3 editor is missing")
 s = V3.read_text(encoding="utf-8")
 
-# F1: image transforms are composable; rotation and flips no longer overwrite
-# each other's CSS transform. Fit/opacity/flip actions are available only for
-# an actually selected image.
-old_rotate = "function rotateSelectedImage(){if(!activeImage)return;const n=(parseInt(activeImage.dataset.rotation||'0')+90)%360;activeImage.dataset.rotation=n;activeImage.style.transform='rotate('+n+'deg)';commitHistory();NativeEditor.changed(root.innerHTML);}"
-new_rotate = """function applySelectedImageTransform(){if(!activeImage)return;const r=parseInt(activeImage.dataset.rotation||'0'),x=activeImage.dataset.flipX==='1'?-1:1,y=activeImage.dataset.flipY==='1'?-1:1;activeImage.style.transform='rotate('+r+'deg) scale('+x+','+y+')';}
-                            function rotateSelectedImage(){if(!activeImage)return;activeImage.dataset.rotation=(parseInt(activeImage.dataset.rotation||'0')+90)%360;applySelectedImageTransform();commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function flipSelectedImage(axis){if(!activeImage)return;if(axis==='x')activeImage.dataset.flipX=activeImage.dataset.flipX==='1'?'0':'1';else activeImage.dataset.flipY=activeImage.dataset.flipY==='1'?'0':'1';applySelectedImageTransform();commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function setSelectedImageFit(mode){if(!activeImage)return;activeImage.style.objectFit=mode==='contain'?'contain':'cover';commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function setSelectedImageOpacity(value){if(!activeImage)return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(value))))/100;commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function applySelectedImageFilter(){if(!activeImage)return;const b=Math.max(0,Math.min(200,Number(activeImage.dataset.editorBrightness||100))),c=Math.max(0,Math.min(200,Number(activeImage.dataset.editorContrast||100))),sat=Math.max(0,Math.min(200,Number(activeImage.dataset.editorSaturation||100)));activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+sat+'%)';}
-                            function setSelectedImageAdjust(kind,value){if(!activeImage)return;const key=kind==='brightness'?'editorBrightness':kind==='contrast'?'editorContrast':'editorSaturation';activeImage.dataset[key]=String(value);applySelectedImageFilter();commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function resetSelectedImageAdjust(){if(!activeImage)return;['editorBrightness','editorContrast','editorSaturation'].forEach(k=>delete activeImage.dataset[k]);activeImage.style.filter='';commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}"""
-s = once(s, old_rotate, new_rotate, "composable image transforms")
-
-# Add image tools without removing any existing crop, replacement or asset actions.
-const_width = '''                                EditorTool("宽度50%") { runJs("setSelectedImageWidth('50%')") }
-                                EditorTool("圆角")'''
-replace_width = '''                                EditorTool("宽度50%") { runJs("setSelectedImageWidth('50%')") }
-                                EditorTool("水平翻转") { runJs("flipSelectedImage('x')") }
-                                EditorTool("垂直翻转") { runJs("flipSelectedImage('y')") }
-                                EditorTool("适应容器") { runJs("setSelectedImageFit('contain')") }
-                                EditorTool("填充裁切") { runJs("setSelectedImageFit('cover')") }
-                                EditorTool("不透明100%") { runJs("setSelectedImageOpacity(100)") }
-                                EditorTool("不透明80%") { runJs("setSelectedImageOpacity(80)") }
-                                EditorTool("不透明50%") { runJs("setSelectedImageOpacity(50)") }
-                                EditorTool("亮度80%") { runJs("setSelectedImageAdjust('brightness',80)") }
-                                EditorTool("亮度100%") { runJs("setSelectedImageAdjust('brightness',100)") }
-                                EditorTool("亮度120%") { runJs("setSelectedImageAdjust('brightness',120)") }
-                                EditorTool("对比度80%") { runJs("setSelectedImageAdjust('contrast',80)") }
-                                EditorTool("对比度120%") { runJs("setSelectedImageAdjust('contrast',120)") }
-                                EditorTool("饱和度0%") { runJs("setSelectedImageAdjust('saturation',0)") }
-                                EditorTool("饱和度80%") { runJs("setSelectedImageAdjust('saturation',80)") }
-                                EditorTool("饱和度120%") { runJs("setSelectedImageAdjust('saturation',120)") }
-                                EditorTool("恢复色彩") { runJs("resetSelectedImageAdjust()") }
-                                EditorTool("圆角")'''
-s = once(s, const_width, replace_width, "image transform controls")
+# F1: retain and verify the dedicated image crop/color panels already applied
+# to the base editor before the isolated V3 copy. Do not add duplicate controls.
+required_image = [
+    "ImageCropColorPanel",
+    "previewSelectedImageAdvanced",
+    "flipSelectedImage('horizontal')",
+    "previewSelectedImageFilters",
+    "resetSelectedImageColor",
+]
+missing_image = [token for token in required_image if token not in s]
+if missing_image:
+    fail("existing image editing panels were not carried into V3: " + ", ".join(missing_image))
 
 # F2: editor IDs must remain unique after duplicating a layer. Cloning DOM
 # otherwise duplicates data-editor-id and causes selection/reorder to target
@@ -146,9 +122,7 @@ new_widths = """val widths = ratios.map { (it / total * 10000).toInt() / 100f }.
 s = once(s, old_widths, new_widths, "layout percentage normalization")
 
 checks = {
-    "image flip controls": "flipSelectedImage('x')" in s and "flipSelectedImage('y')" in s,
-    "image fit and opacity": "setSelectedImageFit('contain')" in s and "setSelectedImageOpacity(50)" in s,
-    "rotation and flip composition": "applySelectedImageTransform()" in s and "scale('+x+','+y+')'" in s,
+    "image crop and color panels retained": "ImageCropColorPanel" in s and "previewSelectedImageAdvanced" in s,
     "unique IDs after duplicate": "function regenerateEditorIds(el)" in s and "regenerateEditorIds(c)" in s,
     "selected layer metadata": "selected=e.classList.contains('selected-block')" in s and "selected = item.optBoolean(\"selected\", false)" in s,
     "layer list refresh after HTML updates": "LaunchedEffect(activePanel, webReady, html)" in s,
@@ -159,4 +133,4 @@ if failed:
     fail("post-patch validation failed: " + ", ".join(failed))
 
 V3.write_text(s, encoding="utf-8")
-print("Verified Stage F: image flip/fit/opacity and composable rotation; unique DOM IDs for duplicated layers; selected layer state synchronized; layout column percentages normalized.")
+print("Verified Stage F: existing image crop/color/flip panels retained; unique DOM IDs for duplicated layers; selected layer state synchronized; layout column percentages normalized.")
