@@ -58,6 +58,8 @@ fun AppIconVector(key:String):ImageVector = appIconItems.firstOrNull{it.key==key
  val item=appIconItems.firstOrNull{it.key==key}
  ShiWanJuLineIcon(item?.title?:key,tint,modifier)
 }
+private data class HomePageItem(val title:String,val subtitle:String,val route:String,val icon:String,val colors:List<Color>)
+
 /** User-overridable semantic icon mapping. Overrides persist across app launches. */
 internal object AppIconRegistry {
     val overrides = mutableStateMapOf<String, String>()
@@ -73,7 +75,6 @@ internal object AppIconRegistry {
     }
 }
 
-private data class HomePageItem(val title:String,val subtitle:String,val route:String,val icon:String,val colors:List<Color>)
 
 @Composable fun ShiWanJuHomeScreen(onOpenPage:(String)->Unit) {
  val pages=listOf(
