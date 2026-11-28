@@ -375,7 +375,7 @@ V3.write_text(s, encoding="utf-8")
 # initialArticleId for future ID-aware callers; the current layout entry restores
 # its own last-opened article through V3-only session preferences.
 main = MAIN.read_text(encoding="utf-8")
-if '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm)' not in main:
+if '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm, onBack =' not in main:
     fail("generic 3.0 route verification failed")
 
 print("Verified: Stage A V3 article/session context and Stage B eight-category navigation applied; legacy editor panel implementations retained.")
