@@ -70,8 +70,14 @@ new_ensure = """function ensureEditorId(el){
 s = once(s, old_ensure, new_ensure, "unique editor object IDs")
 
 old_dup = """function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(c.outerHTML);commitHistory();NativeEditor.changed(root.innerHTML);}"""
+stage_b_dup = """function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.querySelectorAll('[data-editor-id]').forEach(n=>n.removeAttribute('data-editor-id'));c.removeAttribute('data-editor-id');c.classList.remove('selected-block');e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');ensureEditorId(c);NativeEditor.blockSelected(cleanBlockHtml(c));reportSelection();commitHistory();NativeEditor.changed(root.innerHTML);}"""
 new_dup = """function duplicateSelectedBlock(){const e=selectedBlock();if(!e)return;const c=e.cloneNode(true);c.classList.remove('selected-block');c.querySelectorAll('.selected-block').forEach(n=>n.classList.remove('selected-block'));regenerateEditorIds(c);e.insertAdjacentElement('afterend',c);c.classList.add('selected-block');NativeEditor.blockSelected(cleanBlockHtml(c));if(typeof reportSelection==='function')reportSelection();commitHistory();NativeEditor.changed(root.innerHTML);}"""
-s = once(s, old_dup, new_dup, "duplicate layer identity repair")
+if old_dup in s:
+    s = once(s, old_dup, new_dup, "duplicate layer identity repair")
+elif stage_b_dup in s:
+    s = once(s, stage_b_dup, new_dup, "duplicate layer identity repair after Stage B")
+else:
+    fail("duplicateSelectedBlock anchor missing or changed")
 
 # Layer data includes selected state; selection from the canvas is reflected in
 # the layer list and selecting a layer updates the same canvas object.
