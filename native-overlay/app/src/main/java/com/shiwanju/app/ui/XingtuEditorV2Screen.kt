@@ -1,5 +1,6 @@
 package com.shiwanju.app.ui
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -39,6 +40,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -224,7 +227,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         .border(item.strokeWidth.dp, Color(item.strokeColor), RoundedCornerShape(item.cornerRadius.dp))
                                 )
                                 is XingtuV2Object.Image -> {
-                                    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.assetUri) {
+                                    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.assetUri, item.cropLeft, item.cropTop, item.cropRight, item.cropBottom) {
                                         value = withContext(Dispatchers.IO) {
                                             runCatching {
                                                 context.contentResolver.openInputStream(Uri.parse(item.assetUri))?.use { stream ->
@@ -233,7 +236,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                     val top = (source.height * item.cropTop.coerceIn(0f, 0.95f)).toInt()
                                                     val right = (source.width * item.cropRight.coerceIn(item.cropLeft + 0.05f, 1f)).toInt()
                                                     val bottom = (source.height * item.cropBottom.coerceIn(item.cropTop + 0.05f, 1f)).toInt()
-                                                    val cropped = BitmapFactory.createBitmap(
+                                                    val cropped = Bitmap.createBitmap(
                                                         source, left, top,
                                                         (right - left).coerceAtLeast(1),
                                                         (bottom - top).coerceAtLeast(1)
@@ -566,6 +569,26 @@ private fun XingtuV2PropertyPanel(
                             onUpdate(selectedObject.copy(fontSizeSp = it))
                         }
                     }
+                    "排版" -> {
+                        V2ValueSlider("文本框宽度", selectedObject.transform.width, 24f..1080f) {
+                            onUpdate(selectedObject.copy(
+                                boxWidth = it,
+                                transform = selectedObject.transform.copy(width = it)
+                            ))
+                        }
+                        V2ValueSlider("文本框高度", selectedObject.transform.height, 24f..1440f) {
+                            onUpdate(selectedObject.copy(
+                                boxHeight = it,
+                                transform = selectedObject.transform.copy(height = it)
+                            ))
+                        }
+                        V2ValueSlider("行距", selectedObject.lineHeight, 0.8f..2.5f) {
+                            onUpdate(selectedObject.copy(lineHeight = it))
+                        }
+                        V2ValueSlider("字距", selectedObject.letterSpacing, -2f..12f) {
+                            onUpdate(selectedObject.copy(letterSpacing = it))
+                        }
+                    }
                     "样式" -> {
                         Text("文字颜色", color = colors.onSurface, fontSize = 12.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
@@ -576,14 +599,7 @@ private fun XingtuV2PropertyPanel(
                             }
                         }
                     }
-                    "排版" -> {
-                        V2ValueSlider("行距", selectedObject.lineHeight, 0.8f..2.5f) {
-                            onUpdate(selectedObject.copy(lineHeight = it))
-                        }
-                        V2ValueSlider("字距", selectedObject.letterSpacing, -2f..12f) {
-                            onUpdate(selectedObject.copy(letterSpacing = it))
-                        }
-                    }
+
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
                     }
@@ -657,7 +673,18 @@ private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPoin
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
-            Text(String.format("%.1f", value), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            var numberText by remember(value) { mutableStateOf(String.format("%.1f", value)) }
+            OutlinedTextField(
+                value = numberText,
+                onValueChange = { input ->
+                    numberText = input
+                    input.toFloatOrNull()?.let { onChange(it.coerceIn(range.start, range.endInclusive)) }
+                },
+                modifier = Modifier.width(92.dp).height(42.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.labelSmall,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
         }
         Slider(value = value.coerceIn(range.start, range.endInclusive), onValueChange = onChange, valueRange = range)
     }
@@ -669,6 +696,9 @@ private fun V2TransformControls(transform: XingtuV2Transform, onChange: (XingtuV
     V2ValueSlider("Y 坐标", transform.y, 0f..1440f) { onChange(transform.copy(y = it)) }
     V2ValueSlider("宽度", transform.width, 24f..1080f) { onChange(transform.copy(width = it)) }
     V2ValueSlider("高度", transform.height, 24f..1440f) { onChange(transform.copy(height = it)) }
+    V2ValueSlider("缩放 X", transform.scaleX, 0.1f..5f) { onChange(transform.copy(scaleX = it)) }
+    V2ValueSlider("缩放 Y", transform.scaleY, 0.1f..5f) { onChange(transform.copy(scaleY = it)) }
+    V2ValueSlider("透明度", transform.alpha, 0f..1f) { onChange(transform.copy(alpha = it)) }
     V2ValueSlider("旋转角度", transform.rotation, -180f..180f) { onChange(transform.copy(rotation = it)) }
 }
 
