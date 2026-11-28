@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import kotlin.math.atan2
@@ -134,10 +135,14 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
 
     LaunchedEffect(history.document.revision) {
+        delay(350)
         XingtuV2Persistence.save(context, history.document)
     }
 
-    BackHandler(onBack = onBack)
+    BackHandler {
+        XingtuV2Persistence.save(context, history.document)
+        onBack()
+    }
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         Row(
             Modifier.fillMaxWidth().height(50.dp).padding(horizontal = 12.dp),
@@ -145,7 +150,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("‹", fontSize = 30.sp, color = colors.onSurface,
-                modifier = Modifier.clickable { onBack() }.padding(horizontal = 8.dp))
+                modifier = Modifier.clickable { XingtuV2Persistence.save(context, history.document); onBack() }.padding(horizontal = 8.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("醒图 2.0", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
                 Text("原生画布 · ${history.document.objects.size} 个对象", fontSize = 10.sp, color = colors.onSurfaceVariant)
@@ -158,7 +163,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface,
                     modifier = Modifier.clickable(enabled = history.redoStack.isNotEmpty()) { history = history.redo() }.padding(horizontal = 7.dp))
                 Text("完成", fontSize = 13.sp, color = colors.primary,
-                    modifier = Modifier.clickable { onBack() }.padding(start = 8.dp))
+                    modifier = Modifier.clickable { XingtuV2Persistence.save(context, history.document); onBack() }.padding(start = 8.dp))
             }
         }
 
