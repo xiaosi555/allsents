@@ -275,10 +275,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     Box(
                                         Modifier.offset {
                                             val radians = Math.toRadians(t.rotation.toDouble())
-                                            val cx = t.x + t.width / 2f
-                                            val cy = t.y + t.height / 2f
-                                            val px = t.x + t.width * hx
-                                            val py = t.y + t.height * hy
+                                            val cx = t.x + t.width * t.scaleX / 2f
+                                            val cy = t.y + t.height * t.scaleY / 2f
+                                            val px = t.x + t.width * t.scaleX * hx
+                                            val py = t.y + t.height * t.scaleY * hy
                                             val rotatedX = cx + (px - cx) * cos(radians).toFloat() - (py - cy) * sin(radians).toFloat()
                                             val rotatedY = cy + (px - cx) * sin(radians).toFloat() + (py - cy) * cos(radians).toFloat()
                                             IntOffset(
@@ -301,22 +301,22 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                 val screenDx = (drag.x / density) / (scaleX * viewportScale)
                                                 val screenDy = (drag.y / density) / (scaleY * viewportScale)
                                                 val radians = Math.toRadians(old.rotation.toDouble())
-                                                val dx = screenDx * cos(radians).toFloat() + screenDy * sin(radians).toFloat()
-                                                val dy = -screenDx * sin(radians).toFloat() + screenDy * cos(radians).toFloat()
+                                                val dx = (screenDx * cos(radians).toFloat() + screenDy * sin(radians).toFloat()) / old.scaleX.coerceAtLeast(0.01f)
+                                                val dy = (-screenDx * sin(radians).toFloat() + screenDy * cos(radians).toFloat()) / old.scaleY.coerceAtLeast(0.01f)
                                                 var x = old.x
                                                 var y = old.y
                                                 var width = old.width
                                                 var height = old.height
                                                 if (edge.first < 0) {
                                                     val nextWidth = (width - dx).coerceAtLeast(24f)
-                                                    x += width - nextWidth
+                                                    x += (width - nextWidth) * old.scaleX
                                                     width = nextWidth
                                                 } else if (edge.first > 0) {
                                                     width = (width + dx).coerceAtLeast(24f)
                                                 }
                                                 if (edge.second < 0) {
                                                     val nextHeight = (height - dy).coerceAtLeast(24f)
-                                                    y += height - nextHeight
+                                                    y += (height - nextHeight) * old.scaleY
                                                     height = nextHeight
                                                 } else if (edge.second > 0) {
                                                     height = (height + dy).coerceAtLeast(24f)
@@ -331,9 +331,9 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 Box(
                                     Modifier.offset {
                                         val radians = Math.toRadians(t.rotation.toDouble())
-                                        val cx = t.x + t.width / 2f
-                                        val cy = t.y + t.height / 2f
-                                        val handleX = cx - (t.height / 2f + 34f) * sin(radians).toFloat()
+                                        val cx = t.x + t.width * t.scaleX / 2f
+                                        val cy = t.y + t.height * t.scaleY / 2f
+                                        val handleX = cx - (t.height * t.scaleY / 2f + 34f) * sin(radians).toFloat()
                                         val handleY = cy - (t.height / 2f + 34f) * cos(radians).toFloat()
                                         IntOffset(
                                             ((handleX * scaleX - 6f) * density).roundToInt(),
