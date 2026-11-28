@@ -255,6 +255,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/add_xingtu_v2_home_entry.py
 
+      - name: Install new home portal and centralized icon library
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/install_home_and_icon_library.py
+
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
         shell: bash
