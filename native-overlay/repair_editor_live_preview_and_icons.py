@@ -52,11 +52,11 @@ once(
 
 icon_composable = r'''
 @Composable
-private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Modifier) {
+fun ShiWanJuLineIcon(label: String, tint: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.size(22.dp)) {
         val w = size.width
         val h = size.height
-        val sw = (w + h) / 48f * 2.0f
+        val sw = (w + h) / 48f * 1.5f
         val c = tint
         val cx = w / 2f
         val cy = h / 2f
@@ -81,8 +81,8 @@ private fun EditorVectorIcon(label: String, tint: Color, modifier: Modifier = Mo
             k.contains("重做") || k.contains("redo") -> { poly(listOf(Offset(w*.58f,h*.24f),Offset(w*.82f,h*.24f),Offset(w*.82f,h*.48f))); poly(listOf(Offset(w*.82f,h*.48f),Offset(w*.62f,h*.29f),Offset(w*.45f,h*.25f),Offset(w*.25f,h*.34f),Offset(w*.18f,h*.52f),Offset(w*.24f,h*.72f))) }
             k.contains("透明度") || k.contains("opacity") -> { circle(cx,cy,w*.34f); drawArc(c, -90f, 180f, true, Offset(cx-w*.34f,cy-w*.34f), Size(w*.68f,w*.68f)); line(cx,cy-w*.34f,cx,cy+w*.34f) }
             k.contains("裁剪") || k.contains("裁切") || k.contains("crop") -> { line(w*.12f,h*.36f,w*.12f,h*.12f); line(w*.12f,h*.12f,w*.36f,h*.12f); line(w*.64f,h*.12f,w*.88f,h*.12f); line(w*.88f,h*.12f,w*.88f,h*.36f); line(w*.12f,h*.64f,w*.12f,h*.88f); line(w*.12f,h*.88f,w*.36f,h*.88f); line(w*.64f,h*.88f,w*.88f,h*.88f); line(w*.88f,h*.64f,w*.88f,h*.88f) }
-            k.contains("图片") || k.contains("相册") || k.contains("封面") || k.contains("image") -> { outlineRect(w*.12f,h*.16f,w*.76f,h*.68f,sw*1.4f); circle(w*.68f,h*.35f,w*.07f,true); poly(listOf(Offset(w*.18f,h*.72f),Offset(w*.40f,h*.49f),Offset(w*.54f,h*.62f),Offset(w*.64f,h*.52f),Offset(w*.82f,h*.73f))) }
-            k.contains("文字") || k.contains("字体") || k.contains("字号") || k.contains("标题") || k.contains("加粗") || k.contains("粗体") || k.contains("斜体") || k.contains("下划线") || k.contains("删除线") || k.contains("font") -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.35f,h*.45f,w*.65f,h*.45f) }
+            k.contains("图片") || k.contains("加图") || k.contains("相册") || k.contains("封面") || k.contains("image") -> { outlineRect(w*.12f,h*.16f,w*.76f,h*.68f,sw*1.4f); circle(w*.68f,h*.35f,w*.07f,true); poly(listOf(Offset(w*.18f,h*.72f),Offset(w*.40f,h*.49f),Offset(w*.54f,h*.62f),Offset(w*.64f,h*.52f),Offset(w*.82f,h*.73f))) }
+            k.contains("文字") || k.contains("加字") || k.contains("字体") || k.contains("字号") || k.contains("标题") || k.contains("加粗") || k.contains("粗体") || k.contains("斜体") || k.contains("下划线") || k.contains("删除线") || k.contains("font") -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.35f,h*.45f,w*.65f,h*.45f) }
             k.contains("颜色") || k.contains("调色") || k.contains("高亮") || k.contains("color") -> { poly(listOf(Offset(w*.50f,h*.13f),Offset(w*.78f,h*.29f),Offset(w*.85f,h*.56f),Offset(w*.67f,h*.82f),Offset(w*.34f,h*.86f),Offset(w*.14f,h*.63f),Offset(w*.18f,h*.36f),Offset(w*.50f,h*.13f)),true); circle(w*.35f,h*.43f,w*.045f,true); circle(w*.55f,h*.34f,w*.045f,true); circle(w*.69f,h*.51f,w*.045f,true) }
             k.contains("对齐") || k.contains("居中") || k.contains("align") -> { line(w*.18f,h*.23f,w*.82f,h*.23f); line(w*.18f,h*.42f,w*.68f,h*.42f); line(w*.32f,h*.61f,w*.82f,h*.61f); line(w*.18f,h*.80f,w*.68f,h*.80f) }
             k.contains("边框") || k.contains("border") -> outlineRect(w*.16f,h*.16f,w*.68f,h*.68f,sw*.5f)
@@ -127,7 +127,7 @@ icon_composable + "@Composable\nprivate fun EditorTool(label: String, selected: 
 once(
 """        Text(editorToolGlyph(label), color = if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain,
             fontSize = 19.sp, fontWeight = FontWeight.Medium, lineHeight = 21.sp)""",
-"""        EditorVectorIcon(label, if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain, Modifier.size(22.dp))""",
+"""        ShiWanJuLineIcon(label, if (selected) AppColors.Theme else if (dark) Color(0xFFDDDDDD) else AppColors.TextMain, Modifier.size(22.dp))""",
 "replace glyph icons in secondary panels"
 )
 once(
@@ -137,7 +137,7 @@ once(
 )
 once(
 """Text(editorToolGlyph(item), color = Color(0xFFDDDDDD), fontSize = 18.sp, lineHeight = 20.sp)""",
-"""EditorVectorIcon(item, Color(0xFFDDDDDD), Modifier.size(20.dp))""",
+"""ShiWanJuLineIcon(item, Color(0xFFDDDDDD), Modifier.size(20.dp))""",
 "replace glyph icons in persistent primary dock"
 )
 
