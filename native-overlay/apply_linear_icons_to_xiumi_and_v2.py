@@ -10,7 +10,7 @@ for p in (EDITOR, XIUMI, XINGTU2):
     if not p.is_file():
         raise SystemExit(f"Required screen missing: {p}")
 e = EDITOR.read_text(encoding="utf-8")
-if "fun ShiWanJuLineIcon(" not in e or "val sw = (w + h) / 48f * 1.5f" not in e:
+if "fun ShiWanJuLineIcon(" not in e or "Canvas(modifier = modifier.size(24.dp))" not in e or "val sw = (w + h) / 48f * 1.5f" not in e:
     raise SystemExit("Shared 24dp / 1.5px line icon renderer is not installed.")
 if 'k.contains("加字")' not in e or 'k.contains("加图")' not in e:
     raise SystemExit("加字 / 加图 semantic icon mappings are missing.")
