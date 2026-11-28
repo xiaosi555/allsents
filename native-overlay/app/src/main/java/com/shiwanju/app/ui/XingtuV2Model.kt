@@ -20,6 +20,7 @@ sealed class XingtuV2Object {
     data class Text(
         override val id: String, val content: String,
         val fontFamily: String = "default", val fontSizeSp: Float = 24f,
+        val fontWeight: Int = 400, val italic: Boolean = false,
         val color: Long = 0xFF222222, val lineHeight: Float = 1.35f,
         val letterSpacing: Float = 0f, val textAlign: String = "start",
         val boxWidth: Float = 240f, val boxHeight: Float = 72f,

@@ -40,6 +40,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -223,6 +225,14 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         text = item.content,
                                         color = Color(item.color),
                                         fontSize = (item.fontSizeSp * scaleX).coerceIn(8f, 48f).sp,
+                                        fontFamily = when (item.fontFamily) {
+                                            "serif" -> FontFamily.Serif
+                                            "mono" -> FontFamily.Monospace
+                                            "cursive" -> FontFamily.Cursive
+                                            else -> FontFamily.SansSerif
+                                        },
+                                        fontWeight = FontWeight(item.fontWeight.coerceIn(100, 900)),
+                                        fontStyle = if (item.italic) FontStyle.Italic else FontStyle.Normal,
                                         lineHeight = (item.fontSizeSp * item.lineHeight * scaleX).sp,
                                         letterSpacing = (item.letterSpacing * scaleX).sp,
                                         textAlign = when (item.textAlign) {
@@ -673,6 +683,18 @@ private fun XingtuV2PropertyPanel(
                         V2ValueSlider("字号", selectedObject.fontSizeSp, 8f..120f) {
                             onUpdate(selectedObject.copy(fontSizeSp = it))
                         }
+                        V2ValueSlider("字重", selectedObject.fontWeight.toFloat(), 100f..900f) {
+                            onUpdate(selectedObject.copy(fontWeight = (it / 100f).roundToInt() * 100))
+                        }
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip("无衬线") { onUpdate(selectedObject.copy(fontFamily = "default")) }
+                            ObjectToolChip("宋体") { onUpdate(selectedObject.copy(fontFamily = "serif")) }
+                            ObjectToolChip("等宽") { onUpdate(selectedObject.copy(fontFamily = "mono")) }
+                            ObjectToolChip("手写") { onUpdate(selectedObject.copy(fontFamily = "cursive")) }
+                            ObjectToolChip(if (selectedObject.italic) "取消斜体" else "斜体") {
+                                onUpdate(selectedObject.copy(italic = !selectedObject.italic))
+                            }
+                        }
                     }
                     "排版" -> {
                         V2ValueSlider("文本框宽度", selectedObject.transform.width, 24f..1080f) {
@@ -692,6 +714,11 @@ private fun XingtuV2PropertyPanel(
                         }
                         V2ValueSlider("字距", selectedObject.letterSpacing, -2f..12f) {
                             onUpdate(selectedObject.copy(letterSpacing = it))
+                        }
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip("左对齐") { onUpdate(selectedObject.copy(textAlign = "start")) }
+                            ObjectToolChip("居中") { onUpdate(selectedObject.copy(textAlign = "center")) }
+                            ObjectToolChip("右对齐") { onUpdate(selectedObject.copy(textAlign = "end")) }
                         }
                     }
                     "样式" -> {
