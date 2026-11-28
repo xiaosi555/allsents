@@ -502,10 +502,20 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             change.consume()
                                             totalDragX += drag.x
                                             totalDragY += drag.y
-                                            val radiusPx = (t.height * scaleY * viewportScale * density / 2f) + 24f * density
-                                            val deltaAngle = Math.toDegrees(
-                                                atan2(totalDragX.toDouble(), (-radiusPx + totalDragY).toDouble())
-                                            ).toFloat()
+                                            val radius = t.height * t.scaleY / 2f + 34f
+                                            val startRadians = Math.toRadians(startRotation.toDouble())
+                                            val startVectorX = radius * sin(startRadians).toFloat()
+                                            val startVectorY = -radius * cos(startRadians).toFloat()
+                                            val dragCanvasX = totalDragX / density / (scaleX * viewportScale)
+                                            val dragCanvasY = totalDragY / density / (scaleY * viewportScale)
+                                            val initialAngle = atan2(startVectorY.toDouble(), startVectorX.toDouble())
+                                            val currentAngle = atan2(
+                                                (startVectorY + dragCanvasY).toDouble(),
+                                                (startVectorX + dragCanvasX).toDouble()
+                                            )
+                                            var deltaAngle = Math.toDegrees(currentAngle - initialAngle).toFloat()
+                                            while (deltaAngle > 180f) deltaAngle -= 360f
+                                            while (deltaAngle < -180f) deltaAngle += 360f
                                             val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                             history = history.updateTransform(
                                                 item.id, current.transform.copy(rotation = startRotation + deltaAngle)
