@@ -251,6 +251,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/install_xingtu_editor_v2.py
 
+      - name: Add visible Xingtu Editor V2 home entry
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/add_xingtu_v2_home_entry.py
+
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
         shell: bash
