@@ -498,7 +498,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         val cx = t.x + t.width * t.scaleX / 2f
                                         val cy = t.y + t.height * t.scaleY / 2f
                                         val handleX = cx - (t.height * t.scaleY / 2f + 34f) * sin(radians).toFloat()
-                                        val handleY = cy - (t.height / 2f + 34f) * cos(radians).toFloat()
+                                        val handleY = cy - (t.height * t.scaleY / 2f + 34f) * cos(radians).toFloat()
                                         IntOffset(
                                             ((handleX * scaleX - 6f) * density).roundToInt(),
                                             ((handleY * scaleY - 6f) * density).roundToInt()
