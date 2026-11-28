@@ -115,6 +115,43 @@ if "kind:'image-grid'" not in s:
         if not s[end:].lstrip().startswith(suffix):
             s = s[:end] + suffix + s[end:]
 
+# Match the two-finger transform gesture used by the independent Xingtu 2.0 canvas.
+pinch_anchor = "let touchDrag=null,touchDrop=null;"
+pinch_code = """let imagePinch=null;
+root.addEventListener('touchstart',function(ev){
+  if(!ev.touches||ev.touches.length!==2)return;
+  const img=ev.target&&ev.target.closest?ev.target.closest('img'):null;
+  if(!img||activeImage!==img)return;
+  const a=ev.touches[0],b=ev.touches[1],rect=img.getBoundingClientRect();
+  imagePinch={img:img,distance:Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY),width:rect.width,
+    angle:Math.atan2(b.clientY-a.clientY,b.clientX-a.clientX)*180/Math.PI,
+    rotation:parseFloat(img.dataset.rotation||'0'),maxWidth:img.parentElement.clientWidth||rect.width};
+},{passive:true});
+root.addEventListener('touchmove',function(ev){
+  if(!imagePinch||!ev.touches||ev.touches.length!==2)return;
+  const g=imagePinch,a=ev.touches[0],b=ev.touches[1];
+  const distance=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY);
+  const angle=Math.atan2(b.clientY-a.clientY,b.clientX-a.clientX)*180/Math.PI;
+  const width=Math.max(48,Math.min(g.maxWidth,g.width*distance/Math.max(1,g.distance)));
+  const rotation=g.rotation+angle-g.angle;
+  g.img.style.width=width+'px';g.img.style.maxWidth='100%';g.img.style.height='auto';
+  g.img.style.transformOrigin='center center';g.img.dataset.rotation=String(rotation);
+  g.img.style.transform='rotate('+rotation+'deg)';
+  ev.preventDefault();if(typeof notifyCanvasPreview==='function')notifyCanvasPreview();
+},{passive:false});
+function finishImagePinch(){
+  if(!imagePinch)return;
+  commitHistory();NativeEditor.changed(root.innerHTML);
+  if(activeImage)NativeEditor.imageSelected(activeImage.outerHTML);
+  imagePinch=null;
+}
+root.addEventListener('touchend',function(ev){if(imagePinch&&(!ev.touches||ev.touches.length<2))finishImagePinch();},{passive:true});
+root.addEventListener('touchcancel',finishImagePinch,{passive:true});
+"""
+if "let imagePinch=null;" not in s:
+    if s.count(pinch_anchor)!=1:
+        raise SystemExit("Pinch transform patch: touch state anchor mismatch")
+    s=s.replace(pinch_anchor,pinch_anchor+"\n"+pinch_code,1)
 hint = 'Text("图片调整", color = Color.Gray, fontSize = 10.sp'
 if "长按拖动：单列按行移动，多列按格移动" not in s and hint in s:
     pos = s.find(hint)
@@ -122,11 +159,12 @@ if "长按拖动：单列按行移动，多列按格移动" not in s and hint in
     line_end = s.find("\n", pos)
     line = s[line_start:line_end]
     indent = line[:len(line)-len(line.lstrip())]
-    s = s[:line_end] + "\n" + indent + 'Text("长按拖动：单列按行移动，多列按格移动；松手自动吸附", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))' + s[line_end:]
+    s = s[:line_end] + "\n" + indent + 'Text("长按拖动按行/列吸附；双指缩放旋转；松手自动保存", color = Color(0xFF929892), fontSize = 10.sp, modifier = Modifier.padding(top = 2.dp, bottom = 4.dp))' + s[line_end:]
 
 checks = {
     "grid-cell drag": "kind:'image-grid'" in s and "cell.closest('table')===touchDrag.table" in s,
     "single-column row drag": "kind:'image-row'" in s and "root.insertBefore(drag.source,before?target:target.nextSibling)" in s,
+    "two-finger image transform": "let imagePinch=null;" in s and "g.img.style.transform='rotate('" in s,
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:
