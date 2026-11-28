@@ -345,7 +345,8 @@ const checkOld='''    "primary dock glyphs replaced": "Text(editorToolGlyph(item
 const checkNew='''    "primary dock glyphs replaced": "Text(editorToolGlyph(item)" not in s,
     "segmented image grid drag installed": "kind:'image-grid'" in s and "cell.closest('table')===touchDrag.table" in s,
     "segmented image row drag installed": "kind:'image-row'" in s and "root.insertBefore(drag.source,before?target:target.nextSibling)" in s,
-    "image drag snap hint installed": "单列按行移动，多列按格移动" in s,
+    "image drag snap hint installed": "长按拖动按行/列吸附；双指缩放与旋转" in s,
+    "pinch scale and rotation installed": "imageTransformGesture={img:img" in s and "Math.hypot(p2.clientX-p1.clientX" in s,
 }''';
 if(!s.includes(checkOld)) throw new Error("validation anchor missing");
 s=s.replace(checkOld,checkNew);
