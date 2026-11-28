@@ -294,5 +294,17 @@ jobs:
 
       - name: Compile Kotlin sources only
         if: steps.source.outputs.present == 'true'
-        run: gradle --no-daemon -p source/ShiWanJu-Android :app:compileDebugKotlin
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon -p source/ShiWanJu-Android :app:compileDebugKotlin 2>&1 | tee xingtu_v3_kotlin_compile.log
+
+      - name: Upload Xingtu 3.0 Kotlin compile log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xingtu-3-kotlin-compile-log
+          path: xingtu_v3_kotlin_compile.log
+          if-no-files-found: ignore
+          retention-days: 7
 
