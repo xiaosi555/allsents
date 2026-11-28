@@ -127,6 +127,9 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 history = history.dispatch(XingtuV2Action.InsertObject(image))
             }
             showLayers = false
+        } else if (replaceTargetId != null) {
+            history = history.endTransform()
+            replaceTargetId = null
         }
     }
 
