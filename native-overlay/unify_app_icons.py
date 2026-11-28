@@ -95,9 +95,22 @@ for path in files:
    if args:
     for label in re.findall(r'"([^"]+)"',args[0]):
      items[label]=(label,category(label))
- # Route all shared-renderer call sites through AppIcon so user overrides apply globally.
- updated=re.sub(r"(?<!fun )ShiWanJuLineIcon\(", "AppIcon(", src)
- if updated!=src: path.write_text(updated,encoding="utf-8")
+ # Route all shared-renderer call sites through AppIcon, preserving argument order.
+ edits=[]
+ for call in re.finditer(r"(?<!fun )ShiWanJuLineIcon\\s*\\(",src):
+  end=end_call(src,call.end()-1)
+  if end<0: continue
+  args=split_args(src[call.end():end])
+  if len(args)>=3:
+   replacement=f"AppIcon({args[0]}, modifier = {args[2]}, tint = {args[1]})"
+  elif len(args)==2:
+   replacement=f"AppIcon({args[0]}, tint = {args[1]})"
+  elif len(args)==1:
+   replacement=f"AppIcon({args[0]})"
+  else: continue
+  edits.append((call.start(),end+1,replacement))
+ for a,b,replacement in reversed(edits): src=src[:a]+replacement+src[b:]
+ if edits: path.write_text(src,encoding="utf-8")
 entries=",\n".join(f' AppIconItem("{k}","{v[0]}","{v[1]}")' for k,v in sorted(items.items()))
 block=f'''private data class AppIconItem(val key:String,val title:String,val category:String)
 private val appIconItems = listOf(
