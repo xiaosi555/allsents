@@ -56,7 +56,7 @@ for line in imports:
         source = source.replace("import androidx.compose.material.icons.Icons\n", "import androidx.compose.material.icons.Icons\n" + line + "\n", 1)
 registry = "internal object AppIconVectors {\n" + "\n".join(properties) + "\n}\n\n"
 marker = "private data class AppIconItem"
-if "private object AppIconVectors {" in source:
+if "internal object AppIconVectors {" in source:
     source = re.sub(r"private object AppIconVectors \{.*?\n\}\n\n", registry, source, count=1, flags=re.S)
 else:
     if marker not in source:
