@@ -1263,6 +1263,7 @@ private fun XingtuV2PanelDragArea(
     }
 }
 
+@Composable
 private fun XingtuV2PropertyPanel(
     selectedObject: XingtuV2Object,
     canvas: XingtuV2Canvas,
