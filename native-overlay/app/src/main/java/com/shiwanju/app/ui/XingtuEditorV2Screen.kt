@@ -503,6 +503,14 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     groupRotation = 0f
                     activeMultiTransform = true
                 }
+                ObjectToolChip("左对齐") { history = history.alignSelected("left") }
+                ObjectToolChip("水平居中") { history = history.alignSelected("center-x") }
+                ObjectToolChip("右对齐") { history = history.alignSelected("right") }
+                ObjectToolChip("顶对齐") { history = history.alignSelected("top") }
+                ObjectToolChip("垂直居中") { history = history.alignSelected("center-y") }
+                ObjectToolChip("底对齐") { history = history.alignSelected("bottom") }
+                ObjectToolChip("水平分布") { history = history.distributeSelected(true) }
+                ObjectToolChip("垂直分布") { history = history.distributeSelected(false) }
                 ObjectToolChip("共同移动") { activePanel = null }
                 ObjectToolChip("删除所选") {
                     history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))

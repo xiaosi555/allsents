@@ -177,6 +177,78 @@ data class XingtuV2History(
         return if (updated == document) this else copy(document = updated)
     }
 
+    /** Align selected objects by their visual, unrotated bounds. */
+    fun alignSelected(mode: String): XingtuV2History {
+        val selected = document.selectedObjects().filterNot { it.locked }
+        if (selected.size < 2) return this
+        val left = selected.minOf { it.transform.x }
+        val top = selected.minOf { it.transform.y }
+        val right = selected.maxOf { it.transform.x + it.transform.width * it.transform.scaleX }
+        val bottom = selected.maxOf { it.transform.y + it.transform.height * it.transform.scaleY }
+        val changed = document.objects.map { item ->
+            if (item !in selected) item else {
+                val t = item.transform
+                val w = t.width * t.scaleX
+                val h = t.height * t.scaleY
+                val x = when (mode) {
+                    "left" -> left
+                    "center-x" -> (left + right - w) / 2f
+                    "right" -> right - w
+                    else -> t.x
+                }
+                val y = when (mode) {
+                    "top" -> top
+                    "center-y" -> (top + bottom - h) / 2f
+                    "bottom" -> bottom - h
+                    else -> t.y
+                }
+                val next = t.copy(x = x, y = y)
+                when (item) {
+                    is XingtuV2Object.Text -> item.copy(transform = next)
+                    is XingtuV2Object.Image -> item.copy(transform = next)
+                    is XingtuV2Object.Component -> item.copy(transform = next)
+                }
+            }
+        }
+        val next = document.copy(objects = changed, revision = document.revision + 1)
+        return if (next == document) this else copy(document = next, undoStack = undoStack + document, redoStack = emptyList())
+    }
+
+    /** Distribute selected objects evenly between the outermost objects. */
+    fun distributeSelected(horizontal: Boolean): XingtuV2History {
+        val selected = document.selectedObjects().filterNot { it.locked }
+        if (selected.size < 3) return this
+        val ordered = if (horizontal) selected.sortedBy { it.transform.x } else selected.sortedBy { it.transform.y }
+        val start = if (horizontal) ordered.first().transform.x else ordered.first().transform.y
+        val end = ordered.last().let { item ->
+            if (horizontal) item.transform.x + item.transform.width * item.transform.scaleX
+            else item.transform.y + item.transform.height * item.transform.scaleY
+        }
+        val total = ordered.sumOf { item ->
+            (if (horizontal) item.transform.width * item.transform.scaleX else item.transform.height * item.transform.scaleY).toDouble()
+        }.toFloat()
+        val gap = (end - start - total) / (ordered.size - 1)
+        var cursor = start
+        val positions = mutableMapOf<String, Float>()
+        ordered.forEachIndexed { index, item ->
+            positions[item.id] = cursor
+            cursor += (if (horizontal) item.transform.width * item.transform.scaleX else item.transform.height * item.transform.scaleY)
+            if (index < ordered.lastIndex) cursor += gap
+        }
+        val changed = document.objects.map { item ->
+            val position = positions[item.id] ?: return@map item
+            val t = item.transform
+            val next = if (horizontal) t.copy(x = position) else t.copy(y = position)
+            when (item) {
+                is XingtuV2Object.Text -> item.copy(transform = next)
+                is XingtuV2Object.Image -> item.copy(transform = next)
+                is XingtuV2Object.Component -> item.copy(transform = next)
+            }
+        }
+        val next = document.copy(objects = changed, revision = document.revision + 1)
+        return if (next == document) this else copy(document = next, undoStack = undoStack + document, redoStack = emptyList())
+    }
+
     /** Uniformly scale and rotate the selected group around its collective center. */
     fun updateSelectedGroup(scaleFactor: Float, rotationDelta: Float): XingtuV2History {
         val selected = document.selectedObjects().filterNot { it.locked }
