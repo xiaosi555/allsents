@@ -291,15 +291,21 @@ data class XingtuV2History(
     fun duplicateSelected(idPrefix: String): XingtuV2History {
         val selected = document.selectedObjects().filterNot { it.locked }
         if (selected.isEmpty()) return this
+        // Clones of a grouped selection form a new independent group. They must not
+        // inherit the source groupId, otherwise selecting a clone would also select originals.
+        val clonedGroups = selected.mapNotNull { it.groupId }.distinct()
+            .mapIndexed { index, groupId -> groupId to "$idPrefix-group-$index" }.toMap()
         val copies = selected.mapIndexed { index, source ->
             val newId = "$idPrefix-$index"
+            val newGroupId = source.groupId?.let { clonedGroups[it] }
+            val moved = source.transform.copy(
+                x = source.transform.x + 24f,
+                y = source.transform.y + 24f
+            )
             when (source) {
-                is XingtuV2Object.Text -> source.copy(id = newId,
-                    transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
-                is XingtuV2Object.Image -> source.copy(id = newId,
-                    transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
-                is XingtuV2Object.Component -> source.copy(id = newId,
-                    transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+                is XingtuV2Object.Text -> source.copy(id = newId, groupId = newGroupId, transform = moved)
+                is XingtuV2Object.Image -> source.copy(id = newId, groupId = newGroupId, transform = moved)
+                is XingtuV2Object.Component -> source.copy(id = newId, groupId = newGroupId, transform = moved)
             }
         }
         val next = document.copy(
