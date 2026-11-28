@@ -115,11 +115,17 @@ s = replace_once(
 )
 
 # A route may change from the generic V3 entry to an explicit article ID while
-# the same Compose host remains alive. Save the old session before switching.
-s = replace_once(
-    s,
-    '''    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->''',
-    '''    LaunchedEffect(initialArticleId) {
+# the same Compose host remains alive. Insert this effect after openArticle is
+# defined, using balanced braces instead of depending on file-picker formatting.
+open_article_marker = "fun openArticle(article: ArticleDocument) {"
+if s.count(open_article_marker) != 1:
+    fail("openArticle function is missing or ambiguous")
+open_article_start = s.index(open_article_marker)
+open_article_brace = s.index("{", open_article_start)
+open_article_end = matching_brace(s, open_article_brace)
+route_effect = '''
+
+    LaunchedEffect(initialArticleId) {
         val routeId = initialArticleId?.takeIf { it.isNotBlank() }
             ?: v3SessionPrefs.getString("active_article_id", null)
         val target = routeId?.let { id -> vm.data.articles.firstOrNull { it.id == id } }
@@ -127,10 +133,8 @@ s = replace_once(
             saveDocument(onComplete = { openArticle(target) })
         }
     }
-
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->''',
-    "route article ID changes"
-)
+'''
+s = s[:open_article_end] + route_effect + s[open_article_end:]
 
 # Keep the V3 last-open pointer current without touching the classic editor.
 s = replace_once(
