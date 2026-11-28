@@ -49,7 +49,7 @@ if v3_import not in main:
     if anchor not in main:
         raise SystemExit("Cannot locate original 醒图 import in MainActivity.")
     main = main.replace(anchor, anchor + "\n" + v3_import, 1)
-route = '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm) { vm.screen = "layout" }'
+route = '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm, onBack = { vm.screen = "layout" })'
 if route not in main:
     anchor = '"xingtu_article_editor" -> ArticleEditorScreen(vm) { vm.screen = "layout" }'
     if main.count(anchor) != 1:
@@ -60,7 +60,7 @@ MAIN.write_text(main, encoding="utf-8")
 # Add a visibly named 3.0 entry to the existing Layout toolbar without moving
 # or replacing the classic camera entry, Edit action, or Xiumi palette entry.
 layout = LAYOUT.read_text(encoding="utf-8")
-entry = '''        TextButton(onClick = { vm.screen = "xingtu_article_editor_v3" }) {
+entry = '''        androidx.compose.material3.TextButton(onClick = { vm.screen = "xingtu_article_editor_v3" }) {
             Text("3.0", color = AppColors.Theme, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
 '''
