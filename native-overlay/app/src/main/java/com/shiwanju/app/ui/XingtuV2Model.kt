@@ -79,7 +79,10 @@ object XingtuV2Reducer {
     fun reduce(document: XingtuV2Document, action: XingtuV2Action): XingtuV2Document {
         val next = when (action) {
             is XingtuV2Action.Select -> {
-                val valid = action.ids.intersect(document.objects.map { it.id }.toSet())
+                // Hidden layers remain manageable from the layer list, but they must not
+                // become active canvas selections or expose stale property controls.
+                val visibleIds = document.objects.filter { it.visible }.map { it.id }.toSet()
+                val valid = action.ids.intersect(visibleIds)
                 document.copy(selectedIds = if (action.additive) (document.selectedIds - valid) + (valid - document.selectedIds) else valid)
             }
             is XingtuV2Action.TransformObject ->
@@ -87,7 +90,10 @@ object XingtuV2Reducer {
                     if (it.id == action.id && !it.locked) withTransform(it, action.transform) else it
                 })
             is XingtuV2Action.SetVisibility ->
-                document.copy(objects = document.objects.map { if (it.id == action.id) visibility(it, action.visible) else it })
+                document.copy(
+                    objects = document.objects.map { if (it.id == action.id) visibility(it, action.visible) else it },
+                    selectedIds = if (action.visible) document.selectedIds else document.selectedIds - action.id
+                )
             is XingtuV2Action.SetLocked ->
                 document.copy(objects = document.objects.map { if (it.id == action.id) locked(it, action.locked) else it })
             is XingtuV2Action.ReplaceObject ->
@@ -113,7 +119,8 @@ object XingtuV2Reducer {
             is XingtuV2Action.Reorder -> {
                 val list = document.objects.toMutableList()
                 val old = list.indexOfFirst { it.id == action.id }
-                if (old < 0 || list[old].locked) document else {
+                // Locking prevents direct manipulation, not layer-stack organization.
+                if (old < 0) document else {
                     val item = list.removeAt(old)
                     list.add(action.targetIndex.coerceIn(0, list.size), item)
                     document.copy(objects = list)
@@ -213,7 +220,7 @@ data class XingtuV2History(
             }
         }
         val next = document.copy(objects = changed, revision = document.revision + 1)
-        return if (next == document) this else copy(document = next, undoStack = undoStack + document, redoStack = emptyList())
+        return if (next == document) this else copy(document = next, undoStack = (undoStack + document).takeLast(100), redoStack = emptyList())
     }
 
     /** Distribute selected objects evenly between the outermost objects. */
@@ -271,7 +278,7 @@ data class XingtuV2History(
             selectedIds = copies.map { it.id }.toSet(),
             revision = document.revision + 1
         )
-        return copy(document = next, undoStack = undoStack + document, redoStack = emptyList())
+        return copy(document = next, undoStack = (undoStack + document).takeLast(100), redoStack = emptyList())
     }
 
     /** Uniformly scale and rotate the selected group around its collective center. */
