@@ -1,5 +1,6 @@
 package com.shiwanju.app.ui
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -100,8 +101,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
 
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
             val image = XingtuV2Object.Image(
                 id = "image-${System.nanoTime()}",
                 assetUri = uri.toString(),
@@ -571,7 +575,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     activePanel = null
                 },
                 onUpdate = { history = history.updateObjectLive(it) },
-                onReplaceImage = { imagePicker.launch("image/*") }
+                onReplaceImage = { imagePicker.launch(arrayOf("image/*")) }
             )
         } else if (history.document.selectedIds.size > 1) {
             Row(
@@ -623,7 +627,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     }
                     is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
-                            if (tab == "替换") imagePicker.launch("image/*") else {
+                            if (tab == "替换") imagePicker.launch(arrayOf("image/*")) else {
                                 if (activePanel == null) history = history.beginTransform()
                                 activePanel = tab
                             }
@@ -662,7 +666,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     ))
                     showLayers = false
                 }
-                BottomTool("图片", "▧", colors.primary) { imagePicker.launch("image/*") }
+                BottomTool("图片", "▧", colors.primary) { imagePicker.launch(arrayOf("image/*")) }
                 BottomTool("图层", "▤", colors.primary) { showLayers = !showLayers }
                 BottomTool("组件", "◇", colors.primary) {
                     val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.COMPONENT } + 1
