@@ -29,13 +29,22 @@ entry = '''        IconButton(
             Text("2.0", color = AppColors.TextMain, fontSize = 12.sp)
         }
 '''
-if 'onClick = { vm.screen = "xingtu_editor_v2" }' not in layout:
-    layout = layout.replace(legacy, entry + legacy, 1)
+entry_click = 'onClick = { vm.screen = "xingtu_editor_v2" }'
+if entry_click not in layout:
+    legacy_pos = layout.find(legacy)
+    button_start = layout.rfind("        IconButton(", 0, legacy_pos)
+    if button_start < 0:
+        raise SystemExit("Cannot locate the opening IconButton for the classic Xingtu entry.")
+    layout = layout[:button_start] + entry + layout[button_start:]
 
-if layout.count('onClick = { vm.screen = "xingtu_editor_v2" }') != 1:
+if layout.count(entry_click) != 1:
     raise SystemExit("Xingtu V2 home entry verification failed.")
-if layout.find('onClick = { vm.screen = "xingtu_editor_v2" }') > layout.find(legacy):
+entry_pos = layout.find(entry_click)
+legacy_pos = layout.find(legacy)
+if not (entry_pos < legacy_pos):
     raise SystemExit("Xingtu V2 entry must appear beside and before the classic Xingtu entry.")
+if layout.rfind("        IconButton(", 0, legacy_pos) <= entry_pos:
+    raise SystemExit("Classic Xingtu IconButton structure is malformed after insertion.")
 
 LAYOUT.write_text(layout, encoding="utf-8")
 print("Added a visible 2.0 entry beside the classic Xingtu entry; legacy entry unchanged.")
