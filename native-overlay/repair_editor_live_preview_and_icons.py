@@ -235,7 +235,7 @@ checks = {
     "Text2 applies style to active selected text": "activeTextBlock:root.querySelector('.selected-text-block')" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
     "Text2 updates HTML immediately": "NativeEditor.changed(root.innerHTML);" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
     "Text2 notifies live canvas": "notifyCanvasPreview();" in s[s.index("function applyText2Style"):s.index("function applyText2Command")],
-    "Compose vector icon renderer installed": "fun ShiWanJuLineIcon(" in s and "Canvas(modifier = modifier.size(22.dp))" in s,
+    "Compose vector icon renderer installed": "fun ShiWanJuLineIcon(" in s and "Canvas(modifier = modifier.size(24.dp))" in s,
     "secondary panel glyphs replaced": "Text(editorToolGlyph(label)" not in s,
     "selection dock glyphs replaced": "Text(glyph, color = AppColors.TextMain" not in s,
     "primary dock glyphs replaced": "Text(editorToolGlyph(item)" not in s,
