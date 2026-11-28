@@ -30,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -179,6 +181,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         text = item.content,
                                         color = Color(item.color),
                                         fontSize = (item.fontSizeSp * scaleX).coerceIn(8f, 48f).sp,
+                                        lineHeight = (item.fontSizeSp * item.lineHeight).sp,
+                                        letterSpacing = item.letterSpacing.sp,
                                         textAlign = when (item.textAlign) {
                                             "center" -> TextAlign.Center
                                             "end" -> TextAlign.End
@@ -205,7 +209,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     Box(objectModifier.clip(RoundedCornerShape(2.dp)).background(Color(0xFFE9E9E9))) {
                                         if (bitmap != null) {
                                             Image(bitmap = bitmap!!, contentDescription = "画布图片",
-                                                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop,
+                                                colorFilter = ColorFilter.colorMatrix(v2ImageColorMatrix(item)))
                                         } else {
                                             Text("图片", color = Color.DarkGray, fontSize = 12.sp,
                                                 modifier = Modifier.align(Alignment.Center))
@@ -520,4 +525,19 @@ private fun V2TransformControls(transform: XingtuV2Transform, onChange: (XingtuV
     V2ValueSlider("宽度", transform.width, 24f..1080f) { onChange(transform.copy(width = it)) }
     V2ValueSlider("高度", transform.height, 24f..1440f) { onChange(transform.copy(height = it)) }
     V2ValueSlider("旋转角度", transform.rotation, -180f..180f) { onChange(transform.copy(rotation = it)) }
+}
+
+private fun v2ImageColorMatrix(item: XingtuV2Object.Image): ColorMatrix {
+    val saturation = item.saturation.coerceIn(0f, 2f)
+    val inverse = 1f - saturation
+    val red = inverse * 0.213f
+    val green = inverse * 0.715f
+    val blue = inverse * 0.072f
+    val brightness = item.brightness.coerceIn(-1f, 1f) * 0.25f
+    return ColorMatrix(floatArrayOf(
+        red + saturation, green, blue, 0f, brightness,
+        red, green + saturation, blue, 0f, brightness,
+        red, green, blue + saturation, 0f, brightness,
+        0f, 0f, 0f, 1f, 0f
+    ))
 }
