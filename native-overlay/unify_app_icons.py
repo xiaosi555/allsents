@@ -90,8 +90,9 @@ private val appIconItems = listOf(
 
 /** Semantic icon registry. Every screen resolves a stable key to the same line icon. */
 @Composable fun AppIcon(key:String,modifier:Modifier=Modifier,tint:Color=LocalContentColor.current) {{
- val item=appIconItems.firstOrNull{{it.key==key}}
- ShiWanJuLineIcon(item?.title?:key,tint,modifier)
+ val resolved=AppIconRegistry.resolve(LocalContext.current,key)
+ val item=appIconItems.firstOrNull{{it.key==resolved}}
+ ShiWanJuLineIcon(item?.title?:resolved,tint,modifier)
 }}
 '''
 registry,n=re.subn(r"private data class AppIconItem.*?private data class HomePageItem",block+"\nprivate data class HomePageItem",registry,count=1,flags=re.S)
