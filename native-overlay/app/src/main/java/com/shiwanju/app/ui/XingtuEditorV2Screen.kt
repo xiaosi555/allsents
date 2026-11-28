@@ -144,8 +144,13 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     }
                                 }
                                 .pointerInput(item.id, scaleX, scaleY, density) {
+                                    var gestureStarted = false
                                     detectTransformGestures { _, pan, zoom, rotation ->
                                         if (!item.locked) {
+                                            if (!gestureStarted) {
+                                                history = history.beginTransform()
+                                                gestureStarted = true
+                                            }
                                             val current = history.document.objects.firstOrNull { it.id == item.id } ?: item
                                             val old = current.transform
                                             val next = old.copy(
@@ -155,9 +160,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                 height = (old.height * zoom).coerceIn(24f, 1440f),
                                                 rotation = old.rotation + rotation
                                             )
-                                            history = history.dispatch(XingtuV2Action.TransformObject(item.id, next))
+                                            history = history.updateTransform(item.id, next)
                                         }
                                     }
+                                    if (gestureStarted) history = history.endTransform()
                                 }
 
                             when (item) {
@@ -210,14 +216,18 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     }
                                     .size(14.dp).clip(CircleShape).background(colors.primary)
                                     .pointerInput(item.id, scaleX, scaleY) {
-                                        detectDragGestures { change, drag ->
+                                        detectDragGestures(
+                                            onDragStart = { history = history.beginTransform() },
+                                            onDragEnd = { history = history.endTransform() },
+                                            onDragCancel = { history = history.endTransform() }
+                                        ) { change, drag ->
                                             change.consume()
                                             val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                             val next = current.transform.copy(
                                                 width = (current.transform.width + (drag.x / density) / scaleX).coerceIn(24f, 1080f),
                                                 height = (current.transform.height + (drag.y / density) / scaleY).coerceIn(24f, 1440f)
                                             )
-                                            history = history.dispatch(XingtuV2Action.TransformObject(item.id, next))
+                                            history = history.updateTransform(item.id, next)
                                         }
                                     }
                                 )
