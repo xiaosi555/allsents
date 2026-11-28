@@ -92,6 +92,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var viewportScale by remember { mutableFloatStateOf(1f) }
     var viewportPanX by remember { mutableFloatStateOf(0f) }
     var viewportPanY by remember { mutableFloatStateOf(0f) }
+    var snapGuideX by remember { mutableStateOf<Float?>(null) }
+    var snapGuideY by remember { mutableStateOf<Float?>(null) }
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -195,12 +197,22 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     detectDragGestures(
                                         onDragStart = {
                                             if (!item.locked) {
+                                                snapGuideX = null
+                                                snapGuideY = null
                                                 history = history.beginTransform()
                                                 gestureStarted = true
                                             }
                                         },
-                                        onDragEnd = { if (gestureStarted) history = history.endTransform() },
-                                        onDragCancel = { if (gestureStarted) history = history.endTransform() }
+                                        onDragEnd = {
+                                            if (gestureStarted) history = history.endTransform()
+                                            snapGuideX = null
+                                            snapGuideY = null
+                                        },
+                                        onDragCancel = {
+                                            if (gestureStarted) history = history.endTransform()
+                                            snapGuideX = null
+                                            snapGuideY = null
+                                        }
                                     ) { change, drag ->
                                         if (gestureStarted) {
                                             change.consume()
@@ -209,10 +221,43 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             val dx = (drag.x / density) / (scaleX * viewportScale)
                                             val dy = (drag.y / density) / (scaleY * viewportScale)
                                             if (history.document.selectedIds.size > 1 && item.id in history.document.selectedIds) {
+                                                snapGuideX = null
+                                                snapGuideY = null
                                                 history = history.updateSelectedOffset(dx, dy)
                                             } else {
+                                                val proposedX = old.x + dx
+                                                val proposedY = old.y + dy
+                                                val visualWidth = old.width * old.scaleX
+                                                val visualHeight = old.height * old.scaleY
+                                                val xTargets = mutableListOf(
+                                                    0f to 0f,
+                                                    (history.document.canvas.width - visualWidth) / 2f to history.document.canvas.width / 2f,
+                                                    (history.document.canvas.width - visualWidth) to history.document.canvas.width
+                                                )
+                                                val yTargets = mutableListOf(
+                                                    0f to 0f,
+                                                    (history.document.canvas.height - visualHeight) / 2f to history.document.canvas.height / 2f,
+                                                    (history.document.canvas.height - visualHeight) to history.document.canvas.height
+                                                )
+                                                history.document.objects.filter { it.id != item.id && it.visible }.forEach { other ->
+                                                    val ot = other.transform
+                                                    val ow = ot.width * ot.scaleX
+                                                    val oh = ot.height * ot.scaleY
+                                                    xTargets += ot.x to ot.x
+                                                    xTargets += (ot.x + (ow - visualWidth) / 2f) to (ot.x + ow / 2f)
+                                                    xTargets += (ot.x + ow - visualWidth) to (ot.x + ow)
+                                                    yTargets += ot.y to ot.y
+                                                    yTargets += (ot.y + (oh - visualHeight) / 2f) to (ot.y + oh / 2f)
+                                                    yTargets += (ot.y + oh - visualHeight) to (ot.y + oh)
+                                                }
+                                                val nearestX = xTargets.minByOrNull { kotlin.math.abs(it.first - proposedX) }
+                                                    ?.takeIf { kotlin.math.abs(it.first - proposedX) <= 8f / (scaleX * viewportScale) }
+                                                val nearestY = yTargets.minByOrNull { kotlin.math.abs(it.first - proposedY) }
+                                                    ?.takeIf { kotlin.math.abs(it.first - proposedY) <= 8f / (scaleY * viewportScale) }
+                                                snapGuideX = nearestX?.second
+                                                snapGuideY = nearestY?.second
                                                 history = history.updateTransform(
-                                                    item.id, old.copy(x = old.x + dx, y = old.y + dy)
+                                                    item.id, old.copy(x = nearestX?.first ?: proposedX, y = nearestY?.first ?: proposedY)
                                                 )
                                             }
                                         }
@@ -387,6 +432,18 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 )
                             }
                         }
+                    }
+                    snapGuideX?.let { guide ->
+                        Box(
+                            Modifier.offset { IntOffset((guide * scaleX * density).roundToInt(), 0) }
+                                .width(1.dp).fillMaxHeight().background(colors.primary.copy(alpha = .65f))
+                        )
+                    }
+                    snapGuideY?.let { guide ->
+                        Box(
+                            Modifier.offset { IntOffset(0, (guide * scaleY * density).roundToInt()) }
+                                .height(1.dp).fillMaxWidth().background(colors.primary.copy(alpha = .65f))
+                        )
                     }
                 }
             }
