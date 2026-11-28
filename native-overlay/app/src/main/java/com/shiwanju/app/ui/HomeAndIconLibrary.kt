@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -57,6 +58,21 @@ fun AppIconVector(key:String):ImageVector = appIconItems.firstOrNull{it.key==key
  val item=appIconItems.firstOrNull{it.key==key}
  ShiWanJuLineIcon(item?.title?:key,tint,modifier)
 }
+/** User-overridable semantic icon mapping. Overrides persist across app launches. */
+internal object AppIconRegistry {
+    val overrides = mutableStateMapOf<String, String>()
+    fun resolve(context: android.content.Context, key: String): String =
+        overrides[key] ?: context.getSharedPreferences("shiwanju_icon_overrides", 0).getString(key, key) ?: key
+    fun replace(context: android.content.Context, key: String, replacement: String) {
+        overrides[key] = replacement
+        context.getSharedPreferences("shiwanju_icon_overrides", 0).edit().putString(key, replacement).apply()
+    }
+    fun reset(context: android.content.Context, key: String) {
+        overrides.remove(key)
+        context.getSharedPreferences("shiwanju_icon_overrides", 0).edit().remove(key).apply()
+    }
+}
+
 private data class HomePageItem(val title:String,val subtitle:String,val route:String,val icon:String,val colors:List<Color>)
 
 @Composable fun ShiWanJuHomeScreen(onOpenPage:(String)->Unit) {
@@ -100,12 +116,42 @@ private data class HomePageItem(val title:String,val subtitle:String,val route:S
    Text("全部页面 · 仅显示已接入功能",fontSize=11.sp,color=Color(0xFF9A9F9A),modifier=Modifier.align(Alignment.CenterHorizontally).padding(top=2.dp,bottom=22.dp))
   }
  }
+ if (selectedKey != null) {
+  val target = appIconItems.firstOrNull { it.key == selectedKey }
+  val candidates = appIconItems.filter { replacementQuery.isBlank() || it.title.contains(replacementQuery,true) || it.key.contains(replacementQuery,true) }
+  AlertDialog(
+   onDismissRequest = { selectedKey=null },
+   title = { Text("替换图标 · " + (target?.title ?: selectedKey!!)) },
+   text = {
+    Column(Modifier.fillMaxWidth()) {
+     OutlinedTextField(replacementQuery,{replacementQuery=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("搜索要替换成的图标")})
+     Column(Modifier.heightIn(max=340.dp).verticalScroll(rememberScrollState())) {
+      candidates.forEach { candidate ->
+       TextButton(onClick={ AppIconRegistry.replace(context,selectedKey!!,candidate.key); selectedKey=null },modifier=Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+         AppIcon(candidate.key,Modifier.size(22.dp),Color(0xFF303A33))
+         Text(candidate.title,modifier=Modifier.padding(start=12.dp),color=Color(0xFF303A33))
+         Spacer(Modifier.weight(1f))
+         Text(candidate.key,fontSize=9.sp,color=Color(0xFF9A9F9A))
+        }
+       }
+      }
+     }
+    }
+   },
+   confirmButton = { TextButton(onClick={ AppIconRegistry.reset(context,selectedKey!!); selectedKey=null }) { Text("恢复默认") } },
+   dismissButton = { TextButton(onClick={selectedKey=null}) { Text("取消") } }
+  )
+ }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun AppIconLibraryScreen(onBack:()->Unit) {
  var query by remember{mutableStateOf("")}
  var category by remember{mutableStateOf("全部")}
+ var selectedKey by remember{mutableStateOf<String?>(null)}
+ var replacementQuery by remember{mutableStateOf("")}
+ val context = LocalContext.current
  val categories=listOf("全部","导航","通用","素材","编辑","文件","扩展")
  val shown=appIconItems.filter{(category=="全部"||it.category==category)&&(query.isBlank()||it.title.contains(query,true)||it.key.contains(query,true))}
  Column(Modifier.fillMaxSize().background(Color(0xFFF8F9F6)).statusBarsPadding()) {
@@ -120,8 +166,8 @@ private data class HomePageItem(val title:String,val subtitle:String,val route:S
   }
   LazyVerticalGrid(columns=GridCells.Adaptive(minSize=92.dp),modifier=Modifier.fillMaxSize().padding(horizontal=12.dp),contentPadding=PaddingValues(bottom=20.dp),verticalArrangement=Arrangement.spacedBy(8.dp),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
    items(shown,key={it.key}){item->
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White).padding(vertical=14.dp,horizontal=5.dp),horizontalAlignment=Alignment.CenterHorizontally) {
-     ShiWanJuLineIcon(item.title,Color(0xFF303A33),Modifier.size(27.dp))
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color.White).clickable { selectedKey=item.key; replacementQuery="" }.padding(vertical=14.dp,horizontal=5.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+     AppIcon(item.key,Modifier.size(27.dp),Color(0xFF303A33))
      Text(item.title,fontSize=12.sp,color=Color(0xFF353B36),modifier=Modifier.padding(top=8.dp))
      Text(item.key,fontSize=9.sp,color=Color(0xFF9A9F9A),maxLines=1)
     }
