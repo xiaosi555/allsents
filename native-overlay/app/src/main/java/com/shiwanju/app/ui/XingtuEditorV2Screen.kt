@@ -813,7 +813,13 @@ private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPoin
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
-            var numberText by remember(value) { mutableStateOf(String.format("%.1f", value)) }
+            var numberText by remember { mutableStateOf(String.format("%.1f", value)) }
+            LaunchedEffect(value) {
+                val typed = numberText.toFloatOrNull()
+                if (typed == null || kotlin.math.abs(typed - value) > 0.0001f) {
+                    numberText = String.format("%.1f", value)
+                }
+            }
             OutlinedTextField(
                 value = numberText,
                 onValueChange = { input ->
