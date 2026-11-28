@@ -33,7 +33,7 @@ sealed class XingtuV2Object {
         val cropLeft: Float = 0f, val cropTop: Float = 0f,
         val cropRight: Float = 1f, val cropBottom: Float = 1f,
         val colorTemperature: Float = 0f, val saturation: Float = 1f,
-        val brightness: Float = 0f,
+        val brightness: Float = 0f, val contrast: Float = 1f,
         val flipHorizontal: Boolean = false, val flipVertical: Boolean = false,
         override val transform: XingtuV2Transform = XingtuV2Transform(),
         override val visible: Boolean = true, override val locked: Boolean = false

@@ -1101,6 +1101,16 @@ private fun XingtuV2PropertyPanel(
                         V2ValueSlider("饱和度", selectedObject.saturation, 0f..2f) {
                             onUpdate(selectedObject.copy(saturation = it))
                         }
+                        V2ValueSlider("对比度", selectedObject.contrast, 0f..2f) {
+                            onUpdate(selectedObject.copy(contrast = it))
+                        }
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip("重置调色") {
+                                onUpdate(selectedObject.copy(colorTemperature = 0f, saturation = 1f, brightness = 0f, contrast = 1f))
+                            }
+                            ObjectToolChip("高对比") { onUpdate(selectedObject.copy(contrast = 1.35f)) }
+                            ObjectToolChip("柔和") { onUpdate(selectedObject.copy(contrast = 0.85f, saturation = 0.9f)) }
+                        }
                     }
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
@@ -1412,11 +1422,13 @@ private fun v2ImageColorMatrix(item: XingtuV2Object.Image): ColorMatrix {
     val green = inverse * 0.715f
     val blue = inverse * 0.072f
     val brightness = item.brightness.coerceIn(-1f, 1f) * 0.25f
+    val contrast = item.contrast.coerceIn(0f, 2f)
+    val contrastOffset = (0.5f - 0.5f * contrast) * 255f
     val temperature = item.colorTemperature.coerceIn(-100f, 100f) / 100f * 0.12f
     return ColorMatrix(floatArrayOf(
-        red + saturation, green, blue, 0f, brightness + temperature,
-        red, green + saturation, blue, 0f, brightness,
-        red, green, blue + saturation, 0f, brightness - temperature,
+        contrast * (red + saturation), contrast * green, contrast * blue, 0f, contrastOffset + brightness * 255f + temperature * 255f,
+        contrast * red, contrast * (green + saturation), contrast * blue, 0f, contrastOffset + brightness * 255f,
+        contrast * red, contrast * green, contrast * (blue + saturation), 0f, contrastOffset + brightness * 255f - temperature * 255f,
         0f, 0f, 0f, 1f, 0f
     ))
 }
