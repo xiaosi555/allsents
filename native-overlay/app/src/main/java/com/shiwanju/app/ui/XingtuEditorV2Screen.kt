@@ -77,6 +77,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var activeMultiTransform by remember { mutableStateOf(false) }
     var groupScale by remember { mutableFloatStateOf(1f) }
     var groupRotation by remember { mutableFloatStateOf(0f) }
+    var showLayers by remember { mutableStateOf(false) }
+    var activePanel by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(history.document.selectedIds) {
         if (activePanel != null || activeMultiTransform) history = history.endTransform()
         activePanel = null
@@ -84,8 +86,6 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
         groupRotation = 0f
         activeMultiTransform = false
     }
-    var showLayers by remember { mutableStateOf(false) }
-    var activePanel by remember { mutableStateOf<String?>(null) }
     var panelHeight by remember { mutableFloatStateOf(220f) }
     var viewportScale by remember { mutableFloatStateOf(1f) }
     var viewportPanX by remember { mutableFloatStateOf(0f) }
