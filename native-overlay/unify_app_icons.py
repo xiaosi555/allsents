@@ -1,101 +1,102 @@
 #!/usr/bin/env python3
-"""Route every Compose Material icon through the searchable in-app icon registry."""
+"""Migrate every Compose Material Icon call to the shared semantic linear icon API."""
 from pathlib import Path
 import re
 
-ROOT = Path("source/ShiWanJu-Android/app/src/main/java")
-if not ROOT.exists():
-    raise SystemExit(f"Android Kotlin source tree not found: {ROOT}")
-
-registry = ROOT / "com/shiwanju/app/ui/HomeAndIconLibrary.kt"
-if not registry.is_file():
-    raise SystemExit("Central icon registry is missing.")
-
-files = list(ROOT.rglob("*.kt"))
-pattern = re.compile(r"Icons\.(Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.([A-Za-z0-9_]+)")
-found = {}
+ROOT=Path("source/ShiWanJu-Android/app/src/main/java")
+UI=ROOT/"com/shiwanju/app/ui"
+REGISTRY=UI/"HomeAndIconLibrary.kt"
+if not UI.is_dir() or not REGISTRY.is_file(): raise SystemExit("Android UI source or icon registry missing.")
+LABELS={
+"ArrowBack":"返回","ArrowForward":"前进","Close":"关闭","Check":"确认","Add":"添加","Remove":"移除","Delete":"删除","Edit":"编辑","Save":"保存","Search":"搜索","Settings":"设置","Home":"主页","MoreHoriz":"更多","MoreVert":"更多操作","Undo":"撤销","Redo":"重做","Refresh":"刷新","Image":"图片","Photo":"照片","PhotoLibrary":"相册","CameraAlt":"相机","Folder":"文件夹","History":"历史记录","TextFields":"文字","FormatSize":"字号","FormatAlignCenter":"居中对齐","FormatAlignLeft":"左对齐","FormatAlignRight":"右对齐","Brush":"画笔","Crop":"裁剪","RotateRight":"旋转","Layers":"图层","Widgets":"组件","Palette":"调色","AutoFixHigh":"滤镜","Opacity":"透明度","BorderAll":"边框","Lock":"锁定","LockOpen":"解锁","Visibility":"显示","VisibilityOff":"隐藏","ContentCopy":"复制","ContentPaste":"粘贴","Share":"分享","Download":"导出","Upload":"导入","Favorite":"收藏","Star":"星标","AccountCircle":"我的","Person":"用户","Notifications":"通知","Help":"帮助","Info":"提示","Warning":"警告","Error":"错误","CheckCircle":"成功","ExpandMore":"展开","ExpandLess":"收起","KeyboardArrowDown":"向下","KeyboardArrowUp":"向上","Tune":"调整","FilterList":"筛选","Sort":"排序","GridView":"网格","ViewList":"列表","ViewQuilt":"排版","Article":"文章","PhotoCamera":"醒图","CloudUpload":"云上传","FileUpload":"导入","FileDownload":"导出","CalendarMonth":"日历","Schedule":"时间","Link":"链接","OpenInNew":"打开","Fullscreen":"全屏","FullscreenExit":"退出全屏","ZoomIn":"放大","ZoomOut":"缩小","CenterFocusStrong":"定位","AlignHorizontalCenter":"水平居中","AlignVerticalCenter":"垂直居中","Flip":"翻转","FlipCameraAndroid":"翻转","RotateLeft":"向左旋转","FormatColorFill":"填充","FormatColorText":"文字颜色","TextFormat":"文字样式","FormatBold":"加粗","FormatItalic":"斜体","FormatUnderlined":"下划线","FormatLineSpacing":"行距","SpaceBar":"间距","AspectRatio":"比例","LayersClear":"清空图层","PlaylistAdd":"添加项目","Menu":"菜单","ArrowUpward":"上移","ArrowDownward":"下移","DragHandle":"拖动","Done":"完成","DoneAll":"全部完成","Cancel":"取消","Clear":"清除","CloseFullscreen":"关闭全屏","More":"更多","Circle":"圆形"}
+def key_for(n): return re.sub(r"(?<!^)(?=[A-Z])","-",n).lower()
+def category(label):
+ if any(x in label for x in ("图片","相册","照片","相机","文件夹","导入","导出","下载","上传")): return "素材"
+ if any(x in label for x in ("文字","字号","字体","加粗","斜体","裁剪","旋转","图层","组件","对齐","调色","滤镜","透明度","边框","锁定","显示","隐藏","复制","粘贴")): return "编辑"
+ if any(x in label for x in ("主页","排版","秀米","醒图","我的","设置","搜索","返回","更多")): return "导航"
+ if any(x in label for x in ("历史","日历","时间")): return "数据"
+ return "通用"
+def split_args(s):
+ out=[]; start=0; d=0; q=None; esc=False
+ for i,ch in enumerate(s):
+  if q:
+   if esc: esc=False
+   elif ch=="\\": esc=True
+   elif ch==q: q=None
+   continue
+  if ch in "\"'": q=ch
+  elif ch in "([{<": d+=1
+  elif ch in ")]}>": d=max(0,d-1)
+  elif ch=="," and d==0: out.append(s[start:i].strip()); start=i+1
+ if s[start:].strip(): out.append(s[start:].strip())
+ return out
+def end_call(s,start):
+ d=0; q=None; esc=False
+ for i in range(start,len(s)):
+  ch=s[i]
+  if q:
+   if esc: esc=False
+   elif ch=="\\": esc=True
+   elif ch==q: q=None
+   continue
+  if ch in "\"'": q=ch
+  elif ch=="(": d+=1
+  elif ch==")":
+   d-=1
+   if d==0:return i
+ return -1
+files=list(UI.rglob("*.kt")); registry=REGISTRY.read_text(encoding="utf-8")
+items={k:v for k,v in {
+"home":("主页","导航"),"layout":("排版","导航"),"xiumi":("秀米排版","导航"),"xingtu":("醒图","导航"),"xingtu2":("醒图 2.0","导航"),"profile":("我的","导航"),"icon-library":("图标库","导航"),"search":("搜索","通用"),"settings":("设置","通用"),"more":("更多","通用"),"back":("返回","通用"),"close":("关闭","通用"),"confirm":("确认","通用"),"add":("添加","通用"),"save":("保存","通用"),"undo":("撤销","通用"),"redo":("重做","通用"),"image":("图片","素材"),"gallery":("相册","素材"),"camera":("相机","素材"),"folder":("文件夹","素材"),"history":("历史记录","数据"),"text":("文字","编辑"),"font":("字体","编辑"),"brush":("画笔","编辑"),"crop":("裁剪","编辑"),"rotate":("旋转","编辑"),"layers":("图层","编辑"),"widgets":("组件","编辑"),"align":("对齐","编辑"),"palette":("调色","编辑"),"filter":("滤镜","编辑"),"opacity":("透明度","编辑"),"border":("边框","编辑"),"lock":("锁定","编辑"),"visible":("显示","编辑"),"delete":("删除","编辑"),"copy":("复制","编辑"),"upload":("导入","素材"),"download":("导出","素材"),"favorite":("收藏","通用")}.items()}
+converted=0; remaining=[]
 for path in files:
-    if path == registry:
-        continue
-    source = path.read_text(encoding="utf-8")
-    for style, name in pattern.findall(source):
-        found.setdefault(name, (style, name))
+ if path==REGISTRY: continue
+ src=path.read_text(encoding="utf-8"); edits=[]
+ for m in re.finditer(r"(?<![A-Za-z0-9_])Icon\s*\(",src):
+  end=end_call(src,m.end()-1)
+  if end<0: continue
+  args=split_args(src[m.end():end])
+  if not args: continue
+  first=args[0]; mat=re.fullmatch(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.([A-Za-z0-9_]+)",first); vec=re.fullmatch(r'AppIconVector\("([^"]+)"\)',first)
+  if not mat and not vec: continue
+  if mat:
+   name=mat.group(1); key=key_for(name); label=LABELS.get(name,name)
+  else:
+   key=vec.group(1); label=next((v[0] for k,v in items.items() if k==key),key.replace("-"," "))
+  items[key]=(label,category(label))
+  named={}; pos=[]
+  for arg in args[1:]:
+   if "=" in arg: k,v=arg.split("=",1); named[k.strip()]=v.strip()
+   else: pos.append(arg)
+  tint=named.get("tint") or (pos[1] if len(pos)>1 else "LocalContentColor.current")
+  modifier=named.get("modifier") or (pos[2] if len(pos)>2 else "Modifier")
+  edits.append((m.start(),end+1,f'AppIcon("{key}", modifier = {modifier}, tint = {tint})'))
+ for a,b,repl in reversed(edits): src=src[:a]+repl+src[b:]
+ if edits:
+  if not re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src):
+   src=re.sub(r"(?m)^import androidx\.compose\.material\.icons\..*\n","",src)
+  path.write_text(src,encoding="utf-8"); converted+=len(edits)
+ if re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src): remaining.append(str(path))
+entries=",\n".join(f' AppIconItem("{k}","{v[0]}","{v[1]}")' for k,v in sorted(items.items()))
+block=f'''private data class AppIconItem(val key:String,val title:String,val category:String)
+private val appIconItems = listOf(
+{entries}
+)
 
-labels = {
-    "ArrowBack":"返回", "ArrowForward":"前进", "Close":"关闭", "Check":"确认",
-    "Add":"添加", "Remove":"移除", "Delete":"删除", "Edit":"编辑", "Save":"保存",
-    "Search":"搜索", "Settings":"设置", "Home":"主页", "MoreHoriz":"更多",
-    "MoreVert":"更多操作", "Undo":"撤销", "Redo":"重做", "Refresh":"刷新",
-    "Image":"图片", "Photo":"照片", "PhotoLibrary":"相册", "CameraAlt":"相机",
-    "Folder":"文件夹", "History":"历史记录", "TextFields":"文字", "FormatSize":"字号",
-    "FormatAlignCenter":"居中对齐", "FormatAlignLeft":"左对齐", "FormatAlignRight":"右对齐",
-    "Brush":"画笔", "Crop":"裁剪", "RotateRight":"旋转", "Layers":"图层",
-    "Widgets":"组件", "Palette":"调色板", "AutoFixHigh":"智能优化",
-    "Opacity":"透明度", "BorderAll":"边框", "Lock":"锁定", "LockOpen":"解锁",
-    "Visibility":"显示", "VisibilityOff":"隐藏", "ContentCopy":"复制",
-    "ContentPaste":"粘贴", "Share":"分享", "Download":"下载", "Upload":"上传",
-    "Favorite":"收藏", "Star":"星标", "AccountCircle":"账户", "Person":"用户",
-    "Notifications":"通知", "Help":"帮助", "Info":"信息", "Warning":"警告",
-    "Error":"错误", "CheckCircle":"成功", "ExpandMore":"展开", "ExpandLess":"收起",
-    "KeyboardArrowDown":"向下", "KeyboardArrowUp":"向上", "Tune":"调整",
-    "FilterList":"筛选", "Sort":"排序", "GridView":"网格", "ViewList":"列表",
-    "ViewQuilt":"排版", "Article":"文章", "PhotoCamera":"图片编辑", "CloudUpload":"云上传",
-    "Download":"导出", "FileUpload":"导入", "FileDownload":"导出", "CalendarMonth":"日历",
-    "Schedule":"时间", "Link":"链接", "OpenInNew":"打开", "Fullscreen":"全屏",
-    "FullscreenExit":"退出全屏", "ZoomIn":"放大", "ZoomOut":"缩小", "CenterFocusStrong":"定位",
-    "AlignHorizontalCenter":"水平居中", "AlignVerticalCenter":"垂直居中",
-    "Flip":"翻转", "FlipCameraAndroid":"翻转", "RotateLeft":"向左旋转",
-    "FormatColorFill":"填充", "FormatColorText":"文字颜色", "TextFormat":"文字样式",
-    "FormatBold":"粗体", "FormatItalic":"斜体", "FormatUnderlined":"下划线",
-    "FormatLineSpacing":"行距", "SpaceBar":"间距", "AspectRatio":"比例",
-    "LayersClear":"清空图层", "PlaylistAdd":"添加项目", "Menu":"菜单",
-    "ArrowUpward":"上移", "ArrowDownward":"下移", "DragHandle":"拖动",
-    "Done":"完成", "DoneAll":"全部完成", "Cancel":"取消", "Clear":"清除",
-    "CloseFullscreen":"关闭全屏", "More":"更多", "Circle":"圆形"
-}
-
-registry_source = registry.read_text(encoding="utf-8")
-styles = {style for style, _ in found.values()}
-style_imports = []
-for style, package in [("Filled","filled"),("Default","filled"),("Rounded","rounded"),("TwoTone","twotone"),("Sharp","sharp")]:
-    if style in styles:
-        line = f"import androidx.compose.material.icons.{package}.*"
-        if line not in registry_source:
-            style_imports.append(line)
-for line in style_imports:
-    registry_source = registry_source.replace("import androidx.compose.material.icons.Icons\n", "import androidx.compose.material.icons.Icons\n" + line + "\n", 1)
-existing = set(re.findall(r'AppIconItem\("([^"]+)"', registry_source))
-additions = []
-for name, (style, _) in sorted(found.items()):
-    key = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-    if key in existing:
-        continue
-    additions.append(f' AppIconItem("{key}","{labels.get(name, name)}","扩展",Icons.{style}.{name}),')
-if additions:
-    anchor = ")\n\n/** The single vector source used by every application screen and icon-library preview. */\nfun AppIconVector"
-    if anchor not in registry_source:
-        raise SystemExit("Cannot locate icon registry insertion point.")
-    registry_source = registry_source.replace(anchor, "\n" + "\n".join(additions) + anchor, 1)
-    registry.write_text(registry_source, encoding="utf-8")
-
-replaced = 0
-for path in files:
-    if path == registry:
-        continue
-    source = path.read_text(encoding="utf-8")
-    if not pattern.search(source):
-        continue
-    package = re.search(r"(?m)^package ([\w.]+)", source)
-    package_name = package.group(1) if package else ""
-    def convert(match):
-        nonlocal_dummy = None
-        name = match.group(2)
-        key = re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-        return f'AppIconVector("{key}")'
-    updated = pattern.sub(convert, source)
-    if package_name != "com.shiwanju.app.ui" and "import com.shiwanju.app.ui.AppIconVector" not in updated:
-        updated = re.sub(r"(?m)^package [^\n]+\n", lambda m: m.group(0) + "\nimport com.shiwanju.app.ui.AppIconVector\n", updated, count=1)
-    path.write_text(updated, encoding="utf-8")
-    replaced += 1
-
-print(f"Central icon registry expanded with {len(additions)} icons; routed Material icon usage through AppIconVector in {replaced} Kotlin files.")
+/** Semantic icon registry. Every screen resolves a stable key to the same line icon. */
+@Composable fun AppIcon(key:String,modifier:Modifier=Modifier,tint:Color=LocalContentColor.current) {{
+ val item=appIconItems.firstOrNull{{it.key==key}}
+ ShiWanJuLineIcon(item?.title?:key,tint,modifier)
+}}
+'''
+registry,n=re.subn(r"private data class AppIconItem.*?private data class HomePageItem",block+"\nprivate data class HomePageItem",registry,count=1,flags=re.S)
+if n!=1: raise SystemExit("Could not replace the old Material-vector icon registry.")
+REGISTRY.write_text(registry,encoding="utf-8")
+if remaining: raise SystemExit("Unconverted Material icons remain: "+", ".join(remaining))
+glyphs=[]
+for p in files:
+ for i,line in enumerate(p.read_text(encoding="utf-8").splitlines(),1):
+  if re.search(r'Text\(\s*"[^"]*[↻⌫ⓘ▧▦▤◇⊞▣♡⠿☰☷☻⚙★☆♥✚✎⌂⌕]',line): glyphs.append(f"{p.name}:{i}")
+print(f"Semantic registry: {len(items)} keys; migrated {converted} Material Icon composables across {len(files)} Kotlin files.")
+print(f"Legacy glyph text candidates remaining: {len(glyphs)}")
+for g in glyphs[:100]: print("GLYPH",g)
