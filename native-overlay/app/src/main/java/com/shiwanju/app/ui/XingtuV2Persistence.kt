@@ -87,6 +87,8 @@ object XingtuV2Persistence {
                         cornerRadius = item.optDouble("cornerRadius", 0.0).toFloat(),
                         strokeColor = item.optLong("strokeColor", 0x00000000),
                         strokeWidth = item.optDouble("strokeWidth", 0.0).toFloat(),
+                        shadowRadius = item.optDouble("shadowRadius", 0.0).toFloat(),
+                        shadowColor = item.optLong("shadowColor", 0x66000000),
                         transform = transform, visible = visible, locked = locked
                     ))
                 }

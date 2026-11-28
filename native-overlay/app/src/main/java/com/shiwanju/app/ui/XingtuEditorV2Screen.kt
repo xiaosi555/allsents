@@ -442,8 +442,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     if (item.componentType == "line") {
                                         Box(objectModifier.background(Color(item.fillColor)))
                                     } else {
-                                        Box(objectModifier.clip(shape)
-                                            .background(Color(item.fillColor))
+                                        Box(objectModifier.shadow(item.shadowRadius.coerceIn(0f, 48f).dp, shape, ambientColor = Color(item.shadowColor), spotColor = Color(item.shadowColor))
+                                            .clip(shape).background(Color(item.fillColor))
                                             .border((item.strokeWidth * scaleX).dp, Color(item.strokeColor), shape))
                                     }
                                 }
@@ -926,7 +926,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             }
                         }
                     }
-                    is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "对齐", "变换").forEach { tab ->
+                    is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "阴影", "透明度", "对齐", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (activePanel == null) history = history.beginTransform()
                             activePanel = tab
@@ -1037,7 +1037,7 @@ private fun XingtuV2PropertyPanel(
         val panelTabs = when (selectedObject) {
             is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换")
             is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "边框", "圆角", "阴影", "对齐", "透明度", "变换")
-            is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "对齐", "变换")
+            is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "阴影", "透明度", "对齐", "变换")
         }
         Row(
             Modifier.fillMaxWidth().height(44.dp).horizontalScroll(rememberScrollState())
@@ -1360,6 +1360,26 @@ private fun XingtuV2PropertyPanel(
                     }
                     "圆角" -> V2ValueSlider("圆角", selectedObject.cornerRadius, 0f..80f) {
                         onUpdate(selectedObject.copy(cornerRadius = it))
+                    }
+                    "阴影" -> {
+                        V2ValueSlider("组件阴影范围", selectedObject.shadowRadius, 0f..48f) {
+                            onUpdate(selectedObject.copy(shadowRadius = it))
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0x00000000, 0x66000000, 0x66FFFFFF, 0x66E64A4A, 0x662878D0).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
+                                    .border(if (selectedObject.shadowColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.shadowColor == value) colors.primary else colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(shadowColor = value)) })
+                            }
+                        }
+                        V2ColorInput("自定义阴影颜色", selectedObject.shadowColor) {
+                            onUpdate(selectedObject.copy(shadowColor = it))
+                        }
+                    }
+                    "透明度" -> V2ValueSlider("组件透明度", selectedObject.transform.alpha, 0f..1f) {
+                        onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
                     }
                     "边框" -> {
                         V2ValueSlider("边框宽度", selectedObject.strokeWidth, 0f..40f) {

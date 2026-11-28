@@ -48,6 +48,7 @@ sealed class XingtuV2Object {
         override val id: String, val componentType: String,
         val fillColor: Long = 0xFFF1F1F1, val cornerRadius: Float = 0f,
         val strokeColor: Long = 0x00000000, val strokeWidth: Float = 0f,
+        val shadowRadius: Float = 0f, val shadowColor: Long = 0x66000000,
         override val transform: XingtuV2Transform = XingtuV2Transform(),
         override val visible: Boolean = true, override val locked: Boolean = false
     ) : XingtuV2Object() { override val kind = XingtuV2ObjectKind.COMPONENT }
