@@ -117,35 +117,6 @@ internal object AppIconRegistry {
    Text("全部页面 · 仅显示已接入功能",fontSize=11.sp,color=Color(0xFF9A9F9A),modifier=Modifier.align(Alignment.CenterHorizontally).padding(top=2.dp,bottom=22.dp))
   }
  }
- if (selectedKey != null) {
-  val target = appIconItems.firstOrNull { it.key == selectedKey }
-  val candidates = appIconItems.filter { replacementQuery.isBlank() || it.title.contains(replacementQuery,true) || it.key.contains(replacementQuery,true) }
-  AlertDialog(
-   onDismissRequest = { selectedKey=null },
-   title = { Text("替换图标 · " + (target?.title ?: selectedKey!!)) },
-   text = {
-    Column(Modifier.fillMaxWidth()) {
-     OutlinedTextField(replacementQuery,{replacementQuery=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("搜索要替换成的图标")})
-     Column(Modifier.heightIn(max=340.dp).verticalScroll(rememberScrollState())) {
-      candidates.forEach { candidate ->
-       TextButton(onClick={ AppIconRegistry.replace(context,selectedKey!!,candidate.key); selectedKey=null },modifier=Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-         AppIcon(candidate.key,Modifier.size(22.dp),Color(0xFF303A33))
-         Text(candidate.title,modifier=Modifier.padding(start=12.dp),color=Color(0xFF303A33))
-         Spacer(Modifier.weight(1f))
-         Text(candidate.key,fontSize=9.sp,color=Color(0xFF9A9F9A))
-        }
-       }
-      }
-     }
-    }
-   },
-   confirmButton = { TextButton(onClick={ AppIconRegistry.reset(context,selectedKey!!); selectedKey=null }) { Text("恢复默认") } },
-   dismissButton = { TextButton(onClick={selectedKey=null}) { Text("取消") } }
-  )
- }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun AppIconLibraryScreen(onBack:()->Unit) {
  var query by remember{mutableStateOf("")}
@@ -175,4 +146,32 @@ internal object AppIconRegistry {
    }
   }
  }
+ if (selectedKey != null) {
+  val target = appIconItems.firstOrNull { it.key == selectedKey }
+  val candidates = appIconItems.filter { replacementQuery.isBlank() || it.title.contains(replacementQuery,true) || it.key.contains(replacementQuery,true) }
+  AlertDialog(
+   onDismissRequest = { selectedKey=null },
+   title = { Text("替换图标 · " + (target?.title ?: selectedKey!!)) },
+   text = {
+    Column(Modifier.fillMaxWidth()) {
+     OutlinedTextField(replacementQuery,{replacementQuery=it},modifier=Modifier.fillMaxWidth(),singleLine=true,placeholder={Text("搜索要替换成的图标")})
+     Column(Modifier.heightIn(max=340.dp).verticalScroll(rememberScrollState())) {
+      candidates.forEach { candidate ->
+       TextButton(onClick={ AppIconRegistry.replace(context,selectedKey!!,candidate.key); selectedKey=null },modifier=Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+         AppIcon(candidate.key,Modifier.size(22.dp),Color(0xFF303A33))
+         Text(candidate.title,modifier=Modifier.padding(start=12.dp),color=Color(0xFF303A33))
+         Spacer(Modifier.weight(1f))
+         Text(candidate.key,fontSize=9.sp,color=Color(0xFF9A9F9A))
+        }
+       }
+      }
+     }
+    }
+   },
+   confirmButton = { TextButton(onClick={ AppIconRegistry.reset(context,selectedKey!!); selectedKey=null }) { Text("恢复默认") } },
+   dismissButton = { TextButton(onClick={selectedKey=null}) { Text("取消") } }
+  )
+ }
+
 }
