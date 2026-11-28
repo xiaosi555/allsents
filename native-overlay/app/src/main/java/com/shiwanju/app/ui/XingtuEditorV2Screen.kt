@@ -366,7 +366,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 is XingtuV2Object.Component -> {
                                     val shape = when (item.componentType) {
                                         "ellipse" -> CircleShape
-                                        "rounded-rectangle" -> RoundedCornerShape(item.cornerRadius.dp)
+                                        "rounded-rectangle" -> RoundedCornerShape((item.cornerRadius * scaleX).dp)
                                         else -> RectangleShape
                                     }
                                     if (item.componentType == "line") {
@@ -374,7 +374,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     } else {
                                         Box(objectModifier.clip(shape)
                                             .background(Color(item.fillColor))
-                                            .border(item.strokeWidth.dp, Color(item.strokeColor), shape))
+                                            .border((item.strokeWidth * scaleX).dp, Color(item.strokeColor), shape))
                                     }
                                 }
                                 is XingtuV2Object.Image -> {
