@@ -246,6 +246,14 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/fix_status_bar.py
 
+      - name: Generate isolated Xingtu 3.0 editor
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/add_xingtu_v3.py
+
+      - name: Apply Xingtu 3.0 Stage A and B
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/apply_xingtu_v3_stage_ab.py
+
 
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
