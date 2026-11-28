@@ -259,12 +259,18 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             BoxWithConstraints(
-                Modifier.fillMaxSize().pointerInput(viewportScale) {
-                    detectTransformGestures { _, pan, zoom, _ ->
+                Modifier.fillMaxSize().pointerInput(viewportScale, viewportPanX, viewportPanY) {
+                    detectTransformGestures { centroid, pan, zoom, _ ->
                         if (zoom != 1f || pan != androidx.compose.ui.geometry.Offset.Zero) {
-                            viewportScale = (viewportScale * zoom).coerceIn(0.5f, 3f)
-                            viewportPanX += pan.x
-                            viewportPanY += pan.y
+                            val oldScale = viewportScale
+                            val nextScale = (oldScale * zoom).coerceIn(0.1f, 8f)
+                            val ratio = nextScale / oldScale
+                            val centerX = size.width / 2f
+                            val centerY = size.height / 2f
+                            // Keep the canvas point beneath the pinch centroid stationary while zooming.
+                            viewportPanX = (centroid.x - centerX) * (1f - ratio) + viewportPanX * ratio + pan.x
+                            viewportPanY = (centroid.y - centerY) * (1f - ratio) + viewportPanY * ratio + pan.y
+                            viewportScale = nextScale
                         }
                     }
                 },
