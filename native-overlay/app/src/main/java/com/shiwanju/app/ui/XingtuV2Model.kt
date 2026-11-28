@@ -117,12 +117,14 @@ object XingtuV2Reducer {
             is XingtuV2Action.DuplicateObject -> {
                 val source = document.objects.firstOrNull { it.id == action.id && !it.locked }
                 if (source == null) document else {
+                    // A one-object duplicate is an independent layer. Inheriting a
+                    // groupId would make selecting the clone also select the source group.
                     val duplicate = when (source) {
-                        is XingtuV2Object.Text -> source.copy(id = action.newId,
+                        is XingtuV2Object.Text -> source.copy(id = action.newId, groupId = null,
                             transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
-                        is XingtuV2Object.Image -> source.copy(id = action.newId,
+                        is XingtuV2Object.Image -> source.copy(id = action.newId, groupId = null,
                             transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
-                        is XingtuV2Object.Component -> source.copy(id = action.newId,
+                        is XingtuV2Object.Component -> source.copy(id = action.newId, groupId = null,
                             transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
                     }
                     document.copy(objects = document.objects + duplicate, selectedIds = setOf(action.newId))
