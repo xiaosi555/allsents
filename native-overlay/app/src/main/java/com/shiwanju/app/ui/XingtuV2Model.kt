@@ -93,7 +93,7 @@ object XingtuV2Reducer {
                 val visibleIds = document.objects.filter { it.visible }.map { it.id }.toSet()
                 val direct = action.ids.intersect(visibleIds)
                 val linkedGroups = document.objects.filter { it.id in direct }.mapNotNull { it.groupId }.toSet()
-                val valid = direct + document.objects.filter { it.visible && it.groupId in linkedGroups }.map { it.id }
+                val valid = direct + document.objects.filter { it.visible && it.groupId != null && it.groupId in linkedGroups }.map { it.id }
                 document.copy(selectedIds = if (action.additive) (document.selectedIds - valid) + (valid - document.selectedIds) else valid)
             }
             is XingtuV2Action.TransformObject ->
@@ -146,7 +146,7 @@ object XingtuV2Reducer {
             is XingtuV2Action.UngroupObjects -> {
                 val selectedGroups = document.objects.filter { it.id in action.ids }.mapNotNull { it.groupId }.toSet()
                 if (selectedGroups.isEmpty()) document else document.copy(objects = document.objects.map { item ->
-                    if (item.groupId in selectedGroups) withGroupId(item, null) else item
+                    if (item.groupId != null && item.groupId in selectedGroups) withGroupId(item, null) else item
                 })
             }
             is XingtuV2Action.SetCanvas -> document.copy(canvas = action.canvas)
