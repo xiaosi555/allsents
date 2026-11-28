@@ -93,6 +93,9 @@ private val appIconItems = listOf(
 '''
 registry,n=re.subn(r"private data class AppIconItem.*?private data class HomePageItem",block+"\nprivate data class HomePageItem",registry,count=1,flags=re.S)
 if n!=1: raise SystemExit("Could not replace the old Material-vector icon registry.")
+registry=re.sub(r"internal object AppIconVectors \{.*?\n\}\n\n","",registry,count=1,flags=re.S)
+registry=re.sub(r"(?m)^import androidx\.compose\.material\.icons\..*\n","",registry)
+registry=re.sub(r"(?m)^import androidx\.compose\.ui\.graphics\.vector\.ImageVector\n","",registry)
 REGISTRY.write_text(registry,encoding="utf-8")
 if remaining: raise SystemExit("Unconverted Material icons remain: "+", ".join(remaining))
 glyphs=[]
