@@ -210,11 +210,11 @@ new_dock = '''            // 醒图 3.0 primary navigation: exactly eight semant
                         val selected = when (category) {
                             EditorCategory.TEXT -> activePanel == EditorPanel.TEXT || activePanel == EditorPanel.TEXT2
                             EditorCategory.IMAGE -> activePanel == EditorPanel.IMAGE
-                            EditorCategory.COMPONENT -> activePanel in setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.COMPONENT, EditorPanel.SVG)
-                            EditorCategory.LAYOUT -> activePanel == EditorPanel.LAYOUT || activePanel == EditorPanel.CANVAS
+                            EditorCategory.COMPONENT -> !showTemplateSubnav && activePanel in setOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.COMPONENT, EditorPanel.SVG)
+                            EditorCategory.LAYOUT -> !showTemplateSubnav && (activePanel == EditorPanel.LAYOUT || activePanel == EditorPanel.CANVAS)
                             EditorCategory.LAYER -> activePanel == EditorPanel.LAYER
                             EditorCategory.STYLE -> activePanel == EditorPanel.APPEARANCE
-                            EditorCategory.TEMPLATE -> activePanel == EditorPanel.TEMPLATE
+                            EditorCategory.TEMPLATE -> showTemplateSubnav
                             EditorCategory.DOCUMENT -> activePanel == EditorPanel.DOCUMENT
                         }
                         TextButton(
@@ -328,6 +328,15 @@ appearance_branch = """                    EditorPanel.APPEARANCE -> {
 if s.count("                    EditorPanel.STYLE -> {") != 1:
     fail("favorites panel anchor is missing or ambiguous")
 s = s.replace("                    EditorPanel.STYLE -> {", appearance_branch + "                    EditorPanel.STYLE -> {", 1)
+
+# The layout category also hosts the existing canvas-settings panel in the same
+# non-modal secondary sheet instead of opening an unrelated floating dialog.
+s = replace_once(
+    s,
+    "if (showToolPopup && activePanel != EditorPanel.CANVAS) {",
+    "if (showToolPopup) {",
+    "canvas settings inside layout sheet"
+)
 
 # Ensure the old primary enum loop cannot silently reappear.
 if "EditorPanel.values().filterNot" in s:
