@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -1183,18 +1184,30 @@ private fun XingtuV2PropertyPanel(
     onReplaceImage: () -> Unit,
     onTabChange: (String) -> Unit
 ) {
+    MaterialTheme(colorScheme = darkColorScheme(
+        primary = AppColors.Theme,
+        onPrimary = Color.White,
+        background = Color(0xFF181818),
+        onBackground = Color.White,
+        surface = Color(0xFF181818),
+        onSurface = Color.White,
+        surfaceVariant = Color(0xFF222222),
+        onSurfaceVariant = Color(0xFF999999),
+        outlineVariant = Color(0xFF333333),
+        error = Color(0xFFFF6B6B)
+    )) {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
     Column(
-        Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface)
-            .border(1.dp, colors.outlineVariant)
+        Modifier.fillMaxWidth().height(panelHeight.dp).background(Color(0xFF181818))
+            .border(1.dp, Color(0xFF333333))
     ) {
         Row(
-            Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 16.dp),
+            Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", Color.White, 20.dp) }
             Box(
                 Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
                     detectDragGestures { change, drag ->
@@ -1209,7 +1222,7 @@ private fun XingtuV2PropertyPanel(
                     Text(tab, color = colors.onSurfaceVariant, fontSize = 10.sp)
                 }
             }
-            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", colors.primary, 18.dp) }
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", AppColors.Theme, 19.dp) }
         }
         val panelTabs = when (selectedObject) {
             is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换")
@@ -1218,23 +1231,22 @@ private fun XingtuV2PropertyPanel(
         }
         Row(
             Modifier.fillMaxWidth().height(44.dp).horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             panelTabs.forEach { panelTab ->
                 val selectedTab = panelTab == tab
-                Row(
-                    Modifier.clip(RoundedCornerShape(8.dp))
-                        .background(if (selectedTab) colors.primary.copy(alpha = .10f) else Color.Transparent)
-                        .clickable { onTabChange(panelTab) }
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                Column(
+                    Modifier.clickable { onTabChange(panelTab) }.padding(horizontal = 7.dp, vertical = 5.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    XingtuV2Glyph(xingtuGlyphFor(panelTab), if (selectedTab) colors.primary else colors.onSurfaceVariant, 15.dp)
-                    Text(panelTab, color = if (selectedTab) colors.primary else colors.onSurfaceVariant,
-                        fontSize = 12.sp, fontWeight = if (selectedTab) FontWeight.Medium else FontWeight.Normal)
+                    Text(panelTab, color = if (selectedTab) Color.White else Color(0xFF888888),
+                        fontSize = 15.sp, fontWeight = if (selectedTab) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1)
+                    Box(Modifier.padding(top = 2.dp).width(20.dp).height(2.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(if (selectedTab) AppColors.Theme else Color.Transparent))
                 }
             }
         }
@@ -1593,8 +1605,8 @@ private fun XingtuV2PropertyPanel(
             }
         }
     }
+    }
 }
-
 @Composable
 private fun XingtuV2CanvasPanel(
     canvas: XingtuV2Canvas,
