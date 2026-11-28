@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
+import kotlin.math.atan2
 
 /** 醒图 2.0 独立原生画布。旧版 ArticleEditorScreen 保持独立，不参与本页状态。 */
 @Composable
@@ -316,17 +317,30 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         )
                                     }
                                     .size(12.dp).clip(CircleShape).background(colors.primary)
-                                    .pointerInput(item.id) {
+                                    .pointerInput(item.id, t.height, scaleY, viewportScale) {
+                                        var totalDragX = 0f
+                                        var totalDragY = 0f
+                                        var startRotation = t.rotation
                                         detectDragGestures(
-                                            onDragStart = { history = history.beginTransform() },
+                                            onDragStart = {
+                                                totalDragX = 0f
+                                                totalDragY = 0f
+                                                startRotation = history.document.objects.firstOrNull { it.id == item.id }?.transform?.rotation ?: t.rotation
+                                                history = history.beginTransform()
+                                            },
                                             onDragEnd = { history = history.endTransform() },
                                             onDragCancel = { history = history.endTransform() }
                                         ) { change, drag ->
                                             change.consume()
+                                            totalDragX += drag.x
+                                            totalDragY += drag.y
+                                            val radiusPx = (t.height * scaleY * viewportScale * density / 2f) + 24f * density
+                                            val deltaAngle = Math.toDegrees(
+                                                atan2(totalDragX.toDouble(), (-radiusPx + totalDragY).toDouble())
+                                            ).toFloat()
                                             val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                             history = history.updateTransform(
-                                                item.id,
-                                                current.transform.copy(rotation = current.transform.rotation + drag.x * .8f)
+                                                item.id, current.transform.copy(rotation = startRotation + deltaAngle)
                                             )
                                         }
                                     }
