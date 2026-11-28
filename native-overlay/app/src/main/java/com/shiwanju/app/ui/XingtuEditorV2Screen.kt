@@ -1608,10 +1608,11 @@ private fun XingtuV2CanvasPanel(
     onUpdate: (XingtuV2Canvas) -> Unit,
     onClose: () -> Unit
 ) {
+    XingtuV2DarkPanel {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
     Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
-        Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
             Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
                 detectDragGestures { change, drag ->
@@ -1646,6 +1647,7 @@ private fun XingtuV2CanvasPanel(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -1658,10 +1660,11 @@ private fun XingtuV2MultiTransformPanel(
     onRotationChange: (Float) -> Unit,
     onClose: () -> Unit
 ) {
+    XingtuV2DarkPanel {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
     Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
-        Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
             Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
                 detectDragGestures { change, drag ->
@@ -1680,6 +1683,7 @@ private fun XingtuV2MultiTransformPanel(
             V2ValueSlider("整体缩放", scale, 0.2f..3f, onScaleChange)
             V2ValueSlider("整体旋转", rotation, -180f..180f, onRotationChange)
         }
+    }
     }
 }
 
