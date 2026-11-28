@@ -239,6 +239,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/repair_image_crop_color_crash_sync.py
 
+      - name: Migrate complete Xingtu editor into isolated 3.0 screen
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/add_xingtu_v3.py
+
 
       - name: Upload editor selection and image import diagnostics v6
         if: always()
