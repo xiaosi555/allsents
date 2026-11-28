@@ -1315,9 +1315,18 @@ private fun XingtuV2PropertyPanel(
                         V2ValueSlider("对比度", selectedObject.contrast, 0f..2f) {
                             onUpdate(selectedObject.copy(contrast = it))
                         }
+                        V2ValueSlider("色调", selectedObject.tint, -100f..100f) {
+                            onUpdate(selectedObject.copy(tint = it))
+                        }
+                        V2ValueSlider("高光", selectedObject.highlights, -100f..100f) {
+                            onUpdate(selectedObject.copy(highlights = it))
+                        }
+                        V2ValueSlider("阴影", selectedObject.shadows, -100f..100f) {
+                            onUpdate(selectedObject.copy(shadows = it))
+                        }
                         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ObjectToolChip("重置调色") {
-                                onUpdate(selectedObject.copy(colorTemperature = 0f, saturation = 1f, brightness = 0f, contrast = 1f))
+                                onUpdate(selectedObject.copy(colorTemperature = 0f, saturation = 1f, brightness = 0f, contrast = 1f, tint = 0f, highlights = 0f, shadows = 0f))
                             }
                             ObjectToolChip("高对比") { onUpdate(selectedObject.copy(contrast = 1.35f)) }
                             ObjectToolChip("柔和") { onUpdate(selectedObject.copy(contrast = 0.85f, saturation = 0.9f)) }
@@ -1680,13 +1689,19 @@ private fun v2ImageColorMatrix(item: XingtuV2Object.Image): ColorMatrix {
     val green = inverse * 0.715f
     val blue = inverse * 0.072f
     val brightness = item.brightness.coerceIn(-1f, 1f) * 0.25f
-    val contrast = item.contrast.coerceIn(0f, 2f)
-    val contrastOffset = (0.5f - 0.5f * contrast) * 255f
+    val highlightFactor = 1f + item.highlights.coerceIn(-100f, 100f) / 100f * 0.22f
+    val shadowFactor = 1f - item.shadows.coerceIn(-100f, 100f) / 100f * 0.22f
+    val tonalContrast = (contrast * highlightFactor * shadowFactor).coerceIn(0f, 2.5f)
+    val tonalOffset = (0.5f - 0.5f * tonalContrast) * 255f +
+        item.highlights.coerceIn(-100f, 100f) * 0.18f +
+        item.shadows.coerceIn(-100f, 100f) * 0.18f
+    val contrastOffset = tonalOffset
     val temperature = item.colorTemperature.coerceIn(-100f, 100f) / 100f * 0.12f
+    val tint = item.tint.coerceIn(-100f, 100f) / 100f * 0.10f
     return ColorMatrix(floatArrayOf(
-        contrast * (red + saturation), contrast * green, contrast * blue, 0f, contrastOffset + brightness * 255f + temperature * 255f,
-        contrast * red, contrast * (green + saturation), contrast * blue, 0f, contrastOffset + brightness * 255f,
-        contrast * red, contrast * green, contrast * (blue + saturation), 0f, contrastOffset + brightness * 255f - temperature * 255f,
+        tonalContrast * (red + saturation), tonalContrast * green, tonalContrast * blue, 0f, contrastOffset + brightness * 255f + temperature * 255f + tint * 255f,
+        tonalContrast * red, tonalContrast * (green + saturation), tonalContrast * blue, 0f, contrastOffset + brightness * 255f + tint * 36f,
+        tonalContrast * red, tonalContrast * green, tonalContrast * (blue + saturation), 0f, contrastOffset + brightness * 255f - temperature * 255f - tint * 255f,
         0f, 0f, 0f, 1f, 0f
     ))
 }

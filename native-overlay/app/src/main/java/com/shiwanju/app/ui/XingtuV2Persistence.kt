@@ -73,6 +73,9 @@ object XingtuV2Persistence {
                         saturation = item.optDouble("saturation", 1.0).toFloat(),
                         brightness = item.optDouble("brightness", 0.0).toFloat(),
                         contrast = item.optDouble("contrast", 1.0).toFloat(),
+                        tint = item.optDouble("tint", 0.0).toFloat(),
+                        highlights = item.optDouble("highlights", 0.0).toFloat(),
+                        shadows = item.optDouble("shadows", 0.0).toFloat(),
                         cornerRadius = item.optDouble("cornerRadius", 0.0).toFloat(),
                         borderWidth = item.optDouble("borderWidth", 0.0).toFloat(),
                         borderColor = item.optLong("borderColor", 0x00000000),
@@ -196,6 +199,7 @@ object XingtuV2Persistence {
                         .put("cropBottom", item.cropBottom).put("colorTemperature", item.colorTemperature)
                         .put("saturation", item.saturation).put("brightness", item.brightness)
                         .put("contrast", item.contrast)
+                        .put("tint", item.tint).put("highlights", item.highlights).put("shadows", item.shadows)
                         .put("cornerRadius", item.cornerRadius).put("borderWidth", item.borderWidth)
                         .put("borderColor", item.borderColor).put("shadowRadius", item.shadowRadius)
                         .put("flipHorizontal", item.flipHorizontal).put("flipVertical", item.flipVertical)
