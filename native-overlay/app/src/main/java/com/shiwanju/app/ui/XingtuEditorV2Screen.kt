@@ -58,8 +58,9 @@ import kotlin.math.sin
 /** 醒图 2.0 独立原生画布。旧版 ArticleEditorScreen 保持独立，不参与本页状态。 */
 @Composable
 fun XingtuEditorV2Screen(onBack: () -> Unit) {
+    val context = LocalContext.current
     var history by remember {
-        mutableStateOf(XingtuV2History(XingtuV2Document(
+        mutableStateOf(XingtuV2History(XingtuV2Persistence.load(context) ?: XingtuV2Document(
             id = "xingtu-v2-document",
             objects = listOf(
                 XingtuV2Object.Text(
@@ -97,7 +98,6 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var snapGuideX by remember { mutableStateOf<Float?>(null) }
     var snapGuideY by remember { mutableStateOf<Float?>(null) }
     val colors = MaterialTheme.colorScheme
-    val context = LocalContext.current
     val density = LocalDensity.current.density
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -110,6 +110,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             history = history.dispatch(XingtuV2Action.InsertObject(image))
             showLayers = false
         }
+    }
+
+    LaunchedEffect(history.document.revision) {
+        XingtuV2Persistence.save(context, history.document)
     }
 
     BackHandler(onBack = onBack)

@@ -9,6 +9,7 @@ MAIN = JAVA / "MainActivity.kt"
 FILES = {
     ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/XingtuV2Model.kt": UI / "XingtuV2Model.kt",
     ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/XingtuEditorV2Screen.kt": UI / "XingtuEditorV2Screen.kt",
+    ROOT / "native-overlay/app/src/main/java/com/shiwanju/app/ui/XingtuV2Persistence.kt": UI / "XingtuV2Persistence.kt",
 }
 for source, target in FILES.items():
     if not source.is_file():
