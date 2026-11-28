@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
@@ -73,7 +75,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             objects = listOf(
                 XingtuV2Object.Text(
                     id = "sample-heading", content = "在画布上开始创作",
-                    fontSizeSp = 24f,
+                    fontSizeSp = 24f, boxWidth = 520f, boxHeight = 100f,
                     transform = XingtuV2Transform(x = 90f, y = 170f, width = 520f, height = 100f)
                 ),
                 XingtuV2Object.Component(
@@ -220,7 +222,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 XingtuV2Persistence.save(context, history.document)
                 onBack()
             }, contentAlignment = Alignment.Center) {
-                Text("‹", fontSize = 28.sp, color = colors.onSurface)
+                XingtuV2Glyph("back", colors.onSurface, 22.dp)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                 Text("醒图 2.0", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface, maxLines = 1)
@@ -229,18 +231,18 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             Box(Modifier.size(40.dp).clickable(enabled = history.undoStack.isNotEmpty()) {
                 history = history.undo()
             }, contentAlignment = Alignment.Center) {
-                Text("↶", fontSize = 21.sp, color = if (history.undoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface)
+                XingtuV2Glyph("undo", if (history.undoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface, 20.dp)
             }
             Box(Modifier.size(40.dp).clickable(enabled = history.redoStack.isNotEmpty()) {
                 history = history.redo()
             }, contentAlignment = Alignment.Center) {
-                Text("↷", fontSize = 21.sp, color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface)
+                XingtuV2Glyph("redo", if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface, 20.dp)
             }
             Box(Modifier.size(40.dp).clickable {
                 savedVersions = XingtuV2Persistence.listVersions(context)
                 showVersions = !showVersions
             }, contentAlignment = Alignment.Center) {
-                Text("⋯", fontSize = 23.sp, color = colors.onSurface)
+                XingtuV2Glyph("more", colors.onSurface, 20.dp)
             }
             Box(Modifier.height(40.dp).clickable {
                 XingtuV2Persistence.save(context, history.document)
@@ -441,7 +443,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                 else -> TextAlign.Start
                                             },
                                             style = TextStyle(drawStyle = Stroke(width = item.strokeWidth.coerceIn(0f, 16f) * scaleX)),
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier.width((item.boxWidth * scaleX * t.scaleX).dp).height((item.boxHeight * scaleY * t.scaleY).dp)
                                         )
                                     }
                                     Text(
@@ -467,7 +469,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             color = Color(item.shadowColor), offset = Offset(0f, item.shadowRadius * scaleX * 0.35f),
                                             blurRadius = item.shadowRadius.coerceIn(0f, 48f) * scaleX
                                         ) else null),
-                                        modifier = Modifier.fillMaxSize()
+                                        modifier = Modifier.width((item.boxWidth * scaleX * t.scaleX).dp).height((item.boxHeight * scaleY * t.scaleY).dp)
                                     )
                                 }
                                 is XingtuV2Object.Component -> {
@@ -1074,19 +1076,19 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 Modifier.fillMaxWidth().height(64.dp).background(colors.surface).padding(horizontal = 6.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
             ) {
-                BottomTool("文字", "T", colors.primary) {
+                BottomTool("文字", "text", colors.primary) {
                     val count = history.document.objects.count { it.kind == XingtuV2ObjectKind.TEXT } + 1
                     history = history.dispatch(XingtuV2Action.InsertObject(
                         XingtuV2Object.Text(
-                            id = "text-${System.nanoTime()}", content = "双击编辑文字$count",
+                            id = "text-${System.nanoTime()}", content = "双击编辑文字$count", boxWidth = 520f, boxHeight = 90f,
                             transform = XingtuV2Transform(x = 110f, y = 180f + count * 100f, width = 520f, height = 90f)
                         )
                     ))
                     showLayers = false
                 }
-                BottomTool("图片", "▧", colors.primary) { imagePicker.launch(arrayOf("image/*")) }
-                BottomTool("图层", "▤", colors.primary) { showLayers = !showLayers }
-                BottomTool("组件", "◇", colors.primary) {
+                BottomTool("图片", "image", colors.primary) { imagePicker.launch(arrayOf("image/*")) }
+                BottomTool("图层", "layers", colors.primary) { showLayers = !showLayers }
+                BottomTool("组件", "component", colors.primary) {
                     showComponentPicker = !showComponentPicker
                     showLayers = false
                 }
@@ -1095,28 +1097,78 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
 }
 
+private fun xingtuGlyphFor(label: String): String = when (label) {
+    "文字" -> "text"; "图片" -> "image"; "图层" -> "layers"; "组件", "形状", "填充" -> "component"
+    "编辑" -> "edit"; "字体" -> "font"; "样式" -> "style"; "排版" -> "layout"; "对齐", "左对齐", "右对齐", "居中", "水平分布", "垂直分布" -> "align"
+    "透明度" -> "opacity"; "变换" -> "transform"; "替换" -> "replace"; "裁剪" -> "crop"; "调色" -> "tune"; "滤镜" -> "filter"
+    "边框" -> "border"; "圆角" -> "radius"; "阴影" -> "shadow"; "复制", "复制所选", "创建副本" -> "duplicate"
+    "删除", "删除所选", "清空文字" -> "delete"; "关闭", "取消", "取消多选" -> "close"; "确定", "完成" -> "check"
+    "锁定" -> "lock"; "解锁" -> "unlock"; "搜索" -> "search"; "显示" -> "visible"; "隐藏" -> "hidden"
+    "顺序", "共同移动" -> "move"; "上移", "置顶" -> "up"; "下移", "置底" -> "down"
+    "左转 90°", "右转 90°" -> "rotate"; "水平镜像", "垂直镜像", "取消水平镜像", "取消垂直镜像" -> "flip"
+    "插入换行" -> "text"; "恢复原图" -> "reset"; else -> "more"
+}
+
 @Composable
-private fun RowScope.BottomTool(label: String, symbol: String, activeColor: Color, onClick: () -> Unit) {
-    Column(
-        Modifier.weight(1f).fillMaxHeight().clickable(onClick = onClick).padding(vertical = 7.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
-    ) {
-        Text(symbol, color = activeColor, fontSize = 21.sp, fontWeight = FontWeight.Medium)
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+private fun XingtuV2Glyph(name: String, tint: Color, size: androidx.compose.ui.unit.Dp = 18.dp) {
+    Canvas(Modifier.size(size)) {
+        val s = this.size.minDimension
+        val sw = (s * .085f).coerceAtLeast(1.4f)
+        val l = s * .18f; val r = s * .82f; val c = s * .5f
+        fun line(x1: Float,y1: Float,x2: Float,y2: Float) {
+            drawLine(tint, Offset(x1,y1), Offset(x2,y2), sw, cap = StrokeCap.Round)
+        }
+        fun rect(x: Float = l,y: Float = s*.18f,w: Float = r-l,h: Float = s*.64f,rad: Float = s*.08f) {
+            drawRoundRect(tint, Offset(x,y), androidx.compose.ui.geometry.Size(w,h),
+                androidx.compose.ui.geometry.CornerRadius(rad), style = Stroke(sw))
+        }
+        when(name) {
+            "text","font" -> { line(s*.22f,s*.28f,s*.78f,s*.28f); line(c,s*.28f,c,s*.78f); line(s*.34f,s*.78f,s*.66f,s*.78f); if(name=="font") line(s*.36f,s*.57f,s*.64f,s*.57f) }
+            "image" -> { rect(); drawCircle(tint,s*.075f,Offset(s*.67f,s*.36f)); line(s*.24f,s*.69f,s*.43f,s*.49f); line(s*.43f,s*.49f,s*.55f,s*.61f); line(s*.55f,s*.61f,s*.68f,s*.48f) }
+            "layers" -> { line(c,s*.16f,s*.84f,s*.34f); line(s*.84f,s*.34f,c,s*.52f); line(c,s*.52f,s*.16f,s*.34f); line(s*.16f,s*.34f,c,s*.16f); line(s*.2f,s*.52f,c,s*.68f); line(c,s*.68f,s*.8f,s*.52f); line(s*.2f,s*.68f,c,s*.84f); line(c,s*.84f,s*.8f,s*.68f) }
+            "component" -> { rect(s*.2f,s*.2f,s*.6f,s*.6f,s*.12f); line(c,s*.3f,c,s*.7f); line(s*.3f,c,s*.7f,c) }
+            "back" -> { line(s*.68f,s*.2f,s*.34f,c); line(s*.34f,c,s*.68f,s*.8f); line(s*.36f,c,s*.82f,c) }
+            "undo","redo" -> if(name=="undo") { line(s*.25f,s*.38f,s*.48f,s*.18f); line(s*.25f,s*.38f,s*.48f,s*.55f); line(s*.28f,s*.38f,s*.62f,s*.38f); line(s*.62f,s*.38f,s*.78f,s*.58f) } else { line(s*.75f,s*.38f,s*.52f,s*.18f); line(s*.75f,s*.38f,s*.52f,s*.55f); line(s*.72f,s*.38f,s*.38f,s*.38f); line(s*.38f,s*.38f,s*.22f,s*.58f) }
+            "more" -> { drawCircle(tint,s*.065f,Offset(s*.25f,c)); drawCircle(tint,s*.065f,Offset(c,c)); drawCircle(tint,s*.065f,Offset(s*.75f,c)) }
+            "close" -> { line(s*.28f,s*.28f,s*.72f,s*.72f); line(s*.72f,s*.28f,s*.28f,s*.72f) }
+            "check" -> { line(s*.2f,s*.52f,s*.43f,s*.73f); line(s*.43f,s*.73f,s*.82f,s*.27f) }
+            "edit" -> { line(s*.25f,s*.72f,s*.67f,s*.3f); line(s*.61f,s*.24f,s*.75f,s*.38f); line(s*.22f,s*.78f,s*.43f,s*.74f) }
+            "layout","align" -> { rect(s*.2f,s*.22f,s*.6f,s*.56f,s*.04f); line(s*.2f,c,s*.8f,c); if(name=="layout") line(c,s*.22f,c,s*.78f) else { line(s*.35f,s*.34f,s*.65f,s*.34f); line(s*.35f,s*.66f,s*.65f,s*.66f) } }
+            "opacity" -> { drawCircle(tint,s*.28f,Offset(c,c),style=Stroke(sw)); line(c,s*.22f,c,s*.78f); line(s*.22f,c,s*.78f,c) }
+            "transform","rotate" -> { drawCircle(tint,s*.27f,Offset(c,c),style=Stroke(sw)); line(c,s*.12f,c,s*.28f); line(s*.72f,s*.5f,s*.86f,s*.5f); line(s*.72f,s*.5f,s*.82f,s*.4f); line(s*.72f,s*.5f,s*.82f,s*.6f) }
+            "replace","flip" -> { line(s*.2f,s*.34f,s*.8f,s*.34f); line(s*.8f,s*.34f,s*.66f,s*.22f); line(s*.8f,s*.34f,s*.66f,s*.46f); line(s*.8f,s*.66f,s*.2f,s*.66f); line(s*.2f,s*.66f,s*.34f,s*.54f); line(s*.2f,s*.66f,s*.34f,s*.78f) }
+            "crop" -> { line(s*.2f,s*.42f,s*.2f,s*.2f); line(s*.2f,s*.2f,s*.42f,s*.2f); line(s*.58f,s*.2f,s*.8f,s*.2f); line(s*.8f,s*.2f,s*.8f,s*.42f); line(s*.2f,s*.58f,s*.2f,s*.8f); line(s*.2f,s*.8f,s*.42f,s*.8f); line(s*.8f,s*.58f,s*.8f,s*.8f) }
+            "tune","filter" -> { listOf(.3f,.5f,.7f).forEachIndexed { i,y -> line(s*.2f,s*y,s*.8f,s*y); drawCircle(tint,s*.075f,Offset(if(i==1)s*.38f else s*.64f,s*y)) } }
+            "border","radius" -> rect(rad=if(name=="radius")s*.22f else s*.04f)
+            "shadow" -> { rect(s*.16f,s*.16f,s*.58f,s*.58f); line(s*.32f,s*.84f,s*.84f,s*.84f); line(s*.84f,s*.84f,s*.84f,s*.32f) }
+            "duplicate" -> { rect(s*.3f,s*.18f,s*.52f,s*.58f); rect(s*.18f,s*.3f,s*.52f,s*.58f) }
+            "delete" -> { line(s*.24f,s*.3f,s*.76f,s*.3f); line(s*.38f,s*.22f,s*.62f,s*.22f); rect(s*.3f,s*.34f,s*.4f,s*.46f,s*.04f); line(s*.43f,s*.42f,s*.43f,s*.7f); line(s*.57f,s*.42f,s*.57f,s*.7f) }
+            "lock","unlock" -> { rect(s*.22f,s*.43f,s*.56f,s*.4f,s*.06f); if(name=="lock") drawRoundRect(tint,Offset(s*.34f,s*.2f),androidx.compose.ui.geometry.Size(s*.32f,s*.34f),androidx.compose.ui.geometry.CornerRadius(s*.15f),style=Stroke(sw)) else { line(s*.36f,s*.42f,s*.36f,s*.28f); line(s*.36f,s*.28f,s*.52f,s*.18f) } }
+            "visible","hidden" -> { drawCircle(tint,s*.28f,Offset(c,c),style=Stroke(sw)); drawCircle(tint,s*.09f,Offset(c,c)); if(name=="hidden") line(s*.18f,s*.82f,s*.82f,s*.18f) }
+            "move","up","down","reset" -> { line(c,s*.2f,c,s*.8f); line(s*.2f,c,s*.8f,c); line(c,s*.2f,s*.38f,s*.34f); line(c,s*.2f,s*.62f,s*.34f); line(c,s*.8f,s*.38f,s*.66f); line(c,s*.8f,s*.62f,s*.66f) }
+            else -> { rect(); line(s*.32f,c,s*.68f,c); line(c,s*.32f,c,s*.68f) }
+        }
     }
 }
 
+@Composable
+private fun RowScope.BottomTool(label: String, glyph: String, activeColor: Color, onClick: () -> Unit) {
+    Column(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(10.dp)).clickable(onClick=onClick).padding(vertical=7.dp),
+        horizontalAlignment=Alignment.CenterHorizontally, verticalArrangement=Arrangement.Center) {
+        XingtuV2Glyph(glyph,activeColor,21.dp)
+        Spacer(Modifier.height(3.dp))
+        Text(label,color=MaterialTheme.colorScheme.onSurfaceVariant,fontSize=11.sp)
+    }
+}
 
 @Composable
 private fun ObjectToolChip(label: String, onClick: () -> Unit) {
-    Text(
-        label,
-        color = MaterialTheme.colorScheme.onSurface,
-        fontSize = 12.sp,
-        modifier = Modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
-    )
+    Row(Modifier.heightIn(min=40.dp).clip(RoundedCornerShape(9.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
+        .clickable(onClick=onClick).padding(horizontal=11.dp,vertical=8.dp),
+        verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+        XingtuV2Glyph(xingtuGlyphFor(label),MaterialTheme.colorScheme.onSurfaceVariant,16.dp)
+        Text(label,color=MaterialTheme.colorScheme.onSurface,fontSize=12.sp,maxLines=1)
+    }
 }
 
 @Composable
@@ -1142,12 +1194,12 @@ private fun XingtuV2PropertyPanel(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("×", color = colors.onSurface, fontSize = 22.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
             Box(
                 Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
                     detectDragGestures { change, drag ->
                         change.consume()
-                        onPanelHeightChange(panelHeight - drag.y / density)
+                        onPanelHeightChange((panelHeight - drag.y / density).coerceIn(200f, 400f))
                     }
                 },
                 contentAlignment = Alignment.Center
@@ -1157,7 +1209,7 @@ private fun XingtuV2PropertyPanel(
                     Text(tab, color = colors.onSurfaceVariant, fontSize = 10.sp)
                 }
             }
-            Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", colors.primary, 18.dp) }
         }
         val panelTabs = when (selectedObject) {
             is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换")
@@ -1172,16 +1224,18 @@ private fun XingtuV2PropertyPanel(
         ) {
             panelTabs.forEach { panelTab ->
                 val selectedTab = panelTab == tab
-                Text(
-                    panelTab,
-                    color = if (selectedTab) colors.primary else colors.onSurfaceVariant,
-                    fontSize = 13.sp,
-                    fontWeight = if (selectedTab) FontWeight.Medium else FontWeight.Normal,
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                Row(
+                    Modifier.clip(RoundedCornerShape(8.dp))
                         .background(if (selectedTab) colors.primary.copy(alpha = .10f) else Color.Transparent)
                         .clickable { onTabChange(panelTab) }
-                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                )
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    XingtuV2Glyph(xingtuGlyphFor(panelTab), if (selectedTab) colors.primary else colors.onSurfaceVariant, 15.dp)
+                    Text(panelTab, color = if (selectedTab) colors.primary else colors.onSurfaceVariant,
+                        fontSize = 12.sp, fontWeight = if (selectedTab) FontWeight.Medium else FontWeight.Normal)
+                }
             }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
@@ -1223,18 +1277,13 @@ private fun XingtuV2PropertyPanel(
                         }
                     }
                     "排版" -> {
-                        V2ValueSlider("文本框宽度", selectedObject.transform.width, 24f..1080f) {
-                            onUpdate(selectedObject.copy(
-                                boxWidth = it,
-                                transform = selectedObject.transform.copy(width = it)
-                            ))
+                        V2ValueSlider("文本框宽度", selectedObject.boxWidth, 24f..1080f) {
+                            onUpdate(selectedObject.copy(boxWidth = it))
                         }
-                        V2ValueSlider("文本框高度", selectedObject.transform.height, 24f..1440f) {
-                            onUpdate(selectedObject.copy(
-                                boxHeight = it,
-                                transform = selectedObject.transform.copy(height = it)
-                            ))
+                        V2ValueSlider("文本框高度", selectedObject.boxHeight, 24f..1440f) {
+                            onUpdate(selectedObject.copy(boxHeight = it))
                         }
+                        Text("文本框尺寸独立于对象外框；字号与整体缩放不会改写这里的数值。", color = colors.onSurfaceVariant, fontSize = 10.sp)
                         V2ValueSlider("行距", selectedObject.lineHeight, 0.8f..2.5f) {
                             onUpdate(selectedObject.copy(lineHeight = it))
                         }
@@ -1558,7 +1607,7 @@ private fun XingtuV2CanvasPanel(
     val density = LocalDensity.current.density
     Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
         Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("×", color = colors.onSurface, fontSize = 22.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
             Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
                 detectDragGestures { change, drag ->
                     change.consume()
@@ -1570,7 +1619,7 @@ private fun XingtuV2CanvasPanel(
                     Text("画布设置", color = colors.onSurfaceVariant, fontSize = 10.sp)
                 }
             }
-            Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", colors.primary, 18.dp) }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1608,7 +1657,7 @@ private fun XingtuV2MultiTransformPanel(
     val density = LocalDensity.current.density
     Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
         Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("×", color = colors.onSurface, fontSize = 22.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("close", colors.onSurface, 18.dp) }
             Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
                 detectDragGestures { change, drag ->
                     change.consume()
@@ -1620,7 +1669,7 @@ private fun XingtuV2MultiTransformPanel(
                     Text("多选整体变换", color = colors.onSurfaceVariant, fontSize = 10.sp)
                 }
             }
-            Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.size(40.dp).clickable { onClose() }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", colors.primary, 18.dp) }
         }
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
             V2ValueSlider("整体缩放", scale, 0.2f..3f, onScaleChange)

@@ -163,7 +163,7 @@ object XingtuV2Reducer {
         is XingtuV2Object.Component -> v.copy(groupId = groupId)
     }
     private fun withTransform(v: XingtuV2Object, t: XingtuV2Transform): XingtuV2Object = when (v) {
-        is XingtuV2Object.Text -> v.copy(transform = t, boxWidth = t.width, boxHeight = t.height)
+        is XingtuV2Object.Text -> v.copy(transform = t)
         is XingtuV2Object.Image -> v.copy(transform = t)
         is XingtuV2Object.Component -> v.copy(transform = t)
     }
@@ -349,7 +349,7 @@ data class XingtuV2History(
                     rotation = t.rotation + rotationDelta
                 )
                 when (item) {
-                    is XingtuV2Object.Text -> item.copy(transform = next, boxWidth = next.width, boxHeight = next.height)
+                    is XingtuV2Object.Text -> item.copy(transform = next)
                     is XingtuV2Object.Image -> item.copy(transform = next)
                     is XingtuV2Object.Component -> item.copy(transform = next)
                 }
