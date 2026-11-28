@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/xingtu-editor-v2-rewrite
   workflow_dispatch:
 
 permissions:
