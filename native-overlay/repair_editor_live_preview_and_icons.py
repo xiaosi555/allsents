@@ -67,7 +67,7 @@ fun ShiWanJuLineIcon(label: String, tint: Color, modifier: Modifier = Modifier) 
             drawRoundRect(c, Offset(x, y), Size(rw, rh), androidx.compose.ui.geometry.CornerRadius(radius, radius), style = Stroke(sw))
         }
         fun circle(x: Float, y: Float, radius: Float, filled: Boolean = false) {
-            drawCircle(c, radius, Offset(x, y), style = if (filled) androidx.compose.ui.graphics.drawscope.Fill else Stroke(sw))
+            drawCircle(c, radius, Offset(x, y), style = Stroke(sw))
         }
         fun poly(points: List<Offset>, close: Boolean = false) {
             val p = androidx.compose.ui.graphics.Path()
@@ -79,7 +79,7 @@ fun ShiWanJuLineIcon(label: String, tint: Color, modifier: Modifier = Modifier) 
         when {
             k.contains("撤销") || k.contains("undo") -> { poly(listOf(Offset(w*.42f,h*.24f),Offset(w*.18f,h*.24f),Offset(w*.18f,h*.48f))); poly(listOf(Offset(w*.18f,h*.48f),Offset(w*.38f,h*.29f),Offset(w*.55f,h*.25f),Offset(w*.75f,h*.34f),Offset(w*.82f,h*.52f),Offset(w*.76f,h*.72f))) }
             k.contains("重做") || k.contains("redo") -> { poly(listOf(Offset(w*.58f,h*.24f),Offset(w*.82f,h*.24f),Offset(w*.82f,h*.48f))); poly(listOf(Offset(w*.82f,h*.48f),Offset(w*.62f,h*.29f),Offset(w*.45f,h*.25f),Offset(w*.25f,h*.34f),Offset(w*.18f,h*.52f),Offset(w*.24f,h*.72f))) }
-            k.contains("透明度") || k.contains("opacity") -> { circle(cx,cy,w*.34f); drawArc(c, -90f, 180f, true, Offset(cx-w*.34f,cy-w*.34f), Size(w*.68f,w*.68f)); line(cx,cy-w*.34f,cx,cy+w*.34f) }
+            k.contains("透明度") || k.contains("opacity") -> { circle(cx,cy,w*.34f); drawArc(c, -90f, 180f, false, Offset(cx-w*.34f,cy-w*.34f), Size(w*.68f,w*.68f), style = Stroke(sw)); line(cx,cy-w*.34f,cx,cy+w*.34f) }
             k.contains("裁剪") || k.contains("裁切") || k.contains("crop") -> { line(w*.12f,h*.36f,w*.12f,h*.12f); line(w*.12f,h*.12f,w*.36f,h*.12f); line(w*.64f,h*.12f,w*.88f,h*.12f); line(w*.88f,h*.12f,w*.88f,h*.36f); line(w*.12f,h*.64f,w*.12f,h*.88f); line(w*.12f,h*.88f,w*.36f,h*.88f); line(w*.64f,h*.88f,w*.88f,h*.88f); line(w*.88f,h*.64f,w*.88f,h*.88f) }
             k.contains("图片") || k.contains("加图") || k.contains("相册") || k.contains("封面") || k.contains("image") -> { outlineRect(w*.12f,h*.16f,w*.76f,h*.68f,sw*1.4f); circle(w*.68f,h*.35f,w*.07f,true); poly(listOf(Offset(w*.18f,h*.72f),Offset(w*.40f,h*.49f),Offset(w*.54f,h*.62f),Offset(w*.64f,h*.52f),Offset(w*.82f,h*.73f))) }
             k.contains("加粗") || k.contains("粗体") || k.contains("bold") -> { line(w*.18f,h*.25f,w*.82f,h*.25f); line(cx,h*.25f,cx,h*.78f); line(w*.34f,h*.78f,w*.66f,h*.78f); line(w*.30f,h*.45f,w*.70f,h*.45f); line(w*.24f,h*.54f,w*.76f,h*.54f) }
