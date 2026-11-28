@@ -9,6 +9,7 @@ V3 = JAVA / "ui/v3/ArticleEditorScreenV3.kt"
 MAIN = JAVA / "MainActivity.kt"
 
 def fail(message):
+    Path("xingtu_v3_stage_ab_patch_error.txt").write_text(message + "\\n", encoding="utf-8")
     raise SystemExit("醒图 3.0 Stage A/B: " + message)
 
 def replace_once(source, old, new, label):
@@ -166,26 +167,20 @@ s = replace_once(
 
 # Replace only the persistent primary dock. The secondary panel content and every
 # old EditorPanel implementation remain intact and are still reachable.
-markers = (
-    "// Persistent primary navigation: keep it in the editor's main Box, not only inside the tool Dialog.",
-    "// Persistent primary navigation is hidden while the secondary tool sheet is open.",
+# Locate the active category dock by its stable Compose structure, not comments
+# that upstream historical patch scripts may rewrite.
+dock_pattern = re.compile(
+    r"if\\s*\\(!previewMode(?:\\s*&&\\s*!showToolPopup)?\\)\\s*\\{\\s*"
+    r"Row\\(\\s*Modifier\\.fillMaxWidth\\(\\)\\.height\\(50\\.dp\\)"
 )
-positions = [s.rfind(marker) for marker in markers if marker in s]
-if not positions:
-    fail("persistent primary navigation anchor is missing")
-# The bottom-dock refinements use one of these two comments. Pick the last
-# active dock block, regardless of which refinement produced its comment.
-start = max(positions)
-candidates = [
-    s.find("            if (!previewMode && !showToolPopup) {", start),
-    s.find("            if (!previewMode) {", start),
-]
-candidates = [pos for pos in candidates if pos >= 0]
-if not candidates:
-    fail("primary navigation if-block not found")
-if_start = min(candidates)
+dock_matches = list(dock_pattern.finditer(s))
+if not dock_matches:
+    fail("primary category dock structure not found")
+dock_match = dock_matches[-1]
+if_start = dock_match.start()
 open_brace = s.find("{", if_start)
 end = matching_brace(s, open_brace)
+
 new_dock = '''            // 醒图 3.0 primary navigation: exactly eight semantic categories.
             if (!previewMode && !showToolPopup) {
                 Row(
