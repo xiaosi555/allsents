@@ -129,21 +129,27 @@ s = replace_once(
 
 # Stage B: retain the legacy panel enum and all panel bodies; introduce a separate
 # 8-item primary category enum that routes to the existing implementations.
-s = replace_once(
-    s,
-    '''private enum class EditorPanel(val label: String) {
-    TEXT("文字"), TEXT2("文字2"), TITLE("标题"), IMAGE("图片"), LAYOUT("布局"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("图文收藏"), TEMPLATE("图文模板"), DOCUMENT("文档"), CANVAS("画布")
-}''',
-    '''private enum class EditorPanel(val label: String) {
-    TEXT("文字"), TEXT2("文字高级"), TITLE("标题"), IMAGE("图片"), LAYOUT("分栏"), CARD("卡片"), COMPONENT("组件"), SVG("SVG"), LAYER("图层"), STYLE("样式"), TEMPLATE("模板库"), DOCUMENT("文档"), CANVAS("画布")
-}
+enum_marker = "private enum class EditorPanel(val label: String) {"
+if s.count(enum_marker) != 1:
+    fail("legacy EditorPanel enum declaration is missing or ambiguous")
+enum_start = s.index(enum_marker)
+enum_open = s.index("{", enum_start)
+enum_end = matching_brace(s, enum_open)
+legacy_enum = s[enum_start:enum_end]
+for old_label, new_label in [
+    ('TEXT2("文字2")', 'TEXT2("文字高级")'),
+    ('LAYOUT("布局")', 'LAYOUT("分栏")'),
+    ('STYLE("图文收藏")', 'STYLE("样式")'),
+    ('TEMPLATE("图文模板")', 'TEMPLATE("模板库")')
+]:
+    legacy_enum = legacy_enum.replace(old_label, new_label, 1)
+category_enum = """
 
 private enum class EditorCategory(val label: String) {
     TEXT("文字"), IMAGE("图片"), COMPONENT("组件"), LAYOUT("排版"),
     LAYER("图层"), STYLE("样式"), TEMPLATE("模板"), DOCUMENT("文档")
-}''',
-    "8-category navigation model"
-)
+}"""
+s = s[:enum_start] + legacy_enum + category_enum + s[enum_end:]
 
 s = replace_once(
     s,
