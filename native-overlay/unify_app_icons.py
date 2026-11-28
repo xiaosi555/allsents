@@ -137,16 +137,16 @@ audit=[]
 for path in files:
  src=path.read_text(encoding="utf-8")
  if "AppIconVectors." in src: raise SystemExit(f"Obsolete AppIconVectors reference remains: {path}")
- if re.search(r"(?<!fun )ShiWanJuLineIcon\\(",src) and path!=REGISTRY:
+ if re.search(r"(?<!fun )ShiWanJuLineIcon\(",src) and path!=REGISTRY:
   raise SystemExit(f"Icon call bypasses editable AppIcon registry: {path}")
- count=len(re.findall(r"\\bAppIcon\\s*\\(",src))
+ count=len(re.findall(r"\bAppIcon\s*\(",src))
  audit.append((str(path.relative_to(ROOT)),count))
  for i,line in enumerate(src.splitlines(),1):
-  if re.search(r'Text\\(\\s*"[^"]*[↻⌫ⓘ▧▦▤◇⊞▣♡⠿☰☷☻⚙★☆♥✚✎⌂⌕]',line):
+  if re.search(r'Text\(\s*"[^"]*[↻⌫ⓘ▧▦▤◇⊞▣♡⠿☰☷☻⚙★☆♥✚✎⌂⌕]',line):
    glyphs.append(f"{path.name}:{i}")
 report=ROOT.parent.parent.parent / "SHIWANJU_ICON_AUDIT_REPORT.md"
 report.write_text(
- "# 拾万句全局图标迁移审计\\n\\n"
+ "# 拾万句全局图标迁移审计\\n\n"
  f"- 统一图标目录：{len(items)} 个语义标识\\n"
  f"- Material 图标迁移：{converted} 处\\n"
  f"- 扫描 Kotlin 文件：{len(files)} 个\\n"
@@ -154,7 +154,7 @@ report.write_text(
  "## 按文件统计\\n\\n"
  "| Kotlin 文件 | 统一图标调用数 |\\n|---|---:|\\n"
  + "".join(f"| {name} | {count} |\\n" for name,count in audit)
- + "\\n## 遗留字符候选\\n\\n"
+ + "\n## 遗留字符候选\\n\\n"
  + ("\\n".join("- "+g for g in glyphs) if glyphs else "无")
  + "\\n",
  encoding="utf-8")
