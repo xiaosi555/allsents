@@ -29,7 +29,10 @@ new_rotate = """function applySelectedImageTransform(){if(!activeImage)return;co
                             function rotateSelectedImage(){if(!activeImage)return;activeImage.dataset.rotation=(parseInt(activeImage.dataset.rotation||'0')+90)%360;applySelectedImageTransform();commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
                             function flipSelectedImage(axis){if(!activeImage)return;if(axis==='x')activeImage.dataset.flipX=activeImage.dataset.flipX==='1'?'0':'1';else activeImage.dataset.flipY=activeImage.dataset.flipY==='1'?'0':'1';applySelectedImageTransform();commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
                             function setSelectedImageFit(mode){if(!activeImage)return;activeImage.style.objectFit=mode==='contain'?'contain':'cover';commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
-                            function setSelectedImageOpacity(value){if(!activeImage)return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(value))))/100;commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}"""
+                            function setSelectedImageOpacity(value){if(!activeImage)return;activeImage.style.opacity=String(Math.max(0,Math.min(100,Number(value))))/100;commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
+                            function applySelectedImageFilter(){if(!activeImage)return;const b=Math.max(0,Math.min(200,Number(activeImage.dataset.editorBrightness||100))),c=Math.max(0,Math.min(200,Number(activeImage.dataset.editorContrast||100))),sat=Math.max(0,Math.min(200,Number(activeImage.dataset.editorSaturation||100)));activeImage.style.filter='brightness('+b+'%) contrast('+c+'%) saturate('+sat+'%)';}
+                            function setSelectedImageAdjust(kind,value){if(!activeImage)return;const key=kind==='brightness'?'editorBrightness':kind==='contrast'?'editorContrast':'editorSaturation';activeImage.dataset[key]=String(value);applySelectedImageFilter();commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}
+                            function resetSelectedImageAdjust(){if(!activeImage)return;['editorBrightness','editorContrast','editorSaturation'].forEach(k=>delete activeImage.dataset[k]);activeImage.style.filter='';commitHistory();NativeEditor.imageSelected(activeImage.outerHTML);NativeEditor.changed(root.innerHTML);}"""
 s = once(s, old_rotate, new_rotate, "composable image transforms")
 
 # Add image tools without removing any existing crop, replacement or asset actions.
@@ -43,6 +46,15 @@ replace_width = '''                                EditorTool("宽度50%") { run
                                 EditorTool("不透明100%") { runJs("setSelectedImageOpacity(100)") }
                                 EditorTool("不透明80%") { runJs("setSelectedImageOpacity(80)") }
                                 EditorTool("不透明50%") { runJs("setSelectedImageOpacity(50)") }
+                                EditorTool("亮度80%") { runJs("setSelectedImageAdjust('brightness',80)") }
+                                EditorTool("亮度100%") { runJs("setSelectedImageAdjust('brightness',100)") }
+                                EditorTool("亮度120%") { runJs("setSelectedImageAdjust('brightness',120)") }
+                                EditorTool("对比度80%") { runJs("setSelectedImageAdjust('contrast',80)") }
+                                EditorTool("对比度120%") { runJs("setSelectedImageAdjust('contrast',120)") }
+                                EditorTool("饱和度0%") { runJs("setSelectedImageAdjust('saturation',0)") }
+                                EditorTool("饱和度80%") { runJs("setSelectedImageAdjust('saturation',80)") }
+                                EditorTool("饱和度120%") { runJs("setSelectedImageAdjust('saturation',120)") }
+                                EditorTool("恢复色彩") { runJs("resetSelectedImageAdjust()") }
                                 EditorTool("圆角")'''
 s = once(s, const_width, replace_width, "image transform controls")
 
