@@ -22,6 +22,8 @@ sealed class XingtuV2Object {
         val fontFamily: String = "default", val fontSizeSp: Float = 24f,
         val fontWeight: Int = 400, val italic: Boolean = false,
         val color: Long = 0xFF222222, val backgroundColor: Long = 0x00000000,
+        val strokeColor: Long = 0x00000000, val strokeWidth: Float = 0f,
+        val shadowColor: Long = 0x66000000, val shadowRadius: Float = 0f,
         val lineHeight: Float = 1.35f,
         val letterSpacing: Float = 0f, val textAlign: String = "start",
         val boxWidth: Float = 240f, val boxHeight: Float = 72f,

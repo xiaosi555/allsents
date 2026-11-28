@@ -36,6 +36,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -45,6 +48,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -379,6 +383,30 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         .background(Color(item.backgroundColor), RoundedCornerShape(4.dp)),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
+                                    if (item.strokeWidth > 0f && (item.strokeColor ushr 24) != 0L) {
+                                        Text(
+                                            text = item.content,
+                                            color = Color(item.strokeColor),
+                                            fontSize = (item.fontSizeSp * scaleX * sqrt((t.scaleX * t.scaleY).coerceAtLeast(0.01f))).coerceIn(8f, 160f).sp,
+                                            fontFamily = when (item.fontFamily) {
+                                                "serif" -> FontFamily.Serif
+                                                "mono" -> FontFamily.Monospace
+                                                "cursive" -> FontFamily.Cursive
+                                                else -> FontFamily.SansSerif
+                                            },
+                                            fontWeight = FontWeight(item.fontWeight.coerceIn(100, 900)),
+                                            fontStyle = if (item.italic) FontStyle.Italic else FontStyle.Normal,
+                                            lineHeight = (item.fontSizeSp * item.lineHeight * scaleX * sqrt((t.scaleX * t.scaleY).coerceAtLeast(0.01f))).sp,
+                                            letterSpacing = (item.letterSpacing * scaleX * t.scaleX).sp,
+                                            textAlign = when (item.textAlign) {
+                                                "center" -> TextAlign.Center
+                                                "end" -> TextAlign.End
+                                                else -> TextAlign.Start
+                                            },
+                                            style = TextStyle(drawStyle = Stroke(width = item.strokeWidth.coerceIn(0f, 16f) * scaleX)),
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
                                     Text(
                                         text = item.content,
                                         color = Color(item.color),
@@ -398,6 +426,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             "end" -> TextAlign.End
                                             else -> TextAlign.Start
                                         },
+                                        style = TextStyle(shadow = if (item.shadowRadius > 0f) Shadow(
+                                            color = Color(item.shadowColor), offset = Offset(0f, item.shadowRadius * scaleX * 0.35f),
+                                            blurRadius = item.shadowRadius.coerceIn(0f, 48f) * scaleX
+                                        ) else null),
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
@@ -1116,6 +1148,38 @@ private fun XingtuV2PropertyPanel(
                         }
                         V2ColorInput("自定义文字背景色", selectedObject.backgroundColor) {
                             onUpdate(selectedObject.copy(backgroundColor = it))
+                        }
+                        Text("文字描边", color = colors.onSurface, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+                        V2ValueSlider("描边宽度", selectedObject.strokeWidth, 0f..16f) {
+                            onUpdate(selectedObject.copy(strokeWidth = it))
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0x00000000, 0xFF222222, 0xFFFFFFFF, 0xFFE64A4A, 0xFF2878D0, 0xFFFFB020).forEach { value ->
+                                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(value))
+                                    .border(if (selectedObject.strokeColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.strokeColor == value) colors.primary else colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(strokeColor = value)) })
+                            }
+                        }
+                        V2ColorInput("自定义描边颜色", selectedObject.strokeColor) {
+                            onUpdate(selectedObject.copy(strokeColor = it))
+                        }
+                        Text("文字阴影", color = colors.onSurface, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+                        V2ValueSlider("阴影范围", selectedObject.shadowRadius, 0f..48f) {
+                            onUpdate(selectedObject.copy(shadowRadius = it))
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0x66000000, 0x66FFFFFF, 0x66E64A4A, 0x660000FF).forEach { value ->
+                                Box(Modifier.size(28.dp).clip(CircleShape).background(Color(value))
+                                    .border(if (selectedObject.shadowColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.shadowColor == value) colors.primary else colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(shadowColor = value)) })
+                            }
+                        }
+                        V2ColorInput("自定义阴影颜色", selectedObject.shadowColor) {
+                            onUpdate(selectedObject.copy(shadowColor = it))
                         }
                     }
 

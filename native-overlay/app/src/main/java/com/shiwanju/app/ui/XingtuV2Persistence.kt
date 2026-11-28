@@ -52,6 +52,10 @@ object XingtuV2Persistence {
                         italic = item.optBoolean("italic", false),
                         color = item.optLong("color", 0xFF222222),
                         backgroundColor = item.optLong("backgroundColor", 0x00000000),
+                        strokeColor = item.optLong("strokeColor", 0x00000000),
+                        strokeWidth = item.optDouble("strokeWidth", 0.0).toFloat(),
+                        shadowColor = item.optLong("shadowColor", 0x66000000),
+                        shadowRadius = item.optDouble("shadowRadius", 0.0).toFloat(),
                         lineHeight = item.optDouble("lineHeight", 1.35).toFloat(),
                         letterSpacing = item.optDouble("letterSpacing", 0.0).toFloat(),
                         textAlign = item.optString("textAlign", "start"),
@@ -179,6 +183,8 @@ object XingtuV2Persistence {
                         .put("content", item.content).put("fontFamily", item.fontFamily)
                         .put("fontSizeSp", item.fontSizeSp).put("fontWeight", item.fontWeight)
                         .put("italic", item.italic).put("color", item.color).put("backgroundColor", item.backgroundColor)
+                        .put("strokeColor", item.strokeColor).put("strokeWidth", item.strokeWidth)
+                        .put("shadowColor", item.shadowColor).put("shadowRadius", item.shadowRadius)
                         .put("lineHeight", item.lineHeight).put("letterSpacing", item.letterSpacing)
                         .put("textAlign", item.textAlign).put("boxWidth", item.boxWidth)
                         .put("boxHeight", item.boxHeight)
