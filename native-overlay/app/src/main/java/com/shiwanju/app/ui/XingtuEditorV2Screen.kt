@@ -84,6 +84,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     var groupScale by remember { mutableFloatStateOf(1f) }
     var groupRotation by remember { mutableFloatStateOf(0f) }
     var showLayers by remember { mutableStateOf(false) }
+    var showVersions by remember { mutableStateOf(false) }
+    var savedVersions by remember { mutableStateOf(emptyList<XingtuV2VersionInfo>()) }
     var replaceTargetId by remember { mutableStateOf<String?>(null) }
     var activePanel by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(history.document.selectedIds) {
@@ -162,6 +164,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 Text("↷", fontSize = 22.sp,
                     color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface,
                     modifier = Modifier.clickable(enabled = history.redoStack.isNotEmpty()) { history = history.redo() }.padding(horizontal = 7.dp))
+                Text("版本", fontSize = 11.sp, color = colors.onSurfaceVariant,
+                    modifier = Modifier.clickable {
+                        savedVersions = XingtuV2Persistence.listVersions(context)
+                        showVersions = !showVersions
+                    }.padding(horizontal = 6.dp))
                 Text("完成", fontSize = 13.sp, color = colors.primary,
                     modifier = Modifier.clickable { XingtuV2Persistence.save(context, history.document); onBack() }.padding(start = 8.dp))
             }
@@ -504,6 +511,39 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     color = colors.primary, fontSize = 11.sp,
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp)
                 )
+            }
+        }
+
+        if (showVersions) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 250.dp).background(colors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("版本记录（最多保留 20 个）", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
+                    ObjectToolChip("保存当前版本") {
+                        savedVersions = XingtuV2Persistence.createVersion(
+                            context, history.document, "版本 ${savedVersions.size + 1}"
+                        )
+                    }
+                }
+                LazyColumn {
+                    items(savedVersions, key = { it.id }) { version ->
+                        Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(version.label, color = colors.onSurface, fontSize = 12.sp)
+                                Text(java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(version.createdAt)),
+                                    color = colors.onSurfaceVariant, fontSize = 10.sp)
+                            }
+                            ObjectToolChip("恢复") {
+                                XingtuV2Persistence.restoreVersion(context, version.id)?.let { restored ->
+                                    history = XingtuV2History(restored)
+                                    activePanel = null
+                                    activeCanvasPanel = false
+                                    activeMultiTransform = false
+                                }
+                                showVersions = false
+                            }
+                        }
+                    }
+                }
             }
         }
 

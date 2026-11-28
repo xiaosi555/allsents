@@ -4,6 +4,8 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
+data class XingtuV2VersionInfo(val id: String, val label: String, val createdAt: Long)
+
 /** Local draft persistence for the independent Xingtu V2 document. */
 object XingtuV2Persistence {
     private const val PREFS = "xingtu_editor_v2"
@@ -79,6 +81,46 @@ object XingtuV2Persistence {
             canvas = canvas, objects = objects,
             revision = root.optLong("revision", 0L)
         )
+    }.getOrNull()
+
+    fun listVersions(context: Context): List<XingtuV2VersionInfo> = runCatching {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_VERSIONS, "[]") ?: "[]"
+        val array = JSONArray(raw)
+        buildList {
+            for (index in 0 until array.length()) {
+                val item = array.optJSONObject(index) ?: continue
+                add(XingtuV2VersionInfo(
+                    id = item.optString("id"),
+                    label = item.optString("label"),
+                    createdAt = item.optLong("createdAt")
+                ))
+            }
+        }.sortedByDescending { it.createdAt }
+    }.getOrDefault(emptyList())
+
+    fun createVersion(context: Context, document: XingtuV2Document, label: String): List<XingtuV2VersionInfo> {
+        save(context, document)
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val rawDocument = prefs.getString(KEY_DOCUMENT, null) ?: return listVersions(context)
+        val versions = runCatching { JSONArray(prefs.getString(KEY_VERSIONS, "[]") ?: "[]") }.getOrDefault(JSONArray())
+        val createdAt = System.currentTimeMillis()
+        versions.put(JSONObject()
+            .put("id", "version-$createdAt")
+            .put("label", label)
+            .put("createdAt", createdAt)
+            .put("document", rawDocument))
+        while (versions.length() > 20) versions.remove(0)
+        prefs.edit().putString(KEY_VERSIONS, versions.toString()).apply()
+        return listVersions(context)
+    }
+
+    fun restoreVersion(context: Context, id: String): XingtuV2Document? = runCatching {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val versions = JSONArray(prefs.getString(KEY_VERSIONS, "[]") ?: "[]")
+        val selected = (0 until versions.length()).mapNotNull { versions.optJSONObject(it) }
+            .firstOrNull { it.optString("id") == id } ?: return null
+        prefs.edit().putString(KEY_DOCUMENT, selected.getString("document")).apply()
+        load(context)
     }.getOrNull()
 
     fun save(context: Context, document: XingtuV2Document) {
