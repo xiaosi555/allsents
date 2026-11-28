@@ -898,6 +898,16 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("${history.document.selectedIds.size} 个对象", color = colors.primary, fontSize = 12.sp)
+                ObjectToolChip("组合") {
+                    if (history.document.selectedIds.size > 1) {
+                        history = history.dispatch(XingtuV2Action.GroupObjects(
+                            history.document.selectedIds, "group-${System.nanoTime()}"
+                        ))
+                    }
+                }
+                ObjectToolChip("拆分组合") {
+                    history = history.dispatch(XingtuV2Action.UngroupObjects(history.document.selectedIds))
+                }
                 ObjectToolChip("整体变换") {
                     history = history.beginTransform()
                     groupScale = 1f

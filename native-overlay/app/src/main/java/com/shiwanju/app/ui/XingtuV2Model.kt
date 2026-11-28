@@ -12,13 +12,14 @@ data class XingtuV2Transform(
 
 sealed class XingtuV2Object {
     abstract val id: String
+    abstract val groupId: String?
     abstract val transform: XingtuV2Transform
     abstract val visible: Boolean
     abstract val locked: Boolean
     abstract val kind: XingtuV2ObjectKind
 
     data class Text(
-        override val id: String, val content: String, val layerName: String = "",
+        override val id: String, val content: String, val layerName: String = "", override val groupId: String? = null,
         val fontFamily: String = "default", val fontSizeSp: Float = 24f,
         val fontWeight: Int = 400, val italic: Boolean = false,
         val color: Long = 0xFF222222, val backgroundColor: Long = 0x00000000,
@@ -32,7 +33,7 @@ sealed class XingtuV2Object {
     ) : XingtuV2Object() { override val kind = XingtuV2ObjectKind.TEXT }
 
     data class Image(
-        override val id: String, val assetUri: String, val layerName: String = "",
+        override val id: String, val assetUri: String, val layerName: String = "", override val groupId: String? = null,
         val cropLeft: Float = 0f, val cropTop: Float = 0f,
         val cropRight: Float = 1f, val cropBottom: Float = 1f,
         val colorTemperature: Float = 0f, val saturation: Float = 1f,
@@ -45,7 +46,7 @@ sealed class XingtuV2Object {
     ) : XingtuV2Object() { override val kind = XingtuV2ObjectKind.IMAGE }
 
     data class Component(
-        override val id: String, val componentType: String, val layerName: String = "",
+        override val id: String, val componentType: String, val layerName: String = "", override val groupId: String? = null,
         val fillColor: Long = 0xFFF1F1F1, val cornerRadius: Float = 0f,
         val strokeColor: Long = 0x00000000, val strokeWidth: Float = 0f,
         val shadowRadius: Float = 0f, val shadowColor: Long = 0x66000000,
@@ -70,6 +71,8 @@ data class XingtuV2Document(
 
 sealed class XingtuV2Action {
     data class Select(val ids: Set<String>, val additive: Boolean = false) : XingtuV2Action()
+    data class GroupObjects(val ids: Set<String>, val groupId: String) : XingtuV2Action()
+    data class UngroupObjects(val ids: Set<String>) : XingtuV2Action()
     data class TransformObject(val id: String, val transform: XingtuV2Transform) : XingtuV2Action()
     data class SetVisibility(val id: String, val visible: Boolean) : XingtuV2Action()
     data class SetLocked(val id: String, val locked: Boolean) : XingtuV2Action()
@@ -88,7 +91,9 @@ object XingtuV2Reducer {
                 // Hidden layers remain manageable from the layer list, but they must not
                 // become active canvas selections or expose stale property controls.
                 val visibleIds = document.objects.filter { it.visible }.map { it.id }.toSet()
-                val valid = action.ids.intersect(visibleIds)
+                val direct = action.ids.intersect(visibleIds)
+                val linkedGroups = document.objects.filter { it.id in direct }.mapNotNull { it.groupId }.toSet()
+                val valid = direct + document.objects.filter { it.visible && it.groupId in linkedGroups }.map { it.id }
                 document.copy(selectedIds = if (action.additive) (document.selectedIds - valid) + (valid - document.selectedIds) else valid)
             }
             is XingtuV2Action.TransformObject ->
@@ -132,11 +137,28 @@ object XingtuV2Reducer {
                     document.copy(objects = list)
                 }
             }
+            is XingtuV2Action.GroupObjects -> {
+                val eligible = action.ids.intersect(document.objects.filter { !it.locked }.map { it.id }.toSet())
+                if (eligible.size < 2) document else document.copy(objects = document.objects.map { item ->
+                    if (item.id in eligible) withGroupId(item, action.groupId) else item
+                }, selectedIds = eligible)
+            }
+            is XingtuV2Action.UngroupObjects -> {
+                val selectedGroups = document.objects.filter { it.id in action.ids }.mapNotNull { it.groupId }.toSet()
+                if (selectedGroups.isEmpty()) document else document.copy(objects = document.objects.map { item ->
+                    if (item.groupId in selectedGroups) withGroupId(item, null) else item
+                })
+            }
             is XingtuV2Action.SetCanvas -> document.copy(canvas = action.canvas)
         }
         return if (next == document) document else next.copy(revision = document.revision + 1)
     }
 
+    private fun withGroupId(v: XingtuV2Object, groupId: String?): XingtuV2Object = when (v) {
+        is XingtuV2Object.Text -> v.copy(groupId = groupId)
+        is XingtuV2Object.Image -> v.copy(groupId = groupId)
+        is XingtuV2Object.Component -> v.copy(groupId = groupId)
+    }
     private fun withTransform(v: XingtuV2Object, t: XingtuV2Transform): XingtuV2Object = when (v) {
         is XingtuV2Object.Text -> v.copy(transform = t, boxWidth = t.width, boxHeight = t.height)
         is XingtuV2Object.Image -> v.copy(transform = t)

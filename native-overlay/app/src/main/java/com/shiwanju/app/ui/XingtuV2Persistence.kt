@@ -45,7 +45,7 @@ object XingtuV2Persistence {
                 val locked = item.optBoolean("locked", false)
                 when (item.optString("kind")) {
                     "TEXT" -> add(XingtuV2Object.Text(
-                        id = id, content = item.optString("content", ""), layerName = item.optString("layerName", ""),
+                        id = id, content = item.optString("content", ""), layerName = item.optString("layerName", ""), groupId = item.optString("groupId").takeIf { it.isNotBlank() },
                         fontFamily = item.optString("fontFamily", "default"),
                         fontSizeSp = item.optDouble("fontSizeSp", 24.0).toFloat(),
                         fontWeight = item.optInt("fontWeight", 400),
@@ -182,7 +182,7 @@ object XingtuV2Persistence {
                         .put("scaleY", t.scaleY).put("alpha", t.alpha))
                 when (item) {
                     is XingtuV2Object.Text -> json
-                        .put("content", item.content).put("layerName", item.layerName).put("fontFamily", item.fontFamily)
+                        .put("content", item.content).put("layerName", item.layerName).put("groupId", item.groupId ?: "").put("fontFamily", item.fontFamily)
                         .put("fontSizeSp", item.fontSizeSp).put("fontWeight", item.fontWeight)
                         .put("italic", item.italic).put("color", item.color).put("backgroundColor", item.backgroundColor)
                         .put("strokeColor", item.strokeColor).put("strokeWidth", item.strokeWidth)
