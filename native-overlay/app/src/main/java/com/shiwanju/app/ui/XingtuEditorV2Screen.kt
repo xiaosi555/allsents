@@ -1171,9 +1171,8 @@ private fun RowScope.BottomTool(label: String, glyph: String, activeColor: Color
 }
 
 @Composable
-private fun ObjectToolChip(label: String, onClick: () -> Unit) {
+private fun ObjectToolChip(label: String, selected: Boolean = false, onClick: () -> Unit) {
     val dark = MaterialTheme.colorScheme.surface == Color(0xFF181818)
-    val selected = false
     Column(
         Modifier.widthIn(min = 54.dp).heightIn(min = 54.dp)
             .clip(RoundedCornerShape(10.dp))
@@ -1230,6 +1229,7 @@ private fun XingtuV2PropertyPanel(
     )) {
     val colors = MaterialTheme.colorScheme
     val density = LocalDensity.current.density
+    var fontSearch by remember { mutableStateOf("") }
     Column(
         Modifier.fillMaxWidth().height(panelHeight.dp).background(Color(0xFF181818))
             .border(1.dp, Color(0xFF333333))
@@ -1310,15 +1310,47 @@ private fun XingtuV2PropertyPanel(
                         V2ValueSlider("字重", selectedObject.fontWeight.toFloat(), 100f..900f) {
                             onUpdate(selectedObject.copy(fontWeight = (it / 100f).roundToInt() * 100))
                         }
-                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ObjectToolChip("无衬线") { onUpdate(selectedObject.copy(fontFamily = "default")) }
-                            ObjectToolChip("宋体") { onUpdate(selectedObject.copy(fontFamily = "serif")) }
-                            ObjectToolChip("等宽") { onUpdate(selectedObject.copy(fontFamily = "mono")) }
-                            ObjectToolChip("手写") { onUpdate(selectedObject.copy(fontFamily = "cursive")) }
-                            ObjectToolChip(if (selectedObject.italic) "取消斜体" else "斜体") {
+                        OutlinedTextField(
+                            value = fontSearch,
+                            onValueChange = { fontSearch = it },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            singleLine = true,
+                            label = { Text("搜索字体样式") },
+                            leadingIcon = { XingtuV2Glyph("search", colors.onSurfaceVariant, 16.dp) }
+                        )
+                        val fontOptions = listOf(
+                            "系统默认" to "default",
+                            "宋体 / 衬线" to "serif",
+                            "等宽" to "mono",
+                            "手写" to "cursive"
+                        ).filter { it.first.contains(fontSearch, ignoreCase = true) || it.second.contains(fontSearch, ignoreCase = true) }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            fontOptions.forEach { (label, family) ->
+                                ObjectToolChip(label, selected = selectedObject.fontFamily == family) {
+                                    onUpdate(selectedObject.copy(fontFamily = family))
+                                }
+                            }
+                            ObjectToolChip(if (selectedObject.italic) "取消斜体" else "斜体",
+                                selected = selectedObject.italic) {
                                 onUpdate(selectedObject.copy(italic = !selectedObject.italic))
                             }
                         }
+                        Text("字体效果预览", color = colors.onSurfaceVariant, fontSize = 10.sp)
+                        Text(
+                            selectedObject.content.ifBlank { "Aa 示例文字 123" },
+                            color = Color(selectedObject.color),
+                            fontSize = 24.sp,
+                            fontFamily = when (selectedObject.fontFamily) {
+                                "serif" -> FontFamily.Serif
+                                "mono" -> FontFamily.Monospace
+                                "cursive" -> FontFamily.Cursive
+                                else -> FontFamily.SansSerif
+                            },
+                            fontWeight = FontWeight(selectedObject.fontWeight.coerceIn(100, 900)),
+                            fontStyle = if (selectedObject.italic) FontStyle.Italic else FontStyle.Normal,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                        )
                     }
                     "排版" -> {
                         V2ValueSlider("文本框宽度", selectedObject.boxWidth, 24f..1080f) {
