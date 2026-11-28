@@ -261,7 +261,7 @@ jobs:
 
       - name: Migrate every interface icon to the centralized icon library
         if: steps.source.outputs.present == 'true'
-        run: python3 native-overlay/unify_app_icons.py
+        run: python3 native-overlay/centralize_app_icons.py
 
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
