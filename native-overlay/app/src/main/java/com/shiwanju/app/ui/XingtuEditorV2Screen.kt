@@ -178,10 +178,6 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 Text("↷", fontSize = 22.sp,
                     color = if (history.redoStack.isEmpty()) colors.onSurface.copy(alpha = .3f) else colors.onSurface,
                     modifier = Modifier.clickable(enabled = history.redoStack.isNotEmpty()) { history = history.redo() }.padding(horizontal = 7.dp))
-                Text("导入", fontSize = 11.sp, color = colors.onSurfaceVariant,
-                    modifier = Modifier.clickable { importDocumentLauncher.launch(arrayOf("application/json", "text/plain")) }.padding(horizontal = 5.dp))
-                Text("导出", fontSize = 11.sp, color = colors.onSurfaceVariant,
-                    modifier = Modifier.clickable { exportDocumentLauncher.launch("xingtu-v2-document.json") }.padding(horizontal = 5.dp))
                 Text("版本", fontSize = 11.sp, color = colors.onSurfaceVariant,
                     modifier = Modifier.clickable {
                         savedVersions = XingtuV2Persistence.listVersions(context)
@@ -536,6 +532,12 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             Column(Modifier.fillMaxWidth().heightIn(max = 250.dp).background(colors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("版本记录（最多保留 20 个）", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
+                    ObjectToolChip("导入 JSON") {
+                        importDocumentLauncher.launch(arrayOf("application/json", "text/plain"))
+                    }
+                    ObjectToolChip("导出 JSON") {
+                        exportDocumentLauncher.launch("xingtu-v2-document.json")
+                    }
                     ObjectToolChip("保存当前版本") {
                         savedVersions = XingtuV2Persistence.createVersion(
                             context, history.document, "版本 ${savedVersions.size + 1}"
