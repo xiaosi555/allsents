@@ -128,11 +128,10 @@ object XingtuV2Reducer {
 data class XingtuV2History(
     val document: XingtuV2Document,
     val undoStack: List<XingtuV2Document> = emptyList(),
-    val redoStack: List<XingtuV2Document> = emptyList()
+    val redoStack: List<XingtuV2Document> = emptyList(),
+    private val transformSnapshot: XingtuV2Document? = null
 ) {
-    private var transformSnapshot: XingtuV2Document? = null
-
-    fun beginTransform(): XingtuV2History = copy().also { it.transformSnapshot = document }
+    fun beginTransform(): XingtuV2History = copy(transformSnapshot = document)
 
     fun updateTransform(id: String, transform: XingtuV2Transform): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, XingtuV2Action.TransformObject(id, transform))
@@ -141,8 +140,8 @@ data class XingtuV2History(
 
     fun endTransform(): XingtuV2History {
         val snapshot = transformSnapshot ?: return this
-        return if (snapshot == document) copy().also { it.transformSnapshot = null }
-        else copy(undoStack = undoStack + snapshot, redoStack = emptyList()).also { it.transformSnapshot = null }
+        return if (snapshot == document) copy(transformSnapshot = null)
+        else copy(undoStack = undoStack + snapshot, redoStack = emptyList(), transformSnapshot = null)
     }
 
     fun dispatch(action: XingtuV2Action): XingtuV2History {
