@@ -55,6 +55,15 @@ labels = {
 }
 
 registry_source = registry.read_text(encoding="utf-8")
+styles = {style for style, _ in found.values()}
+style_imports = []
+for style, package in [("Filled","filled"),("Default","filled"),("Rounded","rounded"),("TwoTone","twotone"),("Sharp","sharp")]:
+    if style in styles:
+        line = f"import androidx.compose.material.icons.{package}.*"
+        if line not in registry_source:
+            style_imports.append(line)
+for line in style_imports:
+    registry_source = registry_source.replace("import androidx.compose.material.icons.Icons\n", "import androidx.compose.material.icons.Icons\n" + line + "\n", 1)
 existing = set(re.findall(r'AppIconItem\("([^"]+)"', registry_source))
 additions = []
 for name, (style, _) in sorted(found.items()):
