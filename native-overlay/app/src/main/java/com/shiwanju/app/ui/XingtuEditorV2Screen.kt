@@ -532,7 +532,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         .size(14.dp).clip(CircleShape)
                                         .background(colors.surface)
                                         .border(1.5.dp, colors.primary, CircleShape)
-                                        .pointerInput(item.id, scaleX, scaleY, edge) {
+                                        .pointerInput(item.id, scaleX, scaleY, edge, activePanel) {
                                             detectDragGestures(
                                                 onDragStart = { history = history.beginTransform() },
                                                 onDragEnd = { history = history.endTransform() },
@@ -546,27 +546,42 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                 val radians = Math.toRadians(old.rotation.toDouble())
                                                 val dx = (screenDx * cos(radians).toFloat() + screenDy * sin(radians).toFloat()) / old.scaleX.coerceAtLeast(0.01f)
                                                 val dy = (-screenDx * sin(radians).toFloat() + screenDy * cos(radians).toFloat()) / old.scaleY.coerceAtLeast(0.01f)
-                                                var x = old.x
-                                                var y = old.y
-                                                var width = old.width
-                                                var height = old.height
-                                                if (edge.first < 0) {
-                                                    val nextWidth = (width - dx).coerceAtLeast(24f)
-                                                    x += (width - nextWidth) * old.scaleX
-                                                    width = nextWidth
-                                                } else if (edge.first > 0) {
-                                                    width = (width + dx).coerceAtLeast(24f)
+                                                if (activePanel == "裁剪" && current is XingtuV2Object.Image) {
+                                                    val minCrop = 0.05f
+                                                    var left = current.cropLeft
+                                                    var right = current.cropRight
+                                                    var top = current.cropTop
+                                                    var bottom = current.cropBottom
+                                                    if (edge.first < 0) left = (left + dx / old.width.coerceAtLeast(1f)).coerceIn(0f, right - minCrop)
+                                                    else if (edge.first > 0) right = (right + dx / old.width.coerceAtLeast(1f)).coerceIn(left + minCrop, 1f)
+                                                    if (edge.second < 0) top = (top + dy / old.height.coerceAtLeast(1f)).coerceIn(0f, bottom - minCrop)
+                                                    else if (edge.second > 0) bottom = (bottom + dy / old.height.coerceAtLeast(1f)).coerceIn(top + minCrop, 1f)
+                                                    history = history.updateObjectLive(current.copy(
+                                                        cropLeft = left, cropRight = right, cropTop = top, cropBottom = bottom
+                                                    ))
+                                                } else {
+                                                    var x = old.x
+                                                    var y = old.y
+                                                    var width = old.width
+                                                    var height = old.height
+                                                    if (edge.first < 0) {
+                                                        val nextWidth = (width - dx).coerceAtLeast(24f)
+                                                        x += (width - nextWidth) * old.scaleX
+                                                        width = nextWidth
+                                                    } else if (edge.first > 0) {
+                                                        width = (width + dx).coerceAtLeast(24f)
+                                                    }
+                                                    if (edge.second < 0) {
+                                                        val nextHeight = (height - dy).coerceAtLeast(24f)
+                                                        y += (height - nextHeight) * old.scaleY
+                                                        height = nextHeight
+                                                    } else if (edge.second > 0) {
+                                                        height = (height + dy).coerceAtLeast(24f)
+                                                    }
+                                                    history = history.updateTransform(
+                                                        item.id, old.copy(x = x, y = y, width = width, height = height)
+                                                    )
                                                 }
-                                                if (edge.second < 0) {
-                                                    val nextHeight = (height - dy).coerceAtLeast(24f)
-                                                    y += (height - nextHeight) * old.scaleY
-                                                    height = nextHeight
-                                                } else if (edge.second > 0) {
-                                                    height = (height + dy).coerceAtLeast(24f)
-                                                }
-                                                history = history.updateTransform(
-                                                    item.id, old.copy(x = x, y = y, width = width, height = height)
-                                                )
                                             }
                                         }
                                     )
@@ -1257,6 +1272,7 @@ private fun XingtuV2PropertyPanel(
                 }
                 is XingtuV2Object.Image -> when (tab) {
                     "裁剪" -> {
+                        Text("直接拖动画布对象边缘或四角调整裁剪范围；对象框尺寸与位置保持不变。", color = colors.onSurfaceVariant, fontSize = 11.sp)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             ObjectToolChip("恢复原图") {
                                 onUpdate(selectedObject.copy(cropLeft = 0f, cropTop = 0f, cropRight = 1f, cropBottom = 1f))
