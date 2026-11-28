@@ -761,6 +761,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 ObjectToolChip("水平分布") { history = history.distributeSelected(true) }
                 ObjectToolChip("垂直分布") { history = history.distributeSelected(false) }
                 ObjectToolChip("共同移动") { activePanel = null }
+                ObjectToolChip("复制所选") {
+                    history = history.duplicateSelected("group-copy-${System.nanoTime()}")
+                    activePanel = null
+                }
                 ObjectToolChip("删除所选") {
                     history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))
                     activePanel = null

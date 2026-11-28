@@ -251,6 +251,29 @@ data class XingtuV2History(
         return if (next == document) this else copy(document = next, undoStack = undoStack + document, redoStack = emptyList())
     }
 
+    /** Duplicate every selected unlocked object as one undoable operation. */
+    fun duplicateSelected(idPrefix: String): XingtuV2History {
+        val selected = document.selectedObjects().filterNot { it.locked }
+        if (selected.isEmpty()) return this
+        val copies = selected.mapIndexed { index, source ->
+            val newId = "$idPrefix-$index"
+            when (source) {
+                is XingtuV2Object.Text -> source.copy(id = newId,
+                    transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+                is XingtuV2Object.Image -> source.copy(id = newId,
+                    transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+                is XingtuV2Object.Component -> source.copy(id = newId,
+                    transform = source.transform.copy(x = source.transform.x + 24f, y = source.transform.y + 24f))
+            }
+        }
+        val next = document.copy(
+            objects = document.objects + copies,
+            selectedIds = copies.map { it.id }.toSet(),
+            revision = document.revision + 1
+        )
+        return copy(document = next, undoStack = undoStack + document, redoStack = emptyList())
+    }
+
     /** Uniformly scale and rotate the selected group around its collective center. */
     fun updateSelectedGroup(scaleFactor: Float, rotationDelta: Float): XingtuV2History {
         val selected = document.selectedObjects().filterNot { it.locked }
