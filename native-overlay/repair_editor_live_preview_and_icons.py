@@ -141,6 +141,46 @@ once(
 "replace glyph icons in persistent primary dock"
 )
 
+# Replace remaining toolbar glyphs with the same semantic line renderer.
+glyph_replacements = {
+    'Text("⠿", color = AppColors.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 6.dp))':
+        'ShiWanJuLineIcon("拖动", AppColors.TextDim, Modifier.padding(end = 6.dp).size(20.dp))',
+    'Text("▣ 尺寸 ▾", color = accent, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("尺寸", accent, Modifier.size(15.dp)); Text("尺寸 ▾", color = accent, fontSize = 11.sp) }',
+    'Text("▧ 裁切 ▾", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("裁剪", ink, Modifier.size(15.dp)); Text("裁切 ▾", color = ink, fontSize = 11.sp) }',
+    'Text("↻ 旋转", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("旋转", ink, Modifier.size(15.dp)); Text("旋转", color = ink, fontSize = 11.sp) }',
+    'Text("◒ 外观 ▾", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("样式", ink, Modifier.size(15.dp)); Text("外观 ▾", color = ink, fontSize = 11.sp) }',
+    'Text("▧ 替换", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("替换图片", ink, Modifier.size(15.dp)); Text("替换", color = ink, fontSize = 11.sp) }',
+    'Text("ⓘ 说明", color = ink, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("说明", ink, Modifier.size(15.dp)); Text("说明", color = ink, fontSize = 11.sp) }',
+    'Text("⌫ 删除", color = Color(0xFFCC5555), fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("删除", Color(0xFFCC5555), Modifier.size(15.dp)); Text("删除", color = Color(0xFFCC5555), fontSize = 11.sp) }',
+    'Text("更多 ⋯", color = accent, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("更多", accent, Modifier.size(15.dp)); Text("更多", color = accent, fontSize = 11.sp) }',
+    'Text("Aᴀ 字号 ▾", color = accent, fontSize = 11.sp)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("字号", accent, Modifier.size(15.dp)); Text("字号 ▾", color = accent, fontSize = 11.sp) }',
+    'Text("≡", color = ink, fontSize = 15.sp)':
+        'ShiWanJuLineIcon("左对齐", ink, Modifier.size(20.dp))',
+    'Text("☷", color = ink, fontSize = 15.sp)':
+        'ShiWanJuLineIcon("居中对齐", ink, Modifier.size(20.dp))',
+    'Text("☷•", color = ink, fontSize = 12.sp)':
+        'ShiWanJuLineIcon("列表", ink, Modifier.size(18.dp))',
+    'Text("⌕", color = ink, fontSize = 15.sp)':
+        'ShiWanJuLineIcon("搜索", ink, Modifier.size(20.dp))',
+    'Text("↑", color = ink, fontSize = 12.sp)':
+        'ShiWanJuLineIcon("上移", ink, Modifier.size(16.dp))',
+    'Text("↓", color = ink, fontSize = 12.sp)':
+        'ShiWanJuLineIcon("下移", ink, Modifier.size(16.dp))',
+    'Text("⠿", color = AppColors.Theme, fontSize = 17.sp)':
+        'ShiWanJuLineIcon("拖动", AppColors.Theme, Modifier.size(20.dp))',
+}
+for old, new in glyph_replacements.items():
+    s = s.replace(old, new)
+
 # Validate that every icon-bearing dock now uses the vector renderer and that the
 # live Text2 path updates both persisted HTML state and the visible WebView canvas.
 checks = {
