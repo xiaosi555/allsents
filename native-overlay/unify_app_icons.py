@@ -111,7 +111,11 @@ for path in files:
   edits.append((call.start(),end+1,replacement))
  for a,b,replacement in reversed(edits): src=src[:a]+replacement+src[b:]
  if edits: path.write_text(src,encoding="utf-8")
-entries=",\n".join(f' AppIconItem("{k}","{v[0]}","{v[1]}")' for k,v in sorted(items.items()))
+def kotlin_quote(value):
+ value=value.replace("\\","\\\\").replace('"','\\"').replace("$","\\$")
+ value=value.replace("\n","\\n").replace("\r","\\r")
+ return '"' + value + '"'
+entries=",\n".join(f' AppIconItem({kotlin_quote(k)},{kotlin_quote(v[0])},{kotlin_quote(v[1])})' for k,v in sorted(items.items()))
 block=f'''private data class AppIconItem(val key:String,val title:String,val category:String)
 private val appIconItems = listOf(
 {entries}
