@@ -370,7 +370,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         else -> RectangleShape
                                     }
                                     if (item.componentType == "line") {
-                                        Box(objectModifier.height(4.dp).background(Color(item.fillColor)))
+                                        Box(objectModifier.background(Color(item.fillColor)))
                                     } else {
                                         Box(objectModifier.clip(shape)
                                             .background(Color(item.fillColor))
