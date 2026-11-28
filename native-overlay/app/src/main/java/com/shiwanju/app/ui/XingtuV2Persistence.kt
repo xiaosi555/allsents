@@ -10,6 +10,7 @@ data class XingtuV2VersionInfo(val id: String, val label: String, val createdAt:
 object XingtuV2Persistence {
     private const val PREFS = "xingtu_editor_v2"
     private const val KEY_DOCUMENT = "active_document"
+    private const val KEY_VERSIONS = "document_versions"
 
     fun load(context: Context): XingtuV2Document? {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DOCUMENT, null) ?: return null
