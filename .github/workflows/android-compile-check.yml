@@ -267,6 +267,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/centralize_app_icons.py
 
+      - name: Migrate all Material icons to semantic line icons
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/unify_app_icons.py
+
       - name: Finalize Android resources and version
         if: steps.source.outputs.present == 'true'
         shell: bash
