@@ -210,7 +210,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             }
         }
     }
-    Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
+    Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding().navigationBarsPadding()) {
         Row(
             Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -282,6 +282,41 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                         .clip(RoundedCornerShape(2.dp))
                         .background(Color(history.document.canvas.backgroundColor))
                         .border(1.dp, colors.outlineVariant)
+                        .pointerInput(history.document.objects, history.document.selectedIds, scaleX, scaleY, density, viewportScale) {
+                            detectTapGestures { tap ->
+                                // A blank-canvas tap clears the current object selection.
+                                // Keep a generous hit area around the selected object's handles,
+                                // so tapping resize/rotate controls never falls through to deselection.
+                                val hitObject = history.document.objects.asReversed().any { candidate ->
+                                    if (!candidate.visible) false else {
+                                        val t = candidate.transform
+                                        val objectWidth = t.width * t.scaleX * scaleX * density
+                                        val objectHeight = t.height * t.scaleY * scaleY * density
+                                        val radians = Math.toRadians(t.rotation.toDouble())
+                                        val rotatedWidth = kotlin.math.abs(kotlin.math.cos(radians)).toFloat() * objectWidth +
+                                            kotlin.math.abs(kotlin.math.sin(radians)).toFloat() * objectHeight
+                                        val rotatedHeight = kotlin.math.abs(kotlin.math.sin(radians)).toFloat() * objectWidth +
+                                            kotlin.math.abs(kotlin.math.cos(radians)).toFloat() * objectHeight
+                                        val centerX = (t.x * scaleX * density) + objectWidth / 2f
+                                        val centerY = (t.y * scaleY * density) + objectHeight / 2f
+                                        val handlePadding = if (candidate.id in history.document.selectedIds) 48f * density else 0f
+                                        tap.x >= centerX - rotatedWidth / 2f - handlePadding &&
+                                            tap.x <= centerX + rotatedWidth / 2f + handlePadding &&
+                                            tap.y >= centerY - rotatedHeight / 2f - handlePadding &&
+                                            tap.y <= centerY + rotatedHeight / 2f + handlePadding
+                                    }
+                                }
+                                if (!hitObject) {
+                                    if (activePanel != null || activeCanvasPanel || activeMultiTransform) {
+                                        history = history.endTransform()
+                                    }
+                                    history = history.dispatch(XingtuV2Action.Select(emptySet()))
+                                    multiSelect = false
+                                    showLayers = false
+                                    showComponentPicker = false
+                                }
+                            }
+                        }
                 ) {
                     history.document.objects.forEach { item ->
                         if (item.visible) {
