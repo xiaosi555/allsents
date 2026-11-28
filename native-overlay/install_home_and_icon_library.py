@@ -44,7 +44,7 @@ anchor = "setContent {"
 if "vm.screen = \"home\"" not in source:
     if source.count(anchor) != 1:
         raise SystemExit("Cannot uniquely locate MainActivity setContent.")
-    source = source.replace(anchor, anchor + '\n            androidx.compose.runtime.LaunchedEffect(Unit) {\n                if (vm.screen == "layout") vm.screen = "home"\n            }', 1)
+    source = source.replace(anchor, anchor + '\n            androidx.compose.runtime.LaunchedEffect(Unit) {\n                vm.screen = "home"\n            }', 1)
 
 required = [
     '"home" -> ShiWanJuHomeScreen',
