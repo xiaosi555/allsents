@@ -132,7 +132,7 @@ once(
 )
 once(
 """        Text(glyph, color = AppColors.TextMain, fontSize = 19.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium)""",
-"""        EditorVectorIcon(label, AppColors.TextMain, Modifier.size(21.dp))""",
+"""        ShiWanJuLineIcon(label, AppColors.TextMain, Modifier.size(21.dp))""",
 "replace glyph icons in text/image selection dock"
 )
 once(
