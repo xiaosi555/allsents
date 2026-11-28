@@ -66,7 +66,7 @@ fun ThemeSettingsPage(vm: AppViewModel) {
                             Column(Modifier.weight(1f).clickable { vm.selectThemeColor(option.hex) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(11.dp)).background(Color(android.graphics.Color.parseColor(option.hex))).padding(3.dp), contentAlignment = Alignment.Center) {
                                     if (selected) Box(Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)).background(Color.Transparent).padding(2.dp)) {
-                                        Text("✦", Modifier.align(Alignment.Center), color = Color.White, fontSize = 24.sp)
+                                        ShiWanJuLineIcon("成功", Color.White, Modifier.align(Alignment.Center).size(18.dp))
                                     }
                                 }
                                 Text(option.name, color = if (selected) AppColors.Theme else AppColors.MyText, fontSize = 10.sp, maxLines = 1)
