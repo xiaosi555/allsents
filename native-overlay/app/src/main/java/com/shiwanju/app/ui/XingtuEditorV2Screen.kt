@@ -378,11 +378,16 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 is XingtuV2Object.Image -> "图片"
                                 is XingtuV2Object.Component -> "组件 · ${item.componentType}"
                             }, color = colors.onSurface, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                            Text(if (item.visible) "显示" else "隐藏",
+                                color = colors.onSurfaceVariant, fontSize = 10.sp,
+                                modifier = Modifier.clickable {
+                                    history = history.dispatch(XingtuV2Action.SetVisibility(item.id, !item.visible))
+                                }.padding(horizontal = 6.dp))
                             Text(if (item.locked) "已锁" else "锁定",
                                 color = colors.onSurfaceVariant, fontSize = 10.sp,
                                 modifier = Modifier.clickable {
                                     history = history.dispatch(XingtuV2Action.SetLocked(item.id, !item.locked))
-                                }.padding(horizontal = 8.dp))
+                                }.padding(horizontal = 6.dp))
                             Text("×", color = colors.error, fontSize = 18.sp,
                                 modifier = Modifier.clickable {
                                     history = history.dispatch(XingtuV2Action.DeleteObjects(setOf(item.id)))
@@ -404,6 +409,26 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 onUpdate = { history = history.dispatch(XingtuV2Action.ReplaceObject(it)) },
                 onReplaceImage = { imagePicker.launch("image/*") }
             )
+        } else if (history.document.selectedIds.size > 1) {
+            Row(
+                Modifier.fillMaxWidth().height(58.dp).background(colors.surface)
+                    .horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("${history.document.selectedIds.size} 个对象", color = colors.primary, fontSize = 12.sp)
+                ObjectToolChip("共同移动") { activePanel = null }
+                ObjectToolChip("删除所选") {
+                    history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))
+                    activePanel = null
+                }
+                ObjectToolChip("取消多选") {
+                    history = history.dispatch(XingtuV2Action.Select(emptySet()))
+                    multiSelect = false
+                    activePanel = null
+                }
+                ObjectToolChip("图层") { showLayers = true }
+            }
         } else if (selectedObject != null) {
             Row(
                 Modifier.fillMaxWidth().height(58.dp).background(colors.surface)
