@@ -210,6 +210,19 @@ glyph_replacements = {
         'ShiWanJuLineIcon("上移", ink, Modifier.size(16.dp))',
     'Text("↓", color = ink, fontSize = 12.sp)':
         'ShiWanJuLineIcon("下移", ink, Modifier.size(16.dp))',
+    'Text("B", color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("加粗", ink, Modifier.size(18.dp))',
+    'Text("I", color = ink, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("斜体", ink, Modifier.size(18.dp))',
+    'Text("U", color = ink, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("下划线", ink, Modifier.size(18.dp))',
+    'Text("S", color = ink, fontSize = 14.sp)':
+        'ShiWanJuLineIcon("删除线", ink, Modifier.size(18.dp))',
+    'Text("−", color = Color.White)':
+        'ShiWanJuLineIcon("缩小", Color.White, Modifier.size(16.dp))',
+    'Text("+ 新建文章", color = accent)':
+        'Row(verticalAlignment = Alignment.CenterVertically) { ShiWanJuLineIcon("新增", accent, Modifier.size(16.dp)); Text("新建文章", color = accent) }',
+
     'Text("⠿", color = AppColors.Theme, fontSize = 17.sp)':
         'ShiWanJuLineIcon("拖动", AppColors.Theme, Modifier.size(20.dp))',
 }
