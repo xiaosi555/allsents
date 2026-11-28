@@ -2,7 +2,7 @@ name: Android Kotlin Compile Check
 
 on:
   push:
-    branches: [main, feature/xingtu-editor-v2-rewrite]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
