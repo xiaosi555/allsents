@@ -732,9 +732,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
 
         if (showVersions) {
             XingtuV2DarkPanel {
-            Column(Modifier.fillMaxWidth().heightIn(max = 250.dp).background(colors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
+            val panelColors = MaterialTheme.colorScheme
+            Column(Modifier.fillMaxWidth().heightIn(max = 250.dp).background(panelColors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("版本记录（最多保留 20 个）", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
+                    Text("版本记录（最多保留 20 个）", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = panelColors.onSurface)
                     ObjectToolChip("导入 JSON") {
                         importDocumentLauncher.launch(arrayOf("application/json", "text/plain"))
                     }
@@ -751,9 +752,9 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     items(savedVersions, key = { it.id }) { version ->
                         Row(Modifier.fillMaxWidth().height(42.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(version.label, color = colors.onSurface, fontSize = 12.sp)
+                                Text(version.label, color = panelColors.onSurface, fontSize = 12.sp)
                                 Text(java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(version.createdAt)),
-                                    color = colors.onSurfaceVariant, fontSize = 10.sp)
+                                    color = panelColors.onSurfaceVariant, fontSize = 10.sp)
                             }
                             ObjectToolChip("恢复") {
                                 XingtuV2Persistence.restoreVersion(context, version.id)?.let { restored ->
@@ -773,35 +774,27 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
 
         if (showLayers) {
             XingtuV2DarkPanel {
-            Column(Modifier.fillMaxWidth().heightIn(max = 220.dp).background(colors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("图层", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
-                    Text("多选", color = if (multiSelect) colors.primary else colors.onSurfaceVariant,
-                        modifier = Modifier.clickable { multiSelect = !multiSelect }.padding(6.dp))
-                    Text("全选", color = colors.onSurfaceVariant, fontSize = 11.sp,
-                        modifier = Modifier.clickable {
-                            multiSelect = true
-                            history = history.dispatch(XingtuV2Action.Select(history.document.objects.filter { it.visible }.map { it.id }.toSet()))
-                        }.padding(5.dp))
-                    Text("反选", color = colors.onSurfaceVariant, fontSize = 11.sp,
-                        modifier = Modifier.clickable {
-                            multiSelect = true
-                            val visibleIds = history.document.objects.filter { it.visible }.map { it.id }.toSet()
-                            history = history.dispatch(XingtuV2Action.Select(visibleIds - history.document.selectedIds))
-                        }.padding(5.dp))
-                    Text("复制", color = colors.onSurfaceVariant, fontSize = 11.sp,
-                        modifier = Modifier.clickable(enabled = history.document.selectedIds.isNotEmpty()) {
-                            history = history.duplicateSelected("layer-copy-${System.nanoTime()}")
-                        }.padding(5.dp))
-                    Text("删除所选", color = colors.error, fontSize = 11.sp,
-                        modifier = Modifier.clickable(enabled = history.document.selectedIds.isNotEmpty()) {
-                            history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))
-                        }.padding(5.dp))
-                    Text("取消", color = colors.onSurfaceVariant, fontSize = 11.sp,
-                        modifier = Modifier.clickable {
-                            history = history.dispatch(XingtuV2Action.Select(emptySet()))
-                            multiSelect = false
-                        }.padding(5.dp))
+            val panelColors = MaterialTheme.colorScheme
+            Column(Modifier.fillMaxWidth().heightIn(max = 220.dp).background(panelColors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text("图层", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = panelColors.onSurface)
+                    ObjectToolChip(if (multiSelect) "取消多选" else "多选") { multiSelect = !multiSelect }
+                    ObjectToolChip("全选") {
+                        multiSelect = true
+                        history = history.dispatch(XingtuV2Action.Select(history.document.objects.filter { it.visible }.map { it.id }.toSet()))
+                    }
+                    ObjectToolChip("反选") {
+                        multiSelect = true
+                        val visibleIds = history.document.objects.filter { it.visible }.map { it.id }.toSet()
+                        history = history.dispatch(XingtuV2Action.Select(visibleIds - history.document.selectedIds))
+                    }
+                    ObjectToolChip("复制") {
+                        if (history.document.selectedIds.isNotEmpty()) history = history.duplicateSelected("layer-copy-${System.nanoTime()}")
+                    }
+                    ObjectToolChip("删除") {
+                        if (history.document.selectedIds.isNotEmpty()) history = history.dispatch(XingtuV2Action.DeleteObjects(history.document.selectedIds))
+                    }
                 }
                 OutlinedTextField(
                     value = layerQuery,
@@ -830,9 +823,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                         Row(Modifier.fillMaxWidth().height(52.dp).clickable {
                             history = history.dispatch(XingtuV2Action.Select(setOf(item.id), additive = multiSelect))
                         }.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(if (item.id in history.document.selectedIds) "●" else "○",
-                                color = colors.primary, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
-                            Text("⠿", color = colors.onSurfaceVariant, fontSize = 17.sp,
+                            Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                                XingtuV2Glyph(if (item.id in history.document.selectedIds) "selected" else "unselected", panelColors.primary, 15.dp)
+                            }
+                            Text("⠿", color = panelColors.onSurfaceVariant, fontSize = 17.sp,
                                 modifier = Modifier.pointerInput(item.id) {
                                     var dragDistance = 0f
                                     detectDragGestures(
@@ -861,7 +855,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     singleLine = true,
                                     placeholder = { Text("图层名称", fontSize = 11.sp) }
                                 )
-                                Text("✓", color = colors.primary, modifier = Modifier.clickable {
+                                Box(Modifier.size(28.dp).clickable {
                                     val renamed = when (item) {
                                         is XingtuV2Object.Text -> item.copy(layerName = layerNameDraft.trim())
                                         is XingtuV2Object.Image -> item.copy(layerName = layerNameDraft.trim())
@@ -869,7 +863,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     }
                                     history = history.dispatch(XingtuV2Action.ReplaceObject(renamed))
                                     editingLayerId = null
-                                }.padding(horizontal = 6.dp))
+                                }, contentAlignment = Alignment.Center) { XingtuV2Glyph("check", panelColors.primary, 16.dp) }
                             } else {
                                 val fallbackName = when (item) {
                                     is XingtuV2Object.Text -> item.content.lineSequence().firstOrNull()?.take(18).orEmpty().ifBlank { "文字" }
@@ -881,45 +875,35 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     is XingtuV2Object.Image -> item.layerName
                                     is XingtuV2Object.Component -> item.layerName
                                 }
-                                Text(currentLayerName.ifBlank { fallbackName }, color = colors.onSurface,
+                                Text(currentLayerName.ifBlank { fallbackName }, color = panelColors.onSurface,
                                     fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
-                                Text("✎", color = colors.onSurfaceVariant, fontSize = 13.sp,
-                                    modifier = Modifier.clickable {
+                                Box(Modifier.size(28.dp).clickable {
                                         editingLayerId = item.id
                                         layerNameDraft = currentLayerName.ifBlank { fallbackName }
-                                    }.padding(horizontal = 5.dp))
+                                    }, contentAlignment = Alignment.Center) { XingtuV2Glyph("edit", panelColors.onSurfaceVariant, 15.dp) }
                             }
                             val layerIndex = history.document.objects.indexOfFirst { it.id == item.id }
-                            Text("↑", color = colors.onSurfaceVariant,
-                                modifier = Modifier.clickable(enabled = layerIndex < history.document.objects.lastIndex) {
-                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex + 1))
-                                }.padding(horizontal = 4.dp))
-                            Text("↓", color = colors.onSurfaceVariant,
-                                modifier = Modifier.clickable(enabled = layerIndex > 0) {
-                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex - 1))
-                                }.padding(horizontal = 4.dp))
-                            Text("底", color = colors.onSurfaceVariant, fontSize = 10.sp,
-                                modifier = Modifier.clickable(enabled = layerIndex > 0) {
-                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, 0))
-                                }.padding(horizontal = 3.dp))
-                            Text("顶", color = colors.onSurfaceVariant, fontSize = 10.sp,
-                                modifier = Modifier.clickable(enabled = layerIndex < history.document.objects.lastIndex) {
-                                    history = history.dispatch(XingtuV2Action.Reorder(item.id, history.document.objects.lastIndex))
-                                }.padding(horizontal = 3.dp))
-                            Text(if (item.visible) "显示" else "隐藏",
-                                color = colors.onSurfaceVariant, fontSize = 10.sp,
-                                modifier = Modifier.clickable {
-                                    history = history.dispatch(XingtuV2Action.SetVisibility(item.id, !item.visible))
-                                }.padding(horizontal = 6.dp))
-                            Text(if (item.locked) "已锁" else "锁定",
-                                color = colors.onSurfaceVariant, fontSize = 10.sp,
-                                modifier = Modifier.clickable {
-                                    history = history.dispatch(XingtuV2Action.SetLocked(item.id, !item.locked))
-                                }.padding(horizontal = 6.dp))
-                            Text("×", color = colors.error, fontSize = 18.sp,
-                                modifier = Modifier.clickable {
-                                    history = history.dispatch(XingtuV2Action.DeleteObjects(setOf(item.id)))
-                                }.padding(horizontal = 6.dp))
+                            Box(Modifier.size(28.dp).clickable(enabled = layerIndex < history.document.objects.lastIndex) {
+                                history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex + 1))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph("up", panelColors.onSurfaceVariant, 14.dp) }
+                            Box(Modifier.size(28.dp).clickable(enabled = layerIndex > 0) {
+                                history = history.dispatch(XingtuV2Action.Reorder(item.id, layerIndex - 1))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph("down", panelColors.onSurfaceVariant, 14.dp) }
+                            Box(Modifier.size(28.dp).clickable(enabled = layerIndex > 0) {
+                                history = history.dispatch(XingtuV2Action.Reorder(item.id, 0))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph("down", panelColors.onSurfaceVariant, 14.dp) }
+                            Box(Modifier.size(28.dp).clickable(enabled = layerIndex < history.document.objects.lastIndex) {
+                                history = history.dispatch(XingtuV2Action.Reorder(item.id, history.document.objects.lastIndex))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph("up", panelColors.onSurfaceVariant, 14.dp) }
+                            Box(Modifier.size(28.dp).clickable {
+                                history = history.dispatch(XingtuV2Action.SetVisibility(item.id, !item.visible))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph(if (item.visible) "visible" else "hidden", panelColors.onSurfaceVariant, 15.dp) }
+                            Box(Modifier.size(28.dp).clickable {
+                                history = history.dispatch(XingtuV2Action.SetLocked(item.id, !item.locked))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph(if (item.locked) "lock" else "unlock", panelColors.onSurfaceVariant, 15.dp) }
+                            Box(Modifier.size(28.dp).clickable {
+                                history = history.dispatch(XingtuV2Action.DeleteObjects(setOf(item.id)))
+                            }, contentAlignment = Alignment.Center) { XingtuV2Glyph("delete", panelColors.error, 15.dp) }
                         }
                     }
                 }
@@ -929,7 +913,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
 
         if (showComponentPicker) {
             XingtuV2DarkPanel {
-            Row(Modifier.fillMaxWidth().background(colors.surface).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 8.dp),
+            val panelColors = MaterialTheme.colorScheme
+            Row(Modifier.fillMaxWidth().background(panelColors.surface).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ObjectToolChip("矩形") { addComponent("rectangle") }
                 ObjectToolChip("圆角矩形") { addComponent("rounded-rectangle") }
