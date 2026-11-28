@@ -837,7 +837,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             activePanel = tab
                         }
                     }
-                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "对齐", "透明度", "变换").forEach { tab ->
+                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "对齐", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (tab == "替换") {
                                 history = history.beginTransform()
@@ -959,7 +959,7 @@ private fun XingtuV2PropertyPanel(
         }
         val panelTabs = when (selectedObject) {
             is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换")
-            is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "对齐", "透明度", "变换")
+            is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "滤镜", "对齐", "透明度", "变换")
             is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "对齐", "变换")
         }
         Row(
@@ -985,14 +985,24 @@ private fun XingtuV2PropertyPanel(
         Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
             when (selectedObject) {
                 is XingtuV2Object.Text -> when (tab) {
-                    "编辑" -> OutlinedTextField(
-                        value = selectedObject.content,
-                        onValueChange = { onUpdate(selectedObject.copy(content = it)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("文字内容") },
-                        minLines = 2,
-                        maxLines = 4
-                    )
+                    "编辑" -> {
+                        OutlinedTextField(
+                            value = selectedObject.content,
+                            onValueChange = { onUpdate(selectedObject.copy(content = it)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("文字内容") },
+                            minLines = 2,
+                            maxLines = 4
+                        )
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${selectedObject.content.length} 字符", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                            Text("${selectedObject.content.count { it == '\n' } + 1} 行", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip("清空文字") { onUpdate(selectedObject.copy(content = "")) }
+                            ObjectToolChip("插入换行") { onUpdate(selectedObject.copy(content = selectedObject.content + "\n")) }
+                        }
+                    }
                     "字体" -> {
                         V2ValueSlider("字号", selectedObject.fontSizeSp, 8f..120f) {
                             onUpdate(selectedObject.copy(fontSizeSp = it))
@@ -1110,6 +1120,33 @@ private fun XingtuV2PropertyPanel(
                             }
                             ObjectToolChip("高对比") { onUpdate(selectedObject.copy(contrast = 1.35f)) }
                             ObjectToolChip("柔和") { onUpdate(selectedObject.copy(contrast = 0.85f, saturation = 0.9f)) }
+                        }
+                    }
+                    "滤镜" -> {
+                        Text("滤镜预设 · 点击后立即应用，可继续到调色面板微调", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                        val presets = listOf(
+                            "原图" to Triple(0f, 1f, 1f),
+                            "鲜明" to Triple(0f, 1.35f, 1.3f),
+                            "暖阳" to Triple(35f, 1.15f, 1.08f),
+                            "冷调" to Triple(-35f, 1.05f, 1.08f),
+                            "黑白" to Triple(0f, 0f, 1.15f),
+                            "褪色" to Triple(12f, 0.72f, 0.82f)
+                        )
+                        presets.chunked(3).forEach { group ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                group.forEach { (name, values) ->
+                                    Box(Modifier.weight(1f)) {
+                                        ObjectToolChip(name) {
+                                            onUpdate(selectedObject.copy(
+                                                colorTemperature = values.first,
+                                                saturation = values.second,
+                                                contrast = values.third
+                                            ))
+                                        }
+                                    }
+                                }
+                                repeat(3 - group.size) { Spacer(Modifier.weight(1f)) }
+                            }
                         }
                     }
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
