@@ -61,7 +61,8 @@ data class XingtuV2Document(
 }
 
 sealed class XingtuV2Action {
-    data class Select(val ids: Set<String>) : XingtuV2Action()
+    data class Select(val ids: Set<String>, val additive: Boolean = false) : XingtuV2Action()
+    data class TransformObject(val id: String, val transform: XingtuV2Transform) : XingtuV2Action()
     data class SetVisibility(val id: String, val visible: Boolean) : XingtuV2Action()
     data class SetLocked(val id: String, val locked: Boolean) : XingtuV2Action()
     data class ReplaceObject(val value: XingtuV2Object) : XingtuV2Action()
@@ -74,22 +75,28 @@ sealed class XingtuV2Action {
 object XingtuV2Reducer {
     fun reduce(document: XingtuV2Document, action: XingtuV2Action): XingtuV2Document {
         val next = when (action) {
-            is XingtuV2Action.Select ->
-                document.copy(selectedIds = action.ids.intersect(document.objects.map { it.id }.toSet()))
+            is XingtuV2Action.Select -> {
+                val valid = action.ids.intersect(document.objects.map { it.id }.toSet())
+                document.copy(selectedIds = if (action.additive) document.selectedIds xor valid else valid)
+            }
+            is XingtuV2Action.TransformObject ->
+                document.copy(objects = document.objects.map {
+                    if (it.id == action.id && !it.locked) withTransform(it, action.transform) else it
+                })
             is XingtuV2Action.SetVisibility ->
                 document.copy(objects = document.objects.map { if (it.id == action.id) visibility(it, action.visible) else it })
             is XingtuV2Action.SetLocked ->
                 document.copy(objects = document.objects.map { if (it.id == action.id) locked(it, action.locked) else it })
             is XingtuV2Action.ReplaceObject ->
-                document.copy(objects = document.objects.map { if (it.id == action.value.id) action.value else it })
+                document.copy(objects = document.objects.map { if (it.id == action.value.id && !it.locked) action.value else it })
             is XingtuV2Action.InsertObject ->
                 document.copy(objects = document.objects.filterNot { it.id == action.value.id } + action.value, selectedIds = setOf(action.value.id))
             is XingtuV2Action.DeleteObjects ->
-                document.copy(objects = document.objects.filterNot { it.id in action.ids }, selectedIds = document.selectedIds - action.ids)
+                document.copy(objects = document.objects.filterNot { it.id in action.ids && !it.locked }, selectedIds = document.selectedIds - action.ids)
             is XingtuV2Action.Reorder -> {
                 val list = document.objects.toMutableList()
                 val old = list.indexOfFirst { it.id == action.id }
-                if (old < 0) document else {
+                if (old < 0 || list[old].locked) document else {
                     val item = list.removeAt(old)
                     list.add(action.targetIndex.coerceIn(0, list.size), item)
                     document.copy(objects = list)
@@ -100,6 +107,11 @@ object XingtuV2Reducer {
         return if (next == document) document else next.copy(revision = document.revision + 1)
     }
 
+    private fun withTransform(v: XingtuV2Object, t: XingtuV2Transform): XingtuV2Object = when (v) {
+        is XingtuV2Object.Text -> v.copy(transform = t)
+        is XingtuV2Object.Image -> v.copy(transform = t)
+        is XingtuV2Object.Component -> v.copy(transform = t)
+    }
     private fun visibility(v: XingtuV2Object, value: Boolean): XingtuV2Object = when (v) {
         is XingtuV2Object.Text -> v.copy(visible = value)
         is XingtuV2Object.Image -> v.copy(visible = value)
@@ -112,7 +124,7 @@ object XingtuV2Reducer {
     }
 }
 
-/** 可独立测试的快照历史；后续 UI 通过 dispatch 统一修改文档。 */
+/** 快照历史：每个变换动作都会产生可撤销快照；后续将把连续手势合并为单次历史事务。 */
 data class XingtuV2History(
     val document: XingtuV2Document,
     val undoStack: List<XingtuV2Document> = emptyList(),
