@@ -374,7 +374,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 }
 
                             when (item) {
-                                is XingtuV2Object.Text -> Box(objectModifier.padding(2.dp), contentAlignment = Alignment.CenterStart) {
+                                is XingtuV2Object.Text -> Box(
+                                    objectModifier.padding(2.dp)
+                                        .background(Color(item.backgroundColor), RoundedCornerShape(4.dp)),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
                                     Text(
                                         text = item.content,
                                         color = Color(item.color),
@@ -1098,6 +1102,20 @@ private fun XingtuV2PropertyPanel(
                         }
                         V2ColorInput("自定义文字颜色", selectedObject.color) {
                             onUpdate(selectedObject.copy(color = it))
+                        }
+                        Text("文字背景", color = colors.onSurface, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0x00000000, 0xFFF2F2F2, 0xFFFFFFFF, 0xFF222222, 0xFFFFE082, 0xFFFFCDD2, 0xFFBBDEFB, 0xFFC8E6C9).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(RoundedCornerShape(6.dp)).background(Color(value))
+                                    .border(if (selectedObject.backgroundColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.backgroundColor == value) colors.primary else colors.outlineVariant,
+                                        RoundedCornerShape(6.dp))
+                                    .clickable { onUpdate(selectedObject.copy(backgroundColor = value)) })
+                            }
+                        }
+                        V2ColorInput("自定义文字背景色", selectedObject.backgroundColor) {
+                            onUpdate(selectedObject.copy(backgroundColor = it))
                         }
                     }
 

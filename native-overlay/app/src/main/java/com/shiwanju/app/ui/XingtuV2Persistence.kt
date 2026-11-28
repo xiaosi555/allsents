@@ -51,6 +51,7 @@ object XingtuV2Persistence {
                         fontWeight = item.optInt("fontWeight", 400),
                         italic = item.optBoolean("italic", false),
                         color = item.optLong("color", 0xFF222222),
+                        backgroundColor = item.optLong("backgroundColor", 0x00000000),
                         lineHeight = item.optDouble("lineHeight", 1.35).toFloat(),
                         letterSpacing = item.optDouble("letterSpacing", 0.0).toFloat(),
                         textAlign = item.optString("textAlign", "start"),
@@ -177,7 +178,7 @@ object XingtuV2Persistence {
                     is XingtuV2Object.Text -> json
                         .put("content", item.content).put("fontFamily", item.fontFamily)
                         .put("fontSizeSp", item.fontSizeSp).put("fontWeight", item.fontWeight)
-                        .put("italic", item.italic).put("color", item.color)
+                        .put("italic", item.italic).put("color", item.color).put("backgroundColor", item.backgroundColor)
                         .put("lineHeight", item.lineHeight).put("letterSpacing", item.letterSpacing)
                         .put("textAlign", item.textAlign).put("boxWidth", item.boxWidth)
                         .put("boxHeight", item.boxHeight)
