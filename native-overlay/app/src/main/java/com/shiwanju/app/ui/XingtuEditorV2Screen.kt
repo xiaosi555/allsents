@@ -978,6 +978,21 @@ private fun XingtuV2PropertyPanel(
                 }
                 is XingtuV2Object.Image -> when (tab) {
                     "裁剪" -> {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip("恢复原图") {
+                                onUpdate(selectedObject.copy(cropLeft = 0f, cropTop = 0f, cropRight = 1f, cropBottom = 1f))
+                            }
+                            ObjectToolChip("居中裁剪") {
+                                val horizontalInset = ((1f - (selectedObject.cropRight - selectedObject.cropLeft)) / 2f).coerceAtLeast(0f)
+                                val verticalInset = ((1f - (selectedObject.cropBottom - selectedObject.cropTop)) / 2f).coerceAtLeast(0f)
+                                onUpdate(selectedObject.copy(
+                                    cropLeft = horizontalInset,
+                                    cropTop = verticalInset,
+                                    cropRight = 1f - horizontalInset,
+                                    cropBottom = 1f - verticalInset
+                                ))
+                            }
+                        }
                         Text("裁剪范围（原图比例）", color = colors.onSurfaceVariant, fontSize = 11.sp)
                         V2ValueSlider("左侧", selectedObject.cropLeft, 0f..(selectedObject.cropRight - 0.05f).coerceAtLeast(0.01f)) {
                             onUpdate(selectedObject.copy(cropLeft = it))
@@ -1006,8 +1021,23 @@ private fun XingtuV2PropertyPanel(
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
                     }
-                    "变换" -> V2TransformControls(selectedObject.transform) {
-                        onUpdate(selectedObject.copy(transform = it))
+                    "变换" -> {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ObjectToolChip("左转 90°") {
+                                onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(
+                                    rotation = (selectedObject.transform.rotation - 90f).let { if (it < -360f) it + 360f else it }
+                                )))
+                            }
+                            ObjectToolChip("右转 90°") {
+                                onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(
+                                    rotation = (selectedObject.transform.rotation + 90f).let { if (it > 360f) it - 360f else it }
+                                )))
+                            }
+                        }
+                        V2TransformControls(selectedObject.transform) {
+                            onUpdate(selectedObject.copy(transform = it))
+                        }
                     }
                     else -> Text("替换图片", color = colors.primary, modifier = Modifier.clickable { onReplaceImage() }.padding(12.dp))
                 }
