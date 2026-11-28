@@ -232,6 +232,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_segmented_image_transform.py
 
+      - name: Repair Xingtu local image import picker
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/repair_article_image_import.py
+
       - name: Add selected-image crop and color secondary panels
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/apply_image_crop_color_panels.py
