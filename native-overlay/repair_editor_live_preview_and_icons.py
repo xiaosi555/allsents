@@ -53,7 +53,7 @@ once(
 icon_composable = r'''
 @Composable
 fun ShiWanJuLineIcon(label: String, tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(22.dp)) {
+    Canvas(modifier = modifier.size(24.dp)) {
         val w = size.width
         val h = size.height
         val sw = (w + h) / 48f * 1.5f
