@@ -74,7 +74,7 @@ else:
 
 # All screens now reference the shared vector registry rather than importing icons ad hoc.
 for path in files:
-    text = path.read_text(encoding="utf-8")
+    text = source if path == LIBRARY else path.read_text(encoding="utf-8")
     if path == LIBRARY:
         registry_start = text.find("internal object AppIconVectors {")
         registry_end = text.find("}\n\n", registry_start) + 1
