@@ -158,7 +158,7 @@ data class XingtuV2History(
     fun endTransform(): XingtuV2History {
         val snapshot = transformSnapshot ?: return this
         return if (snapshot == document) copy(transformSnapshot = null)
-        else copy(undoStack = undoStack + snapshot, redoStack = emptyList(), transformSnapshot = null)
+        else copy(undoStack = (undoStack + snapshot).takeLast(100), redoStack = emptyList(), transformSnapshot = null)
     }
 
     /** Move all currently selected unlocked objects by one shared canvas-space delta. */
@@ -329,14 +329,32 @@ data class XingtuV2History(
 
     fun dispatch(action: XingtuV2Action): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, action)
-        return if (updated == document) this else copy(document = updated, undoStack = undoStack + document, redoStack = emptyList())
+        return if (updated == document) this else copy(document = updated, undoStack = (undoStack + document).takeLast(100), redoStack = emptyList())
     }
     fun undo(): XingtuV2History {
+        // An open property panel/gesture is one transaction. Undo it as a whole
+        // instead of leaving a stale snapshot that would be re-added on panel close.
+        val activeSnapshot = transformSnapshot
+        if (activeSnapshot != null) {
+            return copy(
+                document = activeSnapshot,
+                redoStack = (redoStack + document).takeLast(100),
+                transformSnapshot = null
+            )
+        }
         if (undoStack.isEmpty()) return this
-        return copy(document = undoStack.last(), undoStack = undoStack.dropLast(1), redoStack = redoStack + document)
+        return copy(
+            document = undoStack.last(),
+            undoStack = undoStack.dropLast(1),
+            redoStack = (redoStack + document).takeLast(100)
+        )
     }
     fun redo(): XingtuV2History {
-        if (redoStack.isEmpty()) return this
-        return copy(document = redoStack.last(), undoStack = undoStack + document, redoStack = redoStack.dropLast(1))
+        if (transformSnapshot != null || redoStack.isEmpty()) return this
+        return copy(
+            document = redoStack.last(),
+            undoStack = (undoStack + document).takeLast(100),
+            redoStack = redoStack.dropLast(1)
+        )
     }
 }
