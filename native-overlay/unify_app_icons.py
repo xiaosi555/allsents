@@ -58,11 +58,13 @@ for path in files:
   args=split_args(src[m.end():end])
   if not args: continue
   first=args[0]; mat=re.fullmatch(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.([A-Za-z0-9_]+)",first); vec=re.fullmatch(r'AppIconVector\("([^"]+)"\)',first)
-  if not mat and not vec: continue
+  if not mat and not vec and not shared: continue
   if mat:
    name=mat.group(1); key=key_for(name); label=LABELS.get(name,name)
-  else:
+  elif vec:
    key=vec.group(1); label=next((v[0] for k,v in items.items() if k==key),key.replace("-"," "))
+  else:
+   name=shared.group(1); key=key_for(name); label=LABELS.get(name,name)
   items[key]=(label,category(label))
   named={}; pos=[]
   for arg in args[1:]:
