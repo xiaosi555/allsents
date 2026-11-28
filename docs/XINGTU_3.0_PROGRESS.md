@@ -143,3 +143,11 @@
 - 新增 `native-overlay/apply_xingtu_v3_stage_f.py`，只作用于生成后的 3.0 编辑器。
 - 已接入 Kotlin compile-check 与手动 APK 工作流，C/D/E 后执行 F。
 - 本轮没有构建 APK；当前标记“代码完成待检查”，待 CI 生成补丁、Kotlin 编译及运行交互验收。
+
+
+### 阶段 F 编译检查结果（2026-11-29）
+- Workflow run：`46177519387`（[#913](https://github.com/xiaosi555/allsents/actions/runs/46177519387)），结论 success。
+- Stage F 生成补丁：success。
+- `:app:compileDebugKotlin`：success。
+- 本轮修复的是 Stage F 自检条件中的字符串匹配错误；并非 Kotlin 代码编译错误。
+- 只执行 compile-only，没有构建 APK，也没有 Android 运行/真机交互测试。
