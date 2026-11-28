@@ -124,13 +124,13 @@ internal object AppIconRegistry {
  var selectedKey by remember{mutableStateOf<String?>(null)}
  var replacementQuery by remember{mutableStateOf("")}
  val context = LocalContext.current
- val categories=listOf("全部","导航","通用","素材","编辑","文件","扩展")
+ val categories=listOf("全部","导航","通用","素材","编辑","数据")
  val shown=appIconItems.filter{(category=="全部"||it.category==category)&&(query.isBlank()||it.title.contains(query,true)||it.key.contains(query,true))}
  Column(Modifier.fillMaxSize().background(Color(0xFFF8F9F6)).statusBarsPadding()) {
   Row(Modifier.fillMaxWidth().height(54.dp).padding(horizontal=14.dp),verticalAlignment=Alignment.CenterVertically) {
    IconButton(onClick=onBack){ShiWanJuLineIcon("返回",Color(0xFF303A33),Modifier.size(22.dp))}
    Text("图标库",fontSize=19.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
-   Text("${shown.size} 个",fontSize=12.sp,color=Color(0xFF888E88))
+   Text("${shown.size} 个 · 点按可替换",fontSize=11.sp,color=Color(0xFF888E88))
   }
   OutlinedTextField(query,{query=it},modifier=Modifier.fillMaxWidth().padding(horizontal=16.dp),singleLine=true,placeholder={Text("搜索图标名称或标识")},leadingIcon={ShiWanJuLineIcon("搜索",Color(0xFF303A33),Modifier.size(20.dp))})
   Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal=14.dp,vertical=10.dp),horizontalArrangement=Arrangement.spacedBy(7.dp)) {
