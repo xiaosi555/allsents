@@ -380,9 +380,48 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                             val dx = (drag.x / density) / (scaleX * viewportScale)
                                             val dy = (drag.y / density) / (scaleY * viewportScale)
                                             if (history.document.selectedIds.size > 1 && item.id in history.document.selectedIds) {
-                                                snapGuideX = null
-                                                snapGuideY = null
-                                                history = history.updateSelectedOffset(dx, dy)
+                                                val selected = history.document.selectedObjects().filterNot { it.locked }
+                                                val left = selected.minOfOrNull { it.transform.x } ?: old.x
+                                                val top = selected.minOfOrNull { it.transform.y } ?: old.y
+                                                val right = selected.maxOfOrNull { it.transform.x + it.transform.width * it.transform.scaleX } ?: (old.x + old.width * old.scaleX)
+                                                val bottom = selected.maxOfOrNull { it.transform.y + it.transform.height * it.transform.scaleY } ?: (old.y + old.height * old.scaleY)
+                                                val groupWidth = right - left
+                                                val groupHeight = bottom - top
+                                                val proposedLeft = left + dx
+                                                val proposedTop = top + dy
+                                                val xTargets = mutableListOf(
+                                                    0f to 0f,
+                                                    (history.document.canvas.width - groupWidth) / 2f to history.document.canvas.width / 2f,
+                                                    (history.document.canvas.width - groupWidth) to history.document.canvas.width
+                                                )
+                                                val yTargets = mutableListOf(
+                                                    0f to 0f,
+                                                    (history.document.canvas.height - groupHeight) / 2f to history.document.canvas.height / 2f,
+                                                    (history.document.canvas.height - groupHeight) to history.document.canvas.height
+                                                )
+                                                history.document.objects.filter { it.id !in history.document.selectedIds && it.visible }.forEach { other ->
+                                                    val ot = other.transform
+                                                    val ow = ot.width * ot.scaleX
+                                                    val oh = ot.height * ot.scaleY
+                                                    xTargets += ot.x to ot.x
+                                                    xTargets += (ot.x + (ow - groupWidth) / 2f) to (ot.x + ow / 2f)
+                                                    xTargets += (ot.x + ow - groupWidth) to (ot.x + ow)
+                                                    yTargets += ot.y to ot.y
+                                                    yTargets += (ot.y + (oh - groupHeight) / 2f) to (ot.y + oh / 2f)
+                                                    yTargets += (ot.y + oh - groupHeight) to (ot.y + oh)
+                                                }
+                                                val thresholdX = 8f / (scaleX * viewportScale)
+                                                val thresholdY = 8f / (scaleY * viewportScale)
+                                                val nearestX = xTargets.minByOrNull { kotlin.math.abs(it.first - proposedLeft) }
+                                                    ?.takeIf { kotlin.math.abs(it.first - proposedLeft) <= thresholdX }
+                                                val nearestY = yTargets.minByOrNull { kotlin.math.abs(it.first - proposedTop) }
+                                                    ?.takeIf { kotlin.math.abs(it.first - proposedTop) <= thresholdY }
+                                                snapGuideX = nearestX?.second
+                                                snapGuideY = nearestY?.second
+                                                history = history.updateSelectedOffset(
+                                                    dx + (nearestX?.first?.minus(proposedLeft) ?: 0f),
+                                                    dy + (nearestY?.first?.minus(proposedTop) ?: 0f)
+                                                )
                                             } else {
                                                 val proposedX = old.x + dx
                                                 val proposedY = old.y + dy
