@@ -296,7 +296,7 @@ touch_new = """                            root.addEventListener('touchstart',fu
                             }"""
 if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
 touch_new = touch_new.replace(
-    "                            root.addEventListener('touchstart',function(ev){\\n                              if(!ev.touches||ev.touches.length!==1)return;",
+    "                            root.addEventListener('touchstart',function(ev){\n                              if(!ev.touches||ev.touches.length!==1)return;",
     """                            root.addEventListener('touchstart',function(ev){
                               if(ev.touches&&ev.touches.length===2){
                                 const img=ev.target&&ev.target.closest?ev.target.closest('img'):null;
@@ -311,7 +311,7 @@ touch_new = touch_new.replace(
                               if(!ev.touches||ev.touches.length!==1)return;"""
 )
 touch_new = touch_new.replace(
-    "                            root.addEventListener('touchmove',function(ev){\\n                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;",
+    "                            root.addEventListener('touchmove',function(ev){\n                              if(!touchDrag||!ev.touches||ev.touches.length!==1)return;",
     """                            root.addEventListener('touchmove',function(ev){
                               if(imageTransformGesture&&ev.touches&&ev.touches.length===2){
                                 const g=imageTransformGesture,p1=ev.touches[0],p2=ev.touches[1];
@@ -327,7 +327,7 @@ touch_new = touch_new.replace(
 )
 touch_new = touch_new.replace(
     "                            function finishTouchDrag(){",
-    "                            let imageTransformGesture=null;\\n                            function finishTouchDrag(){"
+    "                            let imageTransformGesture=null;\n                            function finishTouchDrag(){"
 )
 if(!s.includes(touch_old)) throw new Error("touch drag anchor mismatch");
 s=s.replace(touch_old,touch_new);
