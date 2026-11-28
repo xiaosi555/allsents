@@ -731,6 +731,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
         }
 
         if (showVersions) {
+            XingtuV2DarkPanel {
             Column(Modifier.fillMaxWidth().heightIn(max = 250.dp).background(colors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("版本记录（最多保留 20 个）", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
@@ -767,9 +768,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     }
                 }
             }
+            }
         }
 
         if (showLayers) {
+            XingtuV2DarkPanel {
             Column(Modifier.fillMaxWidth().heightIn(max = 220.dp).background(colors.surface).padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("图层", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.onSurface)
@@ -921,9 +924,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                     }
                 }
             }
+            }
         }
 
         if (showComponentPicker) {
+            XingtuV2DarkPanel {
             Row(Modifier.fillMaxWidth().background(colors.surface).horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ObjectToolChip("矩形") { addComponent("rectangle") }
@@ -931,6 +936,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 ObjectToolChip("圆形") { addComponent("ellipse") }
                 ObjectToolChip("线条") { addComponent("line") }
                 ObjectToolChip("关闭") { showComponentPicker = false }
+            }
             }
         }
 
@@ -1080,7 +1086,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             }
         } else {
             Row(
-                Modifier.fillMaxWidth().height(64.dp).background(colors.surface).padding(horizontal = 6.dp),
+                Modifier.fillMaxWidth().height(50.dp).background(Color(0xFF181818)).padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically
             ) {
                 BottomTool("文字", "text", colors.primary) {
@@ -1156,6 +1162,22 @@ private fun ObjectToolChip(label: String, onClick: () -> Unit) {
         Text(label, color = if (dark) Color(0xFFDDDDDD) else AppColors.TextMain,
             fontSize = 9.sp, maxLines = 1)
     }
+}
+
+@Composable
+private fun XingtuV2DarkPanel(content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = darkColorScheme(
+        primary = AppColors.Theme,
+        onPrimary = Color.White,
+        background = Color(0xFF181818),
+        onBackground = Color.White,
+        surface = Color(0xFF181818),
+        onSurface = Color.White,
+        surfaceVariant = Color(0xFF222222),
+        onSurfaceVariant = Color(0xFF999999),
+        outlineVariant = Color(0xFF333333),
+        error = Color(0xFFFF6B6B)
+    ), content = content)
 }
 
 @Composable
