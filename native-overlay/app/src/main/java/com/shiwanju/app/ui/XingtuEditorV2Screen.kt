@@ -955,8 +955,10 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                         ))
                     }
                 }
-                ObjectToolChip("拆分组合") {
-                    history = history.dispatch(XingtuV2Action.UngroupObjects(history.document.selectedIds))
+                if (history.document.selectedObjects().any { it.groupId != null }) {
+                    ObjectToolChip("拆分组合") {
+                        history = history.dispatch(XingtuV2Action.UngroupObjects(history.document.selectedIds))
+                    }
                 }
                 ObjectToolChip("整体变换") {
                     history = history.beginTransform()
