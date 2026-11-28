@@ -4,6 +4,8 @@ p=Path("source/ShiWanJu-Android/app/src/main/java/com/shiwanju/app/ui/LayoutScre
 s=p.read_text(encoding="utf-8")
 if "import androidx.compose.material.icons.outlined.Palette\n" not in s:
  s=s.replace("import androidx.compose.material.icons.Icons\n","import androidx.compose.material.icons.Icons\nimport androidx.compose.material.icons.outlined.Palette\n")
+if "import androidx.compose.foundation.clickable\n" not in s:
+ s=s.replace("import androidx.compose.foundation.BorderStroke\n","import androidx.compose.foundation.BorderStroke\nimport androidx.compose.foundation.clickable\n")
 if "import androidx.compose.foundation.Image\n" not in s:
  s=s.replace("import androidx.compose.foundation.BorderStroke\n","import androidx.compose.foundation.BorderStroke\nimport androidx.compose.foundation.Image\n")
 if "import androidx.compose.ui.res.painterResource\n" not in s:
@@ -13,7 +15,7 @@ if "import com.shiwanju.app.R\n" not in s:
 toolbar='''@Composable
 private fun TopBar(vm: AppViewModel) {
     Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Image(painter = painterResource(R.drawable.app_logo), contentDescription = "拾万句", contentScale = ContentScale.Fit, modifier = Modifier.size(width = 28.dp, height = 27.dp))
+        Image(painter = painterResource(R.drawable.app_logo), contentDescription = "返回主页", contentScale = ContentScale.Fit, modifier = Modifier.size(width = 28.dp, height = 27.dp).clip(RoundedCornerShape(6.dp)).clickable { vm.screen = "home" })
         Spacer(Modifier.weight(1f))
         Text(vm.charCount.toString() + "字", color = AppColors.TextDim, fontSize = 12.sp)
         Spacer(Modifier.width(8.dp))
