@@ -57,6 +57,7 @@ import kotlin.math.roundToInt
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /** 醒图 2.0 独立原生画布。旧版 ArticleEditorScreen 保持独立，不参与本页状态。 */
 @Composable
@@ -343,7 +344,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                     Text(
                                         text = item.content,
                                         color = Color(item.color),
-                                        fontSize = (item.fontSizeSp * scaleX).coerceIn(8f, 48f).sp,
+                                        fontSize = (item.fontSizeSp * scaleX * sqrt((t.scaleX * t.scaleY).coerceAtLeast(0.01f))).coerceIn(8f, 160f).sp,
                                         fontFamily = when (item.fontFamily) {
                                             "serif" -> FontFamily.Serif
                                             "mono" -> FontFamily.Monospace
@@ -352,8 +353,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         },
                                         fontWeight = FontWeight(item.fontWeight.coerceIn(100, 900)),
                                         fontStyle = if (item.italic) FontStyle.Italic else FontStyle.Normal,
-                                        lineHeight = (item.fontSizeSp * item.lineHeight * scaleX).sp,
-                                        letterSpacing = (item.letterSpacing * scaleX).sp,
+                                        lineHeight = (item.fontSizeSp * item.lineHeight * scaleX * sqrt((t.scaleX * t.scaleY).coerceAtLeast(0.01f))).sp,
+                                        letterSpacing = (item.letterSpacing * scaleX * t.scaleX).sp,
                                         textAlign = when (item.textAlign) {
                                             "center" -> TextAlign.Center
                                             "end" -> TextAlign.End
