@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -35,7 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -126,8 +126,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             val objectModifier = Modifier
                                 .offset {
                                     IntOffset(
-                                        with(LocalDensity.current) { (t.x * scaleX).dp.roundToPx() },
-                                        with(LocalDensity.current) { (t.y * scaleY).dp.roundToPx() }
+                                        (t.x * scaleX * density).roundToInt(),
+                                        (t.y * scaleY * density).roundToInt()
                                     )
                                 }
                                 .size((t.width * scaleX).dp, (t.height * scaleY).dp)
@@ -206,8 +206,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 Box(
                                     Modifier.offset {
                                         IntOffset(
-                                            with(LocalDensity.current) { ((t.x + t.width) * scaleX - 7f).dp.roundToPx() },
-                                            with(LocalDensity.current) { ((t.y + t.height) * scaleY - 7f).dp.roundToPx() }
+                                            (((t.x + t.width) * scaleX - 7f) * density).roundToInt(),
+                                            (((t.y + t.height) * scaleY - 7f) * density).roundToInt()
                                         )
                                     }
                                     .size(14.dp).clip(CircleShape).background(colors.primary)
@@ -303,7 +303,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun BottomTool(label: String, symbol: String, activeColor: Color, onClick: () -> Unit) {
+private fun RowScope.BottomTool(label: String, symbol: String, activeColor: Color, onClick: () -> Unit) {
     Column(
         Modifier.weight(1f).fillMaxHeight().clickable(onClick = onClick).padding(vertical = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
