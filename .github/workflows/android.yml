@@ -279,6 +279,10 @@ jobs:
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/install_home_and_icon_library.py
 
+      - name: Centralize all application icons and populate the icon library
+        if: steps.source.outputs.present == 'true'
+        run: python3 native-overlay/centralize_app_icons.py
+
       - name: Migrate every interface icon to the centralized icon library
         if: steps.source.outputs.present == 'true'
         run: python3 native-overlay/unify_app_icons.py
