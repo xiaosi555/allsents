@@ -77,9 +77,9 @@ for path in files:
  if edits:
   if not re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src):
    src=re.sub(r"(?m)^import androidx\.compose\.material\.icons\..*\n","",src)
-  package=re.search(r"(?m)^package ([\\w.]+)",src)
+  package=re.search(r"(?m)^package ([\w.]+)",src)
   if package and package.group(1)!="com.shiwanju.app.ui" and "import com.shiwanju.app.ui.AppIcon" not in src:
-   src=re.sub(r"(?m)^package [^\\n]+\\n",lambda m:m.group(0)+"\\nimport com.shiwanju.app.ui.AppIcon\\n",src,count=1)
+   src=re.sub(r"(?m)^package [^\n]+\n",lambda m:m.group(0)+"\nimport com.shiwanju.app.ui.AppIcon\n",src,count=1)
   path.write_text(src,encoding="utf-8"); converted+=len(edits)
  if re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src): remaining.append(str(path))
 # Every custom semantic label used by editor tools is also a replaceable catalog entry.
@@ -91,7 +91,7 @@ for path in files:
  for label in re.findall(r'EditorTool\("([^"]+)"',src):
   items[label]=(label,category(label))
  # Route all shared-renderer call sites through AppIcon so user overrides apply globally.
- updated=re.sub(r"(?<!fun )ShiWanJuLineIcon\\(", "AppIcon(", src)
+ updated=re.sub(r"(?<!fun )ShiWanJuLineIcon\(", "AppIcon(", src)
  if updated!=src: path.write_text(updated,encoding="utf-8")
 entries=",\n".join(f' AppIconItem("{k}","{v[0]}","{v[1]}")' for k,v in sorted(items.items()))
 block=f'''private data class AppIconItem(val key:String,val title:String,val category:String)
