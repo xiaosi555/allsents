@@ -238,21 +238,18 @@ new_dock = '''            // 醒图 3.0 primary navigation: exactly eight semant
             }'''
 s = s[:if_start] + new_dock + s[end:]
 
-# Add category-specific tabs to the existing secondary panel header. The original
-# template type tabs are retained, with an explicit route to the template library.
-s = replace_once(
-    s,
-    '''                        if (activePanel == EditorPanel.TEXT2) {
-                            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                                listOf("字体", "样式", "排版").forEach { tab ->
-                                    Column(Modifier.weight(1f).clickable { text2MainTab = tab }.padding(vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(tab, color = if (text2MainTab == tab) Color.White else Color(0xFF888888), fontSize = 15.sp, fontWeight = if (text2MainTab == tab) FontWeight.Bold else FontWeight.Normal)
-                                        Box(Modifier.padding(top = 2.dp).width(20.dp).height(2.dp).clip(RoundedCornerShape(4.dp)).background(if (text2MainTab == tab) AppColors.Theme else Color.Transparent))
-                                    }
-                                }
-                            }
-                        } else if (showTemplateSubnav) {''',
-    '''                        if (showTextSubnav || activePanel == EditorPanel.TEXT2) {
+# Add category-specific tabs to the existing secondary panel header. Replace the
+# complete legacy Text2 branch structurally so upstream tab-count changes do not
+# make the patch brittle; keep the existing template branch immediately after it.
+header_row = s.find("Row(Modifier.fillMaxWidth().height(48.dp)")
+if header_row < 0:
+    fail("secondary panel header row not found")
+text_branch = s.find("if (activePanel == EditorPanel.TEXT2) {", header_row)
+if text_branch < 0:
+    fail("legacy text secondary-tab branch not found")
+text_open = s.find("{", text_branch)
+text_end = matching_brace(s, text_open)
+new_header_branches = '''if (showTextSubnav || activePanel == EditorPanel.TEXT2) {
                             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                                 listOf(EditorPanel.TEXT to "基础", EditorPanel.TEXT2 to "高级").forEach { tab ->
                                     Column(Modifier.weight(1f).clickable {
@@ -283,9 +280,8 @@ s = replace_once(
                                     }
                                 }
                             }
-                        } else if (showTemplateSubnav) {''',
-    "8-category secondary tab routing"
-)
+                        }'''
+s = s[:text_branch] + new_header_branches + s[text_end:]
 
 s = replace_once(
     s,
