@@ -794,7 +794,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             }
                         }
                     }
-                    is XingtuV2Object.Component -> listOf("填充", "圆角", "边框", "变换").forEach { tab ->
+                    is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (activePanel == null) history = history.beginTransform()
                             activePanel = tab
@@ -1012,12 +1012,31 @@ private fun XingtuV2PropertyPanel(
                     else -> Text("替换图片", color = colors.primary, modifier = Modifier.clickable { onReplaceImage() }.padding(12.dp))
                 }
                 is XingtuV2Object.Component -> when (tab) {
+                    "形状" -> {
+                        Text("组件形状", color = colors.onSurface, fontSize = 12.sp)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("rectangle" to "矩形", "rounded-rectangle" to "圆角矩形", "ellipse" to "圆形", "line" to "线条").forEach { (type, label) ->
+                                ObjectToolChip(if (selectedObject.componentType == type) "✓ $label" else label) {
+                                    onUpdate(selectedObject.copy(componentType = type))
+                                }
+                            }
+                        }
+                        if (selectedObject.componentType == "line") {
+                            Text("线条粗细", color = colors.onSurfaceVariant, fontSize = 11.sp)
+                            V2ValueSlider("粗细", selectedObject.strokeWidth.coerceAtLeast(1f), 1f..40f) {
+                                onUpdate(selectedObject.copy(strokeWidth = it))
+                            }
+                        }
+                    }
                     "填充" -> {
                         Text("组件填充色", color = colors.onSurface, fontSize = 12.sp)
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(vertical = 10.dp)) {
-                            listOf(0xFFEDEFF2, 0xFFFFFFFF, 0xFF222222, 0xFF159765, 0xFF2878D0).forEach { value ->
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0xFFEDEFF2, 0xFFFFFFFF, 0xFF222222, 0xFF159765, 0xFF2878D0, 0xFFE64A4A, 0xFFFFB020).forEach { value ->
                                 Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
-                                    .border(1.dp, colors.outlineVariant, CircleShape)
+                                    .border(if (selectedObject.fillColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.fillColor == value) colors.primary else colors.outlineVariant, CircleShape)
                                     .clickable { onUpdate(selectedObject.copy(fillColor = value)) })
                             }
                         }
@@ -1025,8 +1044,20 @@ private fun XingtuV2PropertyPanel(
                     "圆角" -> V2ValueSlider("圆角", selectedObject.cornerRadius, 0f..80f) {
                         onUpdate(selectedObject.copy(cornerRadius = it))
                     }
-                    "边框" -> V2ValueSlider("边框宽度", selectedObject.strokeWidth, 0f..20f) {
-                        onUpdate(selectedObject.copy(strokeWidth = it, strokeColor = 0xFF555555))
+                    "边框" -> {
+                        V2ValueSlider("边框宽度", selectedObject.strokeWidth, 0f..40f) {
+                            onUpdate(selectedObject.copy(strokeWidth = it))
+                        }
+                        Text("边框颜色", color = colors.onSurface, fontSize = 12.sp)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            listOf(0xFF222222, 0xFF666666, 0xFFFFFFFF, 0xFFE64A4A, 0xFF2878D0, 0xFF159765, 0xFFFFB020).forEach { value ->
+                                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(value))
+                                    .border(if (selectedObject.strokeColor == value) 2.dp else 1.dp,
+                                        if (selectedObject.strokeColor == value) colors.primary else colors.outlineVariant, CircleShape)
+                                    .clickable { onUpdate(selectedObject.copy(strokeColor = value)) })
+                            }
+                        }
                     }
                     "变换" -> V2TransformControls(selectedObject.transform) {
                         onUpdate(selectedObject.copy(transform = it))
