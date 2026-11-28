@@ -153,7 +153,7 @@ if "let imagePinch=null;" not in s:
         raise SystemExit("Pinch transform patch: touch state anchor mismatch")
     s=s.replace(pinch_anchor,pinch_anchor+"\n"+pinch_code,1)
 hint = 'Text("图片调整", color = Color.Gray, fontSize = 10.sp'
-if "长按拖动：单列按行移动，多列按格移动" not in s and hint in s:
+if "长按拖动按行/列吸附；双指缩放旋转" not in s and hint in s:
     pos = s.find(hint)
     line_start = s.rfind("\n", 0, pos) + 1
     line_end = s.find("\n", pos)
