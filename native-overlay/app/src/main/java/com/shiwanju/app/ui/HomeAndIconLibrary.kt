@@ -106,7 +106,7 @@ private data class HomePageItem(val title:String,val subtitle:String,val route:S
 @Composable fun AppIconLibraryScreen(onBack:()->Unit) {
  var query by remember{mutableStateOf("")}
  var category by remember{mutableStateOf("全部")}
- val categories=listOf("全部","导航","通用","素材","编辑","文件")
+ val categories=listOf("全部","导航","通用","素材","编辑","文件","扩展")
  val shown=appIconItems.filter{(category=="全部"||it.category==category)&&(query.isBlank()||it.title.contains(query,true)||it.key.contains(query,true))}
  Column(Modifier.fillMaxSize().background(Color(0xFFF8F9F6)).statusBarsPadding()) {
   Row(Modifier.fillMaxWidth().height(54.dp).padding(horizontal=14.dp),verticalAlignment=Alignment.CenterVertically) {
