@@ -117,6 +117,7 @@ internal object AppIconRegistry {
    Text("全部页面 · 仅显示已接入功能",fontSize=11.sp,color=Color(0xFF9A9F9A),modifier=Modifier.align(Alignment.CenterHorizontally).padding(top=2.dp,bottom=22.dp))
   }
  }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun AppIconLibraryScreen(onBack:()->Unit) {
  var query by remember{mutableStateOf("")}
