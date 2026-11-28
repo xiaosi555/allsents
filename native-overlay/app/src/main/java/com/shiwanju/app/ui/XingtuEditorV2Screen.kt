@@ -50,6 +50,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 /** 醒图 2.0 独立原生画布。旧版 ArticleEditorScreen 保持独立，不参与本页状态。 */
 @Composable
@@ -268,9 +270,16 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 handlePoints.forEach { (hx, hy, edge) ->
                                     Box(
                                         Modifier.offset {
+                                            val radians = Math.toRadians(t.rotation.toDouble())
+                                            val cx = t.x + t.width / 2f
+                                            val cy = t.y + t.height / 2f
+                                            val px = t.x + t.width * hx
+                                            val py = t.y + t.height * hy
+                                            val rotatedX = cx + (px - cx) * cos(radians).toFloat() - (py - cy) * sin(radians).toFloat()
+                                            val rotatedY = cy + (px - cx) * sin(radians).toFloat() + (py - cy) * cos(radians).toFloat()
                                             IntOffset(
-                                                (((t.x + t.width * hx) * scaleX - 7f) * density).roundToInt(),
-                                                (((t.y + t.height * hy) * scaleY - 7f) * density).roundToInt()
+                                                ((rotatedX * scaleX - 7f) * density).roundToInt(),
+                                                ((rotatedY * scaleY - 7f) * density).roundToInt()
                                             )
                                         }
                                         .size(14.dp).clip(CircleShape)
@@ -285,8 +294,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                                 change.consume()
                                                 val current = history.document.objects.firstOrNull { it.id == item.id } ?: return@detectDragGestures
                                                 val old = current.transform
-                                                val dx = (drag.x / density) / (scaleX * viewportScale)
-                                                val dy = (drag.y / density) / (scaleY * viewportScale)
+                                                val screenDx = (drag.x / density) / (scaleX * viewportScale)
+                                                val screenDy = (drag.y / density) / (scaleY * viewportScale)
+                                                val radians = Math.toRadians(old.rotation.toDouble())
+                                                val dx = screenDx * cos(radians).toFloat() + screenDy * sin(radians).toFloat()
+                                                val dy = -screenDx * sin(radians).toFloat() + screenDy * cos(radians).toFloat()
                                                 var x = old.x
                                                 var y = old.y
                                                 var width = old.width
@@ -314,9 +326,14 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                 }
                                 Box(
                                     Modifier.offset {
+                                        val radians = Math.toRadians(t.rotation.toDouble())
+                                        val cx = t.x + t.width / 2f
+                                        val cy = t.y + t.height / 2f
+                                        val handleX = cx - (t.height / 2f + 34f) * sin(radians).toFloat()
+                                        val handleY = cy - (t.height / 2f + 34f) * cos(radians).toFloat()
                                         IntOffset(
-                                            (((t.x + t.width * .5f) * scaleX - 6f) * density).roundToInt(),
-                                            ((t.y * scaleY - 30f) * density).roundToInt()
+                                            ((handleX * scaleX - 6f) * density).roundToInt(),
+                                            ((handleY * scaleY - 6f) * density).roundToInt()
                                         )
                                     }
                                     .size(12.dp).clip(CircleShape).background(colors.primary)
