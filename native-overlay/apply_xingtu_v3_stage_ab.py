@@ -305,7 +305,7 @@ s = replace_once(
     s,
     '''                                listOf(EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
                                     Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 7.dp, vertical = 5.dp),''',
-    '''                                listOf(EditorPanel.TEMPLATE, EditorPanel.STYLE, EditorPanel.TITLE, EditorPanel.CARD, EditorPanel.IMAGE, EditorPanel.LAYOUT, EditorPanel.SVG, EditorPanel.COMPONENT).forEach { sub ->
+    '''                                listOf(EditorPanel.TEMPLATE, EditorPanel.STYLE).forEach { sub ->
                                     Column(Modifier.clickable { templateSubPanel = sub; activePanel = sub }.padding(horizontal = 7.dp, vertical = 5.dp),''',
     "template library tab"
 )
