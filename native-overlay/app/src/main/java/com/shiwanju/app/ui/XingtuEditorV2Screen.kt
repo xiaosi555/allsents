@@ -77,13 +77,15 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
     }
     var multiSelect by remember { mutableStateOf(false) }
     var activeMultiTransform by remember { mutableStateOf(false) }
+    var activeCanvasPanel by remember { mutableStateOf(false) }
     var groupScale by remember { mutableFloatStateOf(1f) }
     var groupRotation by remember { mutableFloatStateOf(0f) }
     var showLayers by remember { mutableStateOf(false) }
     var activePanel by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(history.document.selectedIds) {
-        if (activePanel != null || activeMultiTransform) history = history.endTransform()
+        if (activePanel != null || activeMultiTransform || activeCanvasPanel) history = history.endTransform()
         activePanel = null
+        activeCanvasPanel = false
         groupScale = 1f
         groupRotation = 0f
         activeMultiTransform = false
@@ -524,7 +526,18 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
         }
 
         val selectedObject = history.document.selectedObjects().singleOrNull()
-        if (activeMultiTransform && history.document.selectedIds.size > 1) {
+        if (activeCanvasPanel) {
+            XingtuV2CanvasPanel(
+                canvas = history.document.canvas,
+                panelHeight = panelHeight,
+                onPanelHeightChange = { panelHeight = it.coerceIn(200f, 400f) },
+                onUpdate = { history = history.updateCanvasLive(it) },
+                onClose = {
+                    history = history.endTransform()
+                    activeCanvasPanel = false
+                }
+            )
+        } else if (activeMultiTransform && history.document.selectedIds.size > 1) {
             XingtuV2MultiTransformPanel(
                 panelHeight = panelHeight,
                 onPanelHeightChange = { panelHeight = it.coerceIn(200f, 400f) },
@@ -656,6 +669,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             transform = XingtuV2Transform(x = 130f, y = 260f + count * 80f, width = 460f, height = 180f)
                         )
                     ))
+                    showLayers = false
+                }
+                BottomTool("画布", "▣", colors.primary) {
+                    history = history.beginTransform()
+                    activeCanvasPanel = true
                     showLayers = false
                 }
             }
@@ -851,6 +869,47 @@ private fun XingtuV2PropertyPanel(
                     "变换" -> V2TransformControls(selectedObject.transform) {
                         onUpdate(selectedObject.copy(transform = it))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun XingtuV2CanvasPanel(
+    canvas: XingtuV2Canvas,
+    panelHeight: Float,
+    onPanelHeightChange: (Float) -> Unit,
+    onUpdate: (XingtuV2Canvas) -> Unit,
+    onClose: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val density = LocalDensity.current.density
+    Column(Modifier.fillMaxWidth().height(panelHeight.dp).background(colors.surface).border(1.dp, colors.outlineVariant)) {
+        Row(Modifier.fillMaxWidth().height(42.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("×", color = colors.onSurface, fontSize = 22.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+            Box(Modifier.weight(1f).fillMaxHeight().pointerInput(panelHeight) {
+                detectDragGestures { change, drag ->
+                    change.consume()
+                    onPanelHeightChange((panelHeight - drag.y / density).coerceIn(200f, 400f))
+                }
+            }, contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.width(36.dp).height(4.dp).clip(CircleShape).background(colors.outlineVariant))
+                    Text("画布设置", color = colors.onSurfaceVariant, fontSize = 10.sp)
+                }
+            }
+            Text("✓", color = colors.primary, fontSize = 18.sp, modifier = Modifier.clickable { onClose() }.padding(horizontal = 8.dp))
+        }
+        Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 14.dp).verticalScroll(rememberScrollState())) {
+            V2ValueSlider("画布宽度", canvas.width, 320f..3000f) { onUpdate(canvas.copy(width = it)) }
+            V2ValueSlider("画布高度", canvas.height, 320f..4000f) { onUpdate(canvas.copy(height = it)) }
+            Text("背景颜色", color = colors.onSurface, fontSize = 12.sp)
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(0xFFFFFFFF, 0xFFF5F5F5, 0xFF222222, 0xFFFFF1D2, 0xFFE7F2FF, 0xFFFFE9E9).forEach { color ->
+                    Box(Modifier.size(30.dp).clip(CircleShape).background(Color(color))
+                        .border(1.dp, colors.outlineVariant, CircleShape)
+                        .clickable { onUpdate(canvas.copy(backgroundColor = color)) })
                 }
             }
         }

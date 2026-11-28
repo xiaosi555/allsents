@@ -291,6 +291,12 @@ data class XingtuV2History(
         return if (updated == document) this else copy(document = updated)
     }
 
+    /** Live canvas property update; the open canvas panel owns one undo transaction. */
+    fun updateCanvasLive(canvas: XingtuV2Canvas): XingtuV2History {
+        val updated = document.copy(canvas = canvas, revision = document.revision + 1)
+        return if (updated == document) this else copy(document = updated)
+    }
+
     /** Apply live panel edits without creating one undo entry per slider tick. */
     fun updateObjectLive(value: XingtuV2Object): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, XingtuV2Action.ReplaceObject(value))
