@@ -371,23 +371,11 @@ for token in [
 
 V3.write_text(s, encoding="utf-8")
 
-# Route may carry an explicit document ID as:
-# vm.screen = "xingtu_article_editor_v3:<article-id>"
+# Keep the generated default route exact. The V3 composable accepts an optional
+# initialArticleId for future ID-aware callers; the current layout entry restores
+# its own last-opened article through V3-only session preferences.
 main = MAIN.read_text(encoding="utf-8")
-exact_route = '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm) { vm.screen = "layout" }'
-dynamic_route = '''vm.screen.startsWith("xingtu_article_editor_v3:") -> ArticleEditorScreenV3(
-                            vm,
-                            { vm.screen = "layout" },
-                            vm.screen.substringAfter("xingtu_article_editor_v3:").takeIf { it.isNotBlank() }
-                        )
-                        '''
-if dynamic_route.strip() not in main:
-    main = replace_once(main, exact_route, dynamic_route + exact_route, "explicit article-ID route")
-MAIN.write_text(main, encoding="utf-8")
-
-check = MAIN.read_text(encoding="utf-8")
-if 'vm.screen.startsWith("xingtu_article_editor_v3:")' not in check:
-    fail("explicit article ID route verification failed")
-if '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm)' not in check:
+if '"xingtu_article_editor_v3" -> ArticleEditorScreenV3(vm)' not in main:
     fail("generic 3.0 route verification failed")
+
 print("Verified: Stage A V3 article/session context and Stage B eight-category navigation applied; legacy editor panel implementations retained.")
