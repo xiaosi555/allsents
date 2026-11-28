@@ -82,6 +82,17 @@ for path in files:
    src=re.sub(r"(?m)^package [^\\n]+\\n",lambda m:m.group(0)+"\\nimport com.shiwanju.app.ui.AppIcon\\n",src,count=1)
   path.write_text(src,encoding="utf-8"); converted+=len(edits)
  if re.search(r"Icons\.(?:Outlined|Filled|Rounded|TwoTone|Sharp|Default)\.",src): remaining.append(str(path))
+# Every custom semantic label used by editor tools is also a replaceable catalog entry.
+for path in files:
+ if path==REGISTRY: continue
+ src=path.read_text(encoding="utf-8")
+ for label in re.findall(r'ShiWanJuLineIcon\("([^"]+)"',src):
+  items[label]=(label,category(label))
+ for label in re.findall(r'EditorTool\("([^"]+)"',src):
+  items[label]=(label,category(label))
+ # Route all shared-renderer call sites through AppIcon so user overrides apply globally.
+ updated=re.sub(r"(?<!fun )ShiWanJuLineIcon\\(", "AppIcon(", src)
+ if updated!=src: path.write_text(updated,encoding="utf-8")
 entries=",\n".join(f' AppIconItem("{k}","{v[0]}","{v[1]}")' for k,v in sorted(items.items()))
 block=f'''private data class AppIconItem(val key:String,val title:String,val category:String)
 private val appIconItems = listOf(
@@ -90,8 +101,9 @@ private val appIconItems = listOf(
 
 /** Semantic icon registry. Every screen resolves a stable key to the same line icon. */
 @Composable fun AppIcon(key:String,modifier:Modifier=Modifier,tint:Color=LocalContentColor.current) {{
- val resolved=AppIconRegistry.resolve(LocalContext.current,key)
- val item=appIconItems.firstOrNull{{it.key==resolved}}
+ val requested=appIconItems.firstOrNull{{it.key==key || it.title==key}}?.key ?: key
+ val resolved=AppIconRegistry.resolve(LocalContext.current,requested)
+ val item=appIconItems.firstOrNull{{it.key==resolved || it.title==resolved}}
  ShiWanJuLineIcon(item?.title?:resolved,tint,modifier)
 }}
 '''
