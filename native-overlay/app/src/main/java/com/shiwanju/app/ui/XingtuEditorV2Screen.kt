@@ -115,8 +115,8 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                         assetUri = uri.toString(),
                         cropLeft = 0f, cropTop = 0f, cropRight = 1f, cropBottom = 1f
                     ))
-                    history = history.endTransform()
                 }
+                history = history.endTransform()
                 replaceTargetId = null
             } else {
                 val image = XingtuV2Object.Image(
