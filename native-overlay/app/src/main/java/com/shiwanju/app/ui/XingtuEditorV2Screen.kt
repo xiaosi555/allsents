@@ -723,6 +723,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
         } else if (activePanel != null && selectedObject != null) {
             XingtuV2PropertyPanel(
                 selectedObject = selectedObject,
+                canvas = history.document.canvas,
                 tab = activePanel!!,
                 panelHeight = panelHeight,
                 onPanelHeightChange = { panelHeight = it.coerceIn(200f, 400f) },
@@ -779,13 +780,13 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 when (selectedObject) {
-                    is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "透明度", "变换").forEach { tab ->
+                    is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "对齐", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (activePanel == null) history = history.beginTransform()
                             activePanel = tab
                         }
                     }
-                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "透明度", "变换").forEach { tab ->
+                    is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "对齐", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (tab == "替换") {
                                 history = history.beginTransform()
@@ -797,7 +798,7 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                             }
                         }
                     }
-                    is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "变换").forEach { tab ->
+                    is XingtuV2Object.Component -> listOf("形状", "填充", "圆角", "边框", "对齐", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
                             if (activePanel == null) history = history.beginTransform()
                             activePanel = tab
@@ -873,6 +874,7 @@ private fun ObjectToolChip(label: String, onClick: () -> Unit) {
 @Composable
 private fun XingtuV2PropertyPanel(
     selectedObject: XingtuV2Object,
+    canvas: XingtuV2Canvas,
     tab: String,
     panelHeight: Float,
     onPanelHeightChange: (Float) -> Unit,
@@ -976,6 +978,12 @@ private fun XingtuV2PropertyPanel(
                         }
                     }
 
+                    "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
+                        onUpdate(selectedObject.copy(transform = it))
+                    }
+                    "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
+                        onUpdate(selectedObject.copy(transform = it))
+                    }
                     "透明度" -> V2ValueSlider("透明度", selectedObject.transform.alpha, 0f..1f) {
                         onUpdate(selectedObject.copy(transform = selectedObject.transform.copy(alpha = it)))
                     }
@@ -1108,6 +1116,9 @@ private fun XingtuV2PropertyPanel(
                             onUpdate(selectedObject.copy(strokeColor = it))
                         }
                     }
+                    "对齐" -> V2SingleAlignControls(selectedObject.transform, canvas) {
+                        onUpdate(selectedObject.copy(transform = it))
+                    }
                     "变换" -> V2TransformControls(selectedObject.transform) {
                         onUpdate(selectedObject.copy(transform = it))
                     }
@@ -1229,6 +1240,27 @@ private fun V2ValueSlider(label: String, value: Float, range: ClosedFloatingPoin
 }
 
 @Composable
+@Composable
+private fun V2SingleAlignControls(
+    transform: XingtuV2Transform,
+    canvas: XingtuV2Canvas,
+    onChange: (XingtuV2Transform) -> Unit
+) {
+    val visualWidth = transform.width * transform.scaleX
+    val visualHeight = transform.height * transform.scaleY
+    Text("相对于画布对齐", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ObjectToolChip("左") { onChange(transform.copy(x = 0f)) }
+        ObjectToolChip("水平居中") { onChange(transform.copy(x = (canvas.width - visualWidth) / 2f)) }
+        ObjectToolChip("右") { onChange(transform.copy(x = canvas.width - visualWidth)) }
+    }
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ObjectToolChip("顶") { onChange(transform.copy(y = 0f)) }
+        ObjectToolChip("垂直居中") { onChange(transform.copy(y = (canvas.height - visualHeight) / 2f)) }
+        ObjectToolChip("底") { onChange(transform.copy(y = canvas.height - visualHeight)) }
+    }
+}
+
 @Composable
 private fun V2ColorInput(label: String, value: Long, onChange: (Long) -> Unit) {
     var text by remember { mutableStateOf("#%08X".format(value)) }
