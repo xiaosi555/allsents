@@ -162,6 +162,12 @@ data class XingtuV2History(
         return if (updated == document) this else copy(document = updated)
     }
 
+    /** Apply live panel edits without creating one undo entry per slider tick. */
+    fun updateObjectLive(value: XingtuV2Object): XingtuV2History {
+        val updated = XingtuV2Reducer.reduce(document, XingtuV2Action.ReplaceObject(value))
+        return if (updated == document) this else copy(document = updated)
+    }
+
     fun dispatch(action: XingtuV2Action): XingtuV2History {
         val updated = XingtuV2Reducer.reduce(document, action)
         return if (updated == document) this else copy(document = updated, undoStack = undoStack + document, redoStack = emptyList())

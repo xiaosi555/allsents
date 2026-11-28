@@ -408,8 +408,11 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                 tab = activePanel!!,
                 panelHeight = panelHeight,
                 onPanelHeightChange = { panelHeight = it.coerceIn(200f, 400f) },
-                onClose = { activePanel = null },
-                onUpdate = { history = history.dispatch(XingtuV2Action.ReplaceObject(it)) },
+                onClose = {
+                    history = history.endTransform()
+                    activePanel = null
+                },
+                onUpdate = { history = history.updateObjectLive(it) },
                 onReplaceImage = { imagePicker.launch("image/*") }
             )
         } else if (history.document.selectedIds.size > 1) {
@@ -441,15 +444,24 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
             ) {
                 when (selectedObject) {
                     is XingtuV2Object.Text -> listOf("编辑", "字体", "样式", "排版", "透明度", "变换").forEach { tab ->
-                        ObjectToolChip(tab) { activePanel = tab }
+                        ObjectToolChip(tab) {
+                            if (activePanel == null) history = history.beginTransform()
+                            activePanel = tab
+                        }
                     }
                     is XingtuV2Object.Image -> listOf("替换", "裁剪", "调色", "透明度", "变换").forEach { tab ->
                         ObjectToolChip(tab) {
-                            if (tab == "替换") imagePicker.launch("image/*") else activePanel = tab
+                            if (tab == "替换") imagePicker.launch("image/*") else {
+                                if (activePanel == null) history = history.beginTransform()
+                                activePanel = tab
+                            }
                         }
                     }
                     is XingtuV2Object.Component -> listOf("填充", "圆角", "边框", "变换").forEach { tab ->
-                        ObjectToolChip(tab) { activePanel = tab }
+                        ObjectToolChip(tab) {
+                            if (activePanel == null) history = history.beginTransform()
+                            activePanel = tab
+                        }
                     }
                 }
                 ObjectToolChip("图层") { showLayers = !showLayers }
