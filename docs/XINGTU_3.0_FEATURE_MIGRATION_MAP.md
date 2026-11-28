@@ -82,9 +82,9 @@
 - **阶段 0（盘点）**：本表已建立；仍需补全原 WebView HTML/JS 函数、完整工具标签、补丁执行后最终源码与数据模型定义，故阶段 0 暂不标记检查通过。
 - **阶段 A（文章上下文/会话）**：先明确从排版页进入、文章列表打开、新建文章、返回、自动保存的 ID 生命周期；3.0 使用独立会话状态，不能仅复制 Composable。
 - **阶段 B（8 类导航）**：根据本表逐项搬迁 UI，逐条勾选，不删除原能力。
-- **阶段 C（图标）**：建立语义明确的 icon ID 注册表，逐步替换所有字符图标。
-- **阶段 D（面板）**：实现 200–400dp、展开/收起、确定/取消事务。
-- **阶段 E（对象与同步）**：统一 Bridge 对象事件与 Compose 状态。
+- **阶段 C（图标）**：已在 3.0 生成补丁中加入 EditorIconId 注册表和矢量绘制器入口；等待编译与主题视觉验收。
+- **阶段 D（面板）**：已接入 200–400dp 面板边界与 HTML 快照提交/回滚；等待编译及控件副作用验收。
+- **阶段 E（对象与同步）**：已复用结构化选择状态、DOM 稳定 ID、selectionChanged/reportSelection；双向同步覆盖面待运行验收。
 - **阶段 F（图片/图层/排版）**：对图片导入、裁剪、调色、图层顺序、布局参数做回归。
 - **阶段 G（文档与历史）**：保存、撤销重做、模板、导入导出与资源引用。
 - **阶段 H/I**：视觉与全流程验收通过后再构建 APK，并分别记录 CI 与真机状态。
@@ -121,3 +121,28 @@
 - 2026-11-29：读取规范与进度文件；检查原编辑器枚举、Composable 状态、文章保存/加载入口、WebView Bridge、工具面板分支、模板/图层/图片/文档功能、图标生成函数和构建时复制脚本。
 - 2026-11-29：阶段 A/B 的构建补丁已写入 `native-overlay/apply_xingtu_v3_stage_ab.py`，并加入 Android 构建与 Kotlin compile-check 流程；Stage A/B 生成步骤已通过一次 CI 执行，Kotlin 编译和运行验收仍待确认。
 - 本轮没有修改原醒图页面实现、秀米页面实现或普通排版页面实现；仅扩展 3.0 路由分发并生成独立 V3 源码。APK 构建工作流已改为手动触发，本轮未主动构建 APK。
+
+
+## 8. 阶段 C/D/E 实现映射补充（2026-11-29）
+
+### C：图标
+- 3.0 专用补丁新增 `EditorIconId` 语义枚举与 `editorIconId(label)` 映射。
+- 8 个一级分类和常用编辑工具通过 ID 进入统一矢量绘制器；未知标签使用文档类矢量图标兜底，不再使用字符占位。
+- 图标 ID 与原编辑器的字符匹配函数分离；当前仅作用于 V3 生成文件。
+
+### D：二级面板事务
+- 面板高度初始化、展示和拖动限制为 200–400dp。
+- 打开面板时记录当前 HTML；“确定”提交当前预览并触发保存；“取消并恢复”将快照写回 Compose 状态和 WebView。
+- 事务快照目前以文章 HTML 为主；颜色选择器等控件内部状态、图片外部资源副作用、撤销栈合并还需验证，不能提前标记为完整事务验收。
+
+### E：对象身份与同步
+- 复用 `EditorSelectionKind` / `EditorSelectionState`，状态字段包含 kind、objectId、collapsed、x/y/width/height、selectedIds。
+- Bridge 新增 `selectionChanged` JSON 回调；JavaScript 通过 `ensureEditorId` 为 DOM 对象建立稳定身份，并通过 `reportSelection` 汇报当前对象/选区/多选。
+- 既有 block/image/text 回调继续保留，兼容旧功能和现有面板。
+- 当前对象分类覆盖文字段落/文本范围/光标、图片、普通组件、表格、多选；SVG 专门类型及 Compose 图层列表与画布双向选中仍待专项验收。
+- 本阶段只复用和增强编辑器内核；没有修改原醒图页面路由、秀米页面或普通排版页面。
+
+### 构建脚本
+- 新增 `native-overlay/apply_xingtu_v3_stage_cde.py`，由 `.github/workflows/android-compile-check.yml` 和 `.github/workflows/android.yml` 在 Stage A/B 后执行。
+- 修复 `add_xingtu_v3.py` 的具名 `onBack` 调用和排版入口 `TextButton` 全限定引用；Stage A/B 补丁的路由校验同步调整。
+- 当前状态为代码完成待检查；Kotlin 编译、运行和真机行为尚未确认。
