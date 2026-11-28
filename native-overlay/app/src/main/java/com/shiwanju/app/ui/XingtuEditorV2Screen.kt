@@ -130,11 +130,9 @@ fun XingtuEditorV2Screen(onBack: () -> Unit) {
                                         (t.y * scaleY * density).roundToInt()
                                     )
                                 }
-                                .size((t.width * scaleX).dp, (t.height * scaleY).dp)
+                                .size((t.width * t.scaleX * scaleX).dp, (t.height * t.scaleY * scaleY).dp)
                                 .graphicsLayer {
                                     rotationZ = t.rotation
-                                    scaleX = t.scaleX
-                                    scaleY = t.scaleY
                                     alpha = t.alpha.coerceIn(0f, 1f)
                                 }
                                 .then(if (selected) Modifier.border(1.5.dp, colors.primary) else Modifier)
